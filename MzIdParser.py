@@ -417,7 +417,7 @@ class MzIdParser:
                 data.append("X" * db_sequence["length"])
             else:
                 # todo: get sequence
-                data.append("no sequence")
+                data.append("")
 
             data.append(self.upload_id)
 
