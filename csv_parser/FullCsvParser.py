@@ -398,7 +398,7 @@ class FullCsvParser(AbstractCsvParser):
 
                 peptide_evidences.append(pep_evidence1)
 
-            if cross_linked_id_item:
+            if cross_linked_id_item and pep1_id != pep2_id:
                 # peptide evidence - 2
 
                 if pep2_id is None:
