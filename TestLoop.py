@@ -1,5 +1,5 @@
 import ftplib
-import sys
+# import sys
 import json
 import logging
 import psycopg2
@@ -169,10 +169,10 @@ class TestLoop:
                 ftp.login()  # Uses password: anonymous@
                 return ftp
             except:
-                print('FTP fail at '+time.strftime("%c")+'... waiting an hour')
+                print('FTP fail at ' + time.strftime("%c") + '... waiting an hour')
                 time.sleep(60 * 60)
 
-    def get_ftp_file_list (self, dir):
+    def get_ftp_file_list(self, dir):
         ftp = self.get_ftp_login()
         try:
             ftp.cwd(dir)
@@ -198,9 +198,7 @@ class TestLoop:
         return files
 
 
-
 test_loop = TestLoop()
-
 
 # test_loop.year('2018')
 # test_loop.year('2017')
@@ -232,8 +230,6 @@ test_loop.month('2012/12')
 # test_loop.project("2018/06/PXD010000")
 # test_loop.project("2018/11/PXD009966")
 # test_loop.project("2018/10/PXD010121") # good one, raw file with MGF accession number
-
-
 
 
 # mzML
@@ -277,15 +273,15 @@ test_loop.month('2012/12')
 # 2015/06/PXD002050
 # 2015/06/PXD002049
 
-#sim-xl
+# sim-xl
 # test_loop.project("2017/05/PXD006574")
 # test_loop.project("2015/02/PXD001677")
 
-#missing file
+# missing file
 # test_loop.project("2013/09/PXD000443")
 
-#prob
-#test_loop.project("2014/04/PXD000579") # missing file name
+# prob
+# test_loop.project("2014/04/PXD000579") # missing file name
 
 print("mzId count:" + str(test_loop.mzId_count))
 

@@ -78,25 +78,27 @@ def write_mzid_info(peak_list_file_names,
                         bib = (%s) 
                         WHERE id = (%s);""",
                     (peak_list_file_names,
-                    spectra_formats,
-                    analysis_software,
-                    provider,
-                    audits,
-                    samples,
-                    analyses,
-                    protocol,
-                    bib,
-                    upload_id))
+                         spectra_formats,
+                         analysis_software,
+                         provider,
+                         audits,
+                         samples,
+                         analyses,
+                         protocol,
+                         bib,
+                         upload_id))
         con.commit()
     except psycopg2.Error as e:
         raise DBException(e.message)
     return True
 
+
 def write_other_info(upload_id, crosslinks, ident_count, ident_file_size, upload_warnings, cur, con):
     try:
         cur.execute("""UPDATE uploads SET contains_crosslinks = (%s), ident_count = (%s), ident_file_size = (%s)
                 , upload_warnings = (%s)
-                 WHERE id = (%s);""", (crosslinks, ident_count, ident_file_size, json.dumps(upload_warnings), upload_id))
+                 WHERE id = (%s);""",
+                    (crosslinks, ident_count, ident_file_size, json.dumps(upload_warnings), upload_id))
 
         con.commit()
 
@@ -226,7 +228,8 @@ def write_spectra(inj_list, cur, con):
         cur.executemany("""
         INSERT INTO spectra (
         id, 
-        peak_list, 
+        mz,
+        intensity, 
         peak_list_file_name, 
         scan_id, 
         frag_tol, 
@@ -235,7 +238,7 @@ def write_spectra(inj_list, cur, con):
         precursor_mz,
         precursor_charge
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""", inj_list)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""", inj_list)
         con.commit()
 
     except psycopg2.Error as e:

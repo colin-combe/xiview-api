@@ -1,5 +1,5 @@
 import SQLite
-
+import glob
 
 def update_database(con, db_name):
 
@@ -33,8 +33,6 @@ def update_database(con, db_name):
 
     return True
 
-
-import glob
 
 for db_name in glob.glob("./dbs/saved/*.db"):
     con = SQLite.connect(db_name)

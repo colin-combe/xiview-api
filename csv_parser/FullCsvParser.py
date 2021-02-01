@@ -39,7 +39,6 @@ class FullCsvParser(AbstractCsvParser):
         'calcmz'
     ]
 
-
     def main_loop(self):
         main_loop_start_time = time()
         self.logger.info('main loop - start')
@@ -77,7 +76,7 @@ class FullCsvParser(AbstractCsvParser):
             try:
                 rank = int(id_item['rank'])
             except KeyError:
-                rank = 1    # ToDo: create default values in parse()
+                rank = 1  # ToDo: create default values in parse()
             except ValueError:
                 raise CsvParseException('Invalid rank: %s for row: %s' % (id_item['rank'], row_number))
 
@@ -137,22 +136,23 @@ class FullCsvParser(AbstractCsvParser):
             try:
                 cross_link_mod_mass = float(id_item['crosslinkermodmass'])
             except ValueError:
-                raise CsvParseException('Invalid CrossLinkerModMass: %s for row: %s' % (id_item['crosslinkermodmass'], row_number))
+                raise CsvParseException(
+                    'Invalid CrossLinkerModMass: %s for row: %s' % (id_item['crosslinkermodmass'], row_number))
 
             # charge
             try:
                 charge = int(id_item['charge'])
             except ValueError:
-                #raise CsvParseException('Invalid charge state: %s for row: %s' % (id_item['charge'], row_number))
-                #self.warnings.append("Missing charge state.")
+                # raise CsvParseException('Invalid charge state: %s for row: %s' % (id_item['charge'], row_number))
+                # self.warnings.append("Missing charge state.")
                 charge = None
-
 
             # passthreshold
             if isinstance(id_item['passthreshold'], bool):
                 pass_threshold = id_item['passthreshold']
             else:
-                raise CsvParseException('Invalid passThreshold value: %s for row: %s' % (id_item['passthreshold'], row_number))
+                raise CsvParseException(
+                    'Invalid passThreshold value: %s for row: %s' % (id_item['passthreshold'], row_number))
 
             # fragmenttolerance
             if not re.match('^([0-9.]+) (ppm|Da)$', str(id_item['fragmenttolerance'])):
@@ -171,7 +171,7 @@ class FullCsvParser(AbstractCsvParser):
                 'x',
                 'y',
                 'z',
-                '' # split will add an empty sell if string ends with ';'
+                ''  # split will add an empty sell if string ends with ';'
             ]
             if any([True for ion in ions if ion not in valid_ions]):
                 raise CsvParseException(
@@ -252,7 +252,6 @@ class FullCsvParser(AbstractCsvParser):
             if len(is_decoy_list2) != len(protein_list2):
                 is_decoy_list2 = [is_decoy_list2[0]] * len(protein_list2)
 
-
             # pepPos2 - if pepPos2 is not set fill list with default value (-1)
             # ToDo: might need changing for xiUI where pepPos is not optional
             if id_item['peppos2'] == -1:
@@ -273,7 +272,7 @@ class FullCsvParser(AbstractCsvParser):
             try:
                 scan_id = int(id_item['scanid'])
             except ValueError:
-                #raise CsvParseException('Invalid scanid: %s in row %s' % (id_item['scanid'], row_number))
+                # raise CsvParseException('Invalid scanid: %s in row %s' % (id_item['scanid'], row_number))
                 scan_id = -1
 
             # peakListFilename
@@ -315,18 +314,41 @@ class FullCsvParser(AbstractCsvParser):
                     precursor_mz = scan['precursor']['mz']
                     precursor_charge = scan['precursor']['charge']
 
-                spectrum = [
-                    spectrum_id,                    # 'id',
-                    peak_list,                      # 'peak_list',
-                    peak_list_file_name,            # 'peak_list_file_name',
-                    scan_id,                        # 'scan_id',
-                    fragment_tolerance,             # 'frag_tol',
-                    self.upload_id,                 # 'upload_id',
-                    'Spec_%s' % spectrum_id,        # 'spectrum_ref'
-                    precursor_mz,                   # 'precursor_mz',
-                    precursor_charge,               # 'precursor_charge'
-                ]
-                spectra.append(spectrum)
+                    mz = []
+                    intensity = []
+
+                    if peak_list:
+                        peak_list = peak_list.strip()
+                        chunks = re.split('\n+', peak_list)
+                        # print(chunks);
+                        try:
+                            for peak in chunks:
+                                # print(peak)
+                                peak.strip()
+                                if len(peak) != 0:
+                                    values = re.split('\s', peak)
+                                    # print('mz:' + values[0] + ' int:' + values[1])
+                                    mz.append(float(values[0]))
+                                    intensity.append(float(values[1]))
+                        except ValueError as ve:
+                            print('Error {ve}')
+                            print(peak_list)
+                            print(len(mz))
+                            print(len(intensity))
+
+                    spectrum = [
+                        spectrum_id,                    # 'id',
+                        mz,                             # 'peak_list',
+                        intensity,                      # 'peak_list',
+                        peak_list_file_name,            # 'peak_list_file_name',
+                        scan_id,                        # 'scan_id',
+                        fragment_tolerance,             # 'frag_tol',
+                        self.upload_id,                 # 'upload_id',
+                        'Spec_%s' % spectrum_id,        # 'spectrum_ref'
+                        precursor_mz,                   # 'precursor_mz',
+                        precursor_charge,               # 'precursor_charge'
+                    ]
+                    spectra.append(spectrum)
             else:
                 spectrum_id = seen_spectra.index(unique_spec_identifier)
 
@@ -390,7 +412,7 @@ class FullCsvParser(AbstractCsvParser):
                 pep_evidence1 = [
                     pep1_id,                # peptide_ref
                     protein_list1[i],       # dbsequence_ref - ToDo: might change to numerical id
-                    accession,       # protein_accession
+                    accession,              # protein_accession
                     pep_pos_list1[i],       # pep_start
                     is_decoy_list1[i],      # is_decoy
                     self.upload_id          # upload_id
@@ -414,7 +436,7 @@ class FullCsvParser(AbstractCsvParser):
                     pep_evidence2 = [
                         pep2_id,                # peptide_ref
                         protein_list2[i],       # dbsequence_ref - ToDo: might change to numerical id
-                        accession,       # protein_accession
+                        accession,              # protein_accession
                         pep_pos_list2[i],       # pep_start
                         is_decoy_list2[i],      # is_decoy
                         self.upload_id          # upload_id
@@ -472,7 +494,6 @@ class FullCsvParser(AbstractCsvParser):
                 if mod not in self.unknown_mods:
                     self.unknown_mods.append(mod)
 
-
         # DBSEQUENCES
         # if self.fasta:
         db_sequences = []
@@ -490,7 +511,6 @@ class FullCsvParser(AbstractCsvParser):
                     data = [prot, prot, prot, "", None, self.upload_id]
 
             db_sequences.append(data)
-
 
         # end main loop
         self.logger.info('main loop - done. Time: ' + str(round(time() - main_loop_start_time, 2)) + " sec")

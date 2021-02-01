@@ -4,7 +4,7 @@ from time import time
 import pandas as pd
 from PeakListParser import PeakListParser
 import os
-#import pyteomics.fasta as py_fasta
+# import pyteomics.fasta as py_fasta
 import SimpleFASTA
 
 
@@ -110,8 +110,6 @@ class AbstractCsvParser:
                 except KeyError:
                     pass
 
-
-
         # check required cols
         # for required_col in self.required_cols:
         #     if required_col not in self.csv_reader.columns:
@@ -138,7 +136,6 @@ class AbstractCsvParser:
             if required_col not in self.csv_reader.columns:
                 missing_cols.append(required_col)
         return missing_cols
-
 
     # ToDo: not used atm - can be used for checking if all files are present in temp dir
     def get_peak_list_file_names(self):
@@ -167,11 +164,11 @@ class AbstractCsvParser:
 
             # ToDo: what about .ms2?
             if peak_list_file_name.lower().endswith('.mgf'):
-                file_format_accession = 'MS:1001062'        # MGF
+                file_format_accession = 'MS:1001062'  # MGF
                 spectrum_id_format_accesion = 'MS:1000774'  # MS:1000774 multiple peak list nativeID format - zero based
 
             elif peak_list_file_name.lower().endswith('.mzml'):
-                file_format_accession = 'MS:1000584'        # mzML
+                file_format_accession = 'MS:1000584'  # mzML
                 spectrum_id_format_accesion = 'MS:1001530'  # mzML unique identifier
             else:
                 raise CsvParseException("Unsupported peak list file type for: %s" % peak_list_file_name)
@@ -208,8 +205,8 @@ class AbstractCsvParser:
         if self.peak_list_dir:
             self.set_peak_list_readers()
 
-        self.upload_info() # overridden (empty function) in xiSPEC subclass
-        self.parse_db_sequences() # overridden (empty function) in xiSPEC subclass
+        self.upload_info()  # overridden (empty function) in xiSPEC subclass
+        self.parse_db_sequences()  # overridden (empty function) in xiSPEC subclass
         self.main_loop()
 
         meta_col_names = [col.replace("meta_", "") for col in self.meta_columns]
@@ -219,8 +216,6 @@ class AbstractCsvParser:
         self.db.write_meta_data(meta_data, self.cur, self.con)
 
         self.logger.info('all done! Total time: ' + str(round(time() - start_time, 2)) + " sec")
-
-
 
     # @staticmethod
     # def get_unimod_masses(unimod_path):
@@ -249,10 +244,9 @@ class AbstractCsvParser:
         # ident_file_size = os.path.getsize(self.csv_path)
         # peak_list_file_names = json.dumps(self.get_peak_list_file_names(), cls=NumpyEncoder)
         self.upload_id = self.db.new_upload([self.user_id, os.path.basename(self.csv_path), "-"],
-                       self.cur, self.con,
-                       )
+                                            self.cur, self.con,
+                                            )
         self.random_id = self.db.get_random_id(self.upload_id, self.cur, self.con)
-
 
 # class NumpyEncoder(json.JSONEncoder):
 #     def default(self, obj):

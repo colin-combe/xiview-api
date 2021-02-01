@@ -19,6 +19,7 @@ class MzIdParser:
     """
 
     """
+
     def __init__(self, mzid_path, temp_dir, peak_list_dir, db, logger, db_name='', user_id=0,
                  origin=''):
         """
@@ -263,7 +264,7 @@ class MzIdParser:
                 for file_name in file_names:
                     os.path.join(root, file_name)
                     if file_name.lower().endswith('.mzid'):
-                        return_file_list.append(root+'/'+file_name)
+                        return_file_list.append(root + '/' + file_name)
                     else:
                         raise IOError('unsupported file type: %s' % file_name)
 
@@ -327,7 +328,8 @@ class MzIdParser:
                     frag_tol_unit = frag_tol_plus['unit']
 
                 if not all([
-                    frag_tol['search tolerance plus value']['value'] == frag_tol['search tolerance minus value']['value'],
+                    frag_tol['search tolerance plus value']['value'] == frag_tol['search tolerance minus value'][
+                        'value'],
                     frag_tol['search tolerance plus value']['unit'] == frag_tol['search tolerance minus value']['unit']
                 ]):
                     self.warnings.append(
@@ -398,7 +400,7 @@ class MzIdParser:
             # name, optional elem att
             if "name" in db_sequence:
                 data.append(db_sequence["name"])
-            else :
+            else:
                 data.append(db_sequence["accession"])
 
             # description, officially not there?
@@ -495,7 +497,8 @@ class MzIdParser:
                             # join modifications into one for multiple modifications on the same aa
                             if not cur_mod['Modification'] == '':
                                 mod['name'] = '_'.join(sorted([cur_mod['Modification'], mod['name']], key=str.lower))
-                                cur_mod_mass = [x['monoisotopicMassDelta'] for x in self.modlist if x['name'] == cur_mod['Modification']][0]
+                                cur_mod_mass = [x['monoisotopicMassDelta'] for x in self.modlist if
+                                                x['name'] == cur_mod['Modification']][0]
                                 mod['monoisotopicMassDelta'] += cur_mod_mass
 
                             # save to all mods list and get back new_name
@@ -509,7 +512,7 @@ class MzIdParser:
                             raise MzIdParseException("Missing modification name")
 
                     # add CL locations
-                    if 'cross-link donor' in mod.keys() or 'cross-link acceptor' in mod.keys()\
+                    if 'cross-link donor' in mod.keys() or 'cross-link acceptor' in mod.keys() \
                             or 'cross-link receiver' in mod.keys():
                         # use mod['location'] for link-site (1-based in database in line with mzIdentML specifications)
                         link_site = mod['location']
@@ -596,14 +599,14 @@ class MzIdParser:
 
             pep_start = -1
             if "start" in peptide_evidence:
-                pep_start = peptide_evidence["start"]    # start att, optional
+                pep_start = peptide_evidence["start"]  # start att, optional
 
             is_decoy = False
             if "isDecoy" in peptide_evidence:
-                is_decoy = peptide_evidence["isDecoy"]   # isDecoy att, optional
+                is_decoy = peptide_evidence["isDecoy"]  # isDecoy att, optional
 
             # peptide_ref = self.peptide_id_lookup[peptide_evidence["peptide_ref"]]
-            peptide_ref = peptide_evidence["peptide_ref"]     # debug use mzid peptide['id'],
+            peptide_ref = peptide_evidence["peptide_ref"]  # debug use mzid peptide['id'],
 
             data = [
                 peptide_ref,                                                 # 'peptide_ref',
@@ -683,17 +686,41 @@ class MzIdParser:
                     precursor_mz = None
                     precursor_charge = None
 
+                peak_list = scan['peaks']
+                mz = []
+                intensity = []
+
+                if peak_list:
+                    peak_list = peak_list.strip()
+                    chunks = re.split('\n+', peak_list)
+                    # print(chunks);
+                    try:
+                        for peak in chunks:
+                            # print(peak)
+                            peak.strip()
+                            if len(peak) != 0:
+                                values = re.split('\s', peak)
+                                # print('mz:' + values[0] + ' int:' + values[1])
+                                mz.append(float(values[0]))
+                                intensity.append(float(values[1]))
+                    except ValueError as ve:
+                        print('Error {ve}')
+                        print(peak_list)
+                        print(len(mz))
+                        print(len(intensity))
+
                 spectra.append([
-                        spec_id,
-                        scan['peaks'],
-                        ntpath.basename(peak_list_reader.peak_list_path),
-                        str(scan_id),
-                        protocol['fragmentTolerance'],
-                        self.upload_id,
-                        sid_result['id'],
-                        precursor_mz,
-                        precursor_charge
-                    ])
+                    spec_id,
+                    mz,
+                    intensity,
+                    ntpath.basename(peak_list_reader.peak_list_path),
+                    str(scan_id),
+                    protocol['fragmentTolerance'],
+                    self.upload_id,
+                    sid_result['id'],
+                    precursor_mz,
+                    precursor_charge
+                ])
 
             spectrum_ident_dict = dict()
             linear_index = -1  # negative index values for linear peptides
@@ -893,7 +920,7 @@ class MzIdParser:
         try:
             analyses = json.dumps(self.mzid_reader.iterfind('AnalysisCollection').next()['SpectrumIdentification'])
         except StopIteration:
-            analyses = '{}' # could legitimately throw error here instead, its required
+            analyses = '{}'  # could legitimately throw error here instead, its required
         except Exception as e:
             raise MzIdParseException(type(e).__name__, e.args)
         self.mzid_reader.reset()
@@ -904,7 +931,7 @@ class MzIdParser:
             protocols = json.dumps(protocol_collection['SpectrumIdentificationProtocol'],
                                    cls=NumpyEncoder)
         except StopIteration:
-            protocols = '{}' # could legitimately throw error here instead, its required
+            protocols = '{}'  # could legitimately throw error here instead, its required
         except Exception as e:
             raise MzIdParseException(type(e).__name__, e.args)
         self.mzid_reader.reset()
@@ -928,7 +955,7 @@ class MzIdParser:
                                 self.upload_id, self.cur, self.con)
 
         self.logger.info('getting upload info - done  Time: {} sec'.format(
-                round(time() - upload_info_start_time, 2)))
+            round(time() - upload_info_start_time, 2)))
 
     def fill_in_missing_scores(self):
         pass

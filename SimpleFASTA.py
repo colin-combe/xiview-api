@@ -1,5 +1,6 @@
 import re
 
+
 def get_db_sequence_dict(fasta_file_list):
     db_sequence_dict = {}
     identifier = None
@@ -13,7 +14,7 @@ def get_db_sequence_dict(fasta_file_list):
                     if identifier is not None:
                         add_entry(identifier, sequence, description, db_sequence_dict)
 
-                        #clear sequence
+                        # clear sequence
                         sequence = ""
 
                     # get new identifier
@@ -21,9 +22,9 @@ def get_db_sequence_dict(fasta_file_list):
                     if " " not in line:
                         identifier = line[1:].rstrip()
                     else:
-                        iFirstSpace = line.index(" ")
-                        identifier = line[1:iFirstSpace].rstrip()
-                        description = line[iFirstSpace:].rstrip()
+                        i_first_space = line.index(" ")
+                        identifier = line[1:i_first_space].rstrip()
+                        description = line[i_first_space:].rstrip()
                 else:
                     sequence += line.rstrip()
 

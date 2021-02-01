@@ -120,7 +120,7 @@ class Reader(object):
         seeker = open(self.info['filename'], 'rb')
 
         self.info['offsets'] = None
-        seeker.seek(0, 2) #  what's this for? - cc
+        seeker.seek(0, 2)  # what's this for? - cc
 
         self._build_index_from_scratch(seeker)
 
@@ -155,8 +155,6 @@ class Reader(object):
             spec_positions.append((scan_start_pos, pos))
 
             return spec_positions
-
-
 
             # go to start of file
             # fh.seek(0)
@@ -252,4 +250,3 @@ class Reader(object):
                     raise Exception("Error parsing precursor from scan")
 
         return precursor
-

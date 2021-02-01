@@ -265,19 +265,18 @@ class LinksOnlyCsvParser(AbstractCsvParser):
         db_sequences = []
         for prot in proteins:
             try:
-                #data = [prot] + self.fasta[prot] + [self.upload_id]
+                # data = [prot] + self.fasta[prot] + [self.upload_id]
                 temp = self.fasta[prot]
-                data = [prot, temp[0], temp[1], temp[2], temp[3], self.upload_id] # surely there's a better way
+                data = [prot, temp[0], temp[1], temp[2], temp[3], self.upload_id]  # surely there's a better way
             except Exception as ke:
                 sp_regex = re.compile('(.*)\|(.*)\|(.*)')
                 matches = sp_regex.search(prot)
                 if matches is not None:
                     data = [matches.group(), matches.group(2), matches.group(3), "", None, self.upload_id]
-                else :
+                else:
                     data = [prot, prot, prot, "", None, self.upload_id]
 
             db_sequences.append(data)
-
 
         # end main loop
         self.logger.info('main loop - done. Time: ' + str(round(time() - main_loop_start_time, 2)) + " sec")

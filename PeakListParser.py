@@ -25,7 +25,7 @@ class PeakListParser:
         self.peak_list_file_name = os.path.split(pl_path)[1]
 
         try:
-            if self.is_mzML():
+            if self.is_mzml():
                 self.reader = pymzml.run.Reader(pl_path)
             elif self.is_mgf():
                 self.reader = py_mgf.Reader(pl_path)
@@ -34,18 +34,18 @@ class PeakListParser:
             else:
                 self.reader = None
         except Exception as e:
-            message = "Error reading peak list file {0}: {1} - Arguments:\n{2!r}".format(self.peak_list_file_name, type(e).__name__, e.args)
+            message = "Error reading peak list file {0}: {1} - Arguments:\n{2!r}".format(self.peak_list_file_name,
+                                                                                         type(e).__name__, e.args)
             raise PeakListParseError(message)
 
     def is_mgf(self):
         return self.file_format_accession == 'MS:1001062'
 
-    def is_mzML(self):
+    def is_mzml(self):
         return self.file_format_accession == 'MS:1000584'
 
     def is_ms2(self):
         return self.file_format_accession == 'MS:1001466'
-
 
     @staticmethod
     def extract_gz(in_file):
@@ -97,16 +97,18 @@ class PeakListParser:
 
     def get_scan(self, scan_id):
         if self.reader is None:
-            raise PeakListParseError("unsupported peak list file type for: %s" % ntpath.basename(self.peak_list_file_name))
+            raise PeakListParseError(
+                "unsupported peak list file type for: %s" % ntpath.basename(self.peak_list_file_name))
 
         try:
             scan = self.reader[scan_id]
         except Exception as e:
             # raise ScanNotFoundException(type(e).__name__,
             #                             ntpath.basename(self.peak_list_path), e.args)
-            raise ScanNotFoundException("%s - for file: %s - scanId: %s" % (e.args[0], ntpath.basename(self.peak_list_path), scan_id))
+            raise ScanNotFoundException(
+                "%s - for file: %s - scanId: %s" % (e.args[0], ntpath.basename(self.peak_list_path), scan_id))
 
-        if self.is_mzML():
+        if self.is_mzml():
             peak_list = "\n".join(["%s %s" % (mz, i) for mz, i in scan.peaks if i > 0])
             precursor = None
             if 'precursors' in scan:
@@ -126,7 +128,6 @@ class PeakListParser:
         }
 
         return scan
-
 
     def parse_scan_id(self, spec_id):
 
@@ -245,4 +246,3 @@ class PeakListParser:
             # spec_id = match.group(2)
 
         return spec_id
-
