@@ -13,7 +13,7 @@ dbs/saved/*
 log/*
 !log/.gitkeep
 
-test\.db
+tests/test.db
 dbs/xiSPEC\.db
 
 test\.py
