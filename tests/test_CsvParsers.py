@@ -45,8 +45,8 @@ def test_links_only_csv_parser_postgres(tmpdir):
     # file paths
     fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'csv_parser',
                                 'linksonly_csv')
-    csv = os.path.join(fixtures_dir, 'NPC.csv')
-    fasta_file = os.path.join(fixtures_dir, 'NPC.fasta')
+    csv = os.path.join(fixtures_dir, 'results.csv')
+    fasta_file = os.path.join(fixtures_dir, 'results.fasta')
     # copy fasta file to tmpdir so it is being read by the parser
     copyfile(fasta_file, os.path.join(str(tmpdir), ntpath.basename(fasta_file)))
 
@@ -60,7 +60,7 @@ def test_links_only_csv_parser_postgres(tmpdir):
     cmd = "pg_dump -d xitest -U xiadmin > " + test_dump
     subprocess.call(cmd, shell=True)
 
-    expected_dump = os.path.join(fixtures_dir, 'NPC.sql')
+    expected_dump = os.path.join(fixtures_dir, 'results.sql')
     compare_postgresql_dumps(expected_dump, test_dump)
 
 
