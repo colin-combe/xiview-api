@@ -8,20 +8,22 @@ def compare_postgresql_dumps(dump1, dump2):
     :param dump1: path to postgresql dump to compare.
     :param dump2: path to postgresql dump to compare.
     """
-    # read the expected non-empty non-comment lines
-    expected_lines = []
-    with open(dump1, 'r') as expected:
-        for line in expected.readlines():
-            if not line.startswith('--') and not re.match(r'^\s*$', line):
-                expected_lines.append(line)
+    def read_sql_dump(dump):
+        # read the expected non-empty non-comment lines
+        lines = []
+        with open(dump, 'r') as dump_file:
+            for line in dump_file.readlines():
+                if not line.startswith('--') and not re.match(r'^\s*$', line):
+                    lines.append(line)
+        return lines
 
-    # compare the dump with the expected result
-    with open(dump2, 'r') as test:
-        c = 0
-        for i, line in enumerate(test.readlines()):
-            if not line.startswith('--') and not re.match(r'^\s*$', line):
-                assert line == expected_lines[c]
-                c += 1
+    dump1 = read_sql_dump(dump1)
+    dump2 = read_sql_dump(dump2)
+
+    assert len(dump1) == len(dump2)
+
+    for d1, d2 in zip(dump1, dump2):
+        assert d1 == d2
 
 
 def compare_databases(expected_cur, test_cur):
