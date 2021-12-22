@@ -24,3 +24,5 @@ parser\.py3
 credentials.py
 
 *.pyc
+
+test.db

@@ -6,18 +6,21 @@ class DBException(Exception):
     pass
 
 
-def connect(_):
+def connect(dbname):
     import credentials
+    # only psql tests have the name set, otherwise get it from the credentials.
+    if dbname == '':
+        dbname = credentials.database
     try:
         con = psycopg2.connect(host=credentials.hostname, user=credentials.username,
-                               password=credentials.password, dbname=credentials.database)
+                               password=credentials.password, dbname=dbname)
     except psycopg2.Error as e:
         raise DBException(e.message)
 
     return con
 
 
-def create_tables(cur, con):
+def create_tables(*_):
     """
     Don't create tables here
     use file postgreSQL_schema.sql to init db

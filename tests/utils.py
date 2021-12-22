@@ -1,13 +1,18 @@
 import subprocess
 import os
+import credentials
 
 
 def recreate_db():
     # drop and recreate the postgresql database
-    if subprocess.call("dropdb --if-exists -U xiadmin xitest", shell=True) != 0:
-        raise subprocess.CalledProcessError
-    if subprocess.call("createdb -U xiadmin xitest", shell=True) != 0:
-        raise subprocess.CalledProcessError
+
+    try:
+        subprocess.call("dropdb --if-exists -U %s ximzid_unittests" % credentials.username,
+                        shell=True)
+    except subprocess.CalledProcessError as e:
+        raise e
+    subprocess.call("createdb -U %s ximzid_unittests" % credentials.username, shell=True)
     schema = os.path.join(os.path.dirname(__file__), '..', 'parser', 'database',
                           'postgreSQL_schema.sql')
-    subprocess.call("psql -U xiadmin -d xitest < " + schema, shell=True)
+    subprocess.call("psql -U %s -d ximzid_unittests < %s" % (credentials.username, schema),
+                    shell=True)

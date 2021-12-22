@@ -27,13 +27,14 @@ def test_full_csv_parser_postgres_mgf(tmpdir):
     copyfile(fasta_file, os.path.join(str(tmpdir), ntpath.basename(fasta_file)))
 
     # parse the csv file
-    id_parser = FullCsvParser(csv, str(tmpdir), peak_list_folder, PostgreSQL, logger, user_id=0)
+    id_parser = FullCsvParser(csv, str(tmpdir), peak_list_folder, PostgreSQL, logger,
+                              db_name='ximzid_unittests', user_id=0)
     id_parser.check_required_columns()
     id_parser.parse()
 
     # dump the postgresql to file
     test_dump = os.path.join(str(tmpdir), 'test.sql')
-    cmd = "pg_dump -d xitest -U xiadmin > " + test_dump
+    cmd = "pg_dump -d ximzid_unittests -U xiadmin > " + test_dump
     subprocess.call(cmd, shell=True)
 
     expected_dump = os.path.join(fixtures_dir, 'polII_db_dump.sql')
@@ -51,13 +52,14 @@ def test_links_only_csv_parser_postgres(tmpdir):
     copyfile(fasta_file, os.path.join(str(tmpdir), ntpath.basename(fasta_file)))
 
     # parse the csv file
-    id_parser = LinksOnlyCsvParser(csv, str(tmpdir), None, PostgreSQL, logger, user_id=0)
+    id_parser = LinksOnlyCsvParser(csv, str(tmpdir), None, PostgreSQL, logger,
+                                   db_name='ximzid_unittests', user_id=0)
     id_parser.check_required_columns()
     id_parser.parse()
 
     # dump the postgresql to file
     test_dump = os.path.join(str(tmpdir), 'test.sql')
-    cmd = "pg_dump -d xitest -U xiadmin > " + test_dump
+    cmd = "pg_dump -d ximzid_unittests -U xiadmin > " + test_dump
     subprocess.call(cmd, shell=True)
 
     expected_dump = os.path.join(fixtures_dir, 'results.sql')
@@ -75,7 +77,8 @@ def test_no_peak_list_csv_parser_postgres(tmpdir):
     copyfile(fasta_file, os.path.join(str(tmpdir), ntpath.basename(fasta_file)))
 
     # parse the csv file
-    id_parser = NoPeakListsCsvParser(csv, str(tmpdir), None, PostgreSQL, logger, user_id=0)
+    id_parser = NoPeakListsCsvParser(csv, str(tmpdir), None, PostgreSQL, logger,
+                                     db_name='ximzid_unittests', user_id=0)
 
     # id_parser = FullCsvParser(csv, str(tmpdir), peak_list_folder, PostgreSQL, logger, user_id=0)
     id_parser.check_required_columns()
@@ -83,7 +86,7 @@ def test_no_peak_list_csv_parser_postgres(tmpdir):
 
     # dump the postgresql to file
     test_dump = os.path.join(str(tmpdir), 'test.sql')
-    cmd = "pg_dump -d xitest -U xiadmin > " + test_dump
+    cmd = "pg_dump -d ximzid_unittests -U xiadmin > " + test_dump
     subprocess.call(cmd, shell=True)
 
     expected_dump = os.path.join(fixtures_dir, 'polII_nopeaklist_dump.sql')

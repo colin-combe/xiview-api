@@ -53,7 +53,7 @@ class MzIdParser:
 
         self.spectra_data_protocol_map = {}
         # ToDo: Might change to pyteomics unimod obo module
-        self.unimod_path = '../obo/unimod.obo'
+        self.unimod_path = os.path.abspath('obo/unimod.obo')
 
         # ToDo: modifications might be globally stored in mzIdentML under
         # ToDo: AnalysisProtocolCollection->SpectrumIdentificationProtocol->ModificationParams

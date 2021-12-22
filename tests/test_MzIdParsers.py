@@ -1,3 +1,4 @@
+import credentials
 from parser import MzIdParser
 import os
 from parser.database import PostgreSQL, SQLite
@@ -21,13 +22,13 @@ def test_mzid_parser_postgres_mgf(tmpdir):
 
     # parse the mzid file
     id_parser = MzIdParser.MzIdParser(mzid, str(tmpdir), peak_list_folder, PostgreSQL, logger,
-                                      user_id=0)
+                                      db_name='ximzid_unittests', user_id=0)
     id_parser.initialise_mzid_reader()
     id_parser.parse()
 
     # dump the postgresql to file
     test_dump = os.path.join(str(tmpdir), 'test.sql')
-    cmd = "pg_dump -d xitest -U xiadmin > " + test_dump
+    cmd = "pg_dump -d ximzid_unittests -U %s > " % credentials.username + test_dump
     subprocess.call(cmd, shell=True)
 
     expected_dump = os.path.join(fixtures_dir, 'mgf_ecoli_dsso_db_dump.sql')
@@ -43,13 +44,13 @@ def test_mzid_parser_postgres_mzml(tmpdir):
 
     # parse the mzid file
     id_parser = MzIdParser.MzIdParser(mzid, str(tmpdir), peak_list_folder, PostgreSQL, logger,
-                                      user_id=0)
+                                      db_name='ximzid_unittests', user_id=0)
     id_parser.initialise_mzid_reader()
     id_parser.parse()
 
     # dump the postgresql to file
     test_dump = os.path.join(str(tmpdir), 'test.sql')
-    cmd = "pg_dump -d xitest -U xiadmin > " + test_dump
+    cmd = "pg_dump -d ximzid_unittests -U %s > " % credentials.username + test_dump
     subprocess.call(cmd, shell=True)
 
     expected_dump = os.path.join(fixtures_dir, 'mzml_ecoli_dsso_db_dump.sql')
