@@ -4,8 +4,8 @@ import os
 from parser.database import PostgreSQL, SQLite
 import logging
 import subprocess
-from compare import compare_postgresql_dumps, compare_databases
-from utils import recreate_db
+from .compare import compare_postgresql_dumps, compare_databases
+from .utils import recreate_db
 
 
 logging.basicConfig(level=logging.DEBUG,

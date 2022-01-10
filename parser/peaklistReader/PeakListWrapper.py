@@ -59,7 +59,7 @@ class PeakListWrapper:
             return in_file
 
         else:
-            raise StandardError("unsupported file extension for: %s" % in_file)
+            raise BaseException("unsupported file extension for: %s" % in_file)
 
     @staticmethod
     def unzip_peak_lists(zip_file, out_path='.'):
@@ -79,7 +79,7 @@ class PeakListWrapper:
             return unzip_path
 
         else:
-            raise StandardError("unsupported file extension for: %s" % zip_file)
+            raise BaseException("unsupported file extension for: %s" % zip_file)
 
     @staticmethod
     def get_ion_types_mzml(scan):

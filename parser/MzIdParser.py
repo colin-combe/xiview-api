@@ -8,7 +8,7 @@ from parser.peaklistReader.PeakListWrapper import PeakListWrapper
 import zipfile
 import gzip
 import os
-from NumpyEncoder import NumpyEncoder
+from .NumpyEncoder import NumpyEncoder
 
 
 class MzIdParseException(Exception):
@@ -184,18 +184,18 @@ class MzIdParser:
         # SpectrumIDFormat
         if 'SpectrumIDFormat' not in sp_datum or sp_datum['SpectrumIDFormat'] is None:
             raise MzIdParseException('SpectraData is missing SpectrumIdFormat')
-        if isinstance(sp_datum['SpectrumIDFormat'], basestring):
-            raise MzIdParseException('SpectraData/SpectrumIdFormat is missing accession')
-        if sp_datum['SpectrumIDFormat']['accession'] is None:
-            raise MzIdParseException('SpectraData/SpectrumIdFormat is missing accession')
+        if not hasattr(sp_datum['SpectrumIDFormat'], 'accession'):
+            raise MzIdParseException('SpectraData.SpectrumIdFormat is missing accession')
+        if sp_datum['SpectrumIDFormat'].accession is None:
+            raise MzIdParseException('SpectraData.SpectrumIdFormat is missing accession')
 
         # FileFormat
         if 'FileFormat' not in sp_datum or sp_datum['FileFormat'] is None:
             raise MzIdParseException('SpectraData is missing FileFormat')
-        if isinstance(sp_datum['FileFormat'], basestring):
-            raise MzIdParseException('SpectraData/SpectrumIdFormat is missing accession')
-        if sp_datum['FileFormat']['accession'] is None:
-            raise MzIdParseException('SpectraData/FileFormat is missing accession')
+        if not hasattr(sp_datum['FileFormat'], 'accession'):
+            raise MzIdParseException('SpectraData.FileFormat is missing accession')
+        if sp_datum['FileFormat'].accession is None:
+            raise MzIdParseException('SpectraData.FileFormat is missing accession')
 
         # location
         if 'location' not in sp_datum or sp_datum['location'] is None:
@@ -269,7 +269,7 @@ class MzIdParser:
                         raise IOError('unsupported file type: %s' % file_name)
 
             if len(return_file_list) > 1:
-                raise StandardError("more than one mzid file found!")
+                raise BaseException("more than one mzid file found!")
 
             return return_file_list[0]
 
@@ -280,7 +280,7 @@ class MzIdParser:
             try:
                 out_f.write(in_f.read())
             except IOError:
-                raise StandardError('Zip archive error: %s' % archive)
+                raise BaseException('Zip archive error: %s' % archive)
 
             in_f.close()
             out_f.close()
@@ -288,7 +288,7 @@ class MzIdParser:
             return archive
 
         else:
-            raise StandardError('unsupported file type: %s' % archive)
+            raise BaseException('unsupported file type: %s' % archive)
 
     def map_spectra_data_to_protocol(self):
         """
@@ -412,7 +412,7 @@ class MzIdParser:
             # searchDatabase_ref
 
             # Seq is optional child elem of DBSequence
-            if "Seq" in db_sequence and isinstance(db_sequence["Seq"], basestring):
+            if "Seq" in db_sequence and isinstance(db_sequence["Seq"], str):
                 seq = db_sequence["Seq"]
                 data.append(seq)
             elif "length" in db_sequence:
@@ -751,7 +751,7 @@ class MzIdParser:
                     pass_threshold = spec_id_item['passThreshold']
                     # ToDo: refactor with MS: cv Param list of all scores
                     scores = {
-                        k: v for k, v in spec_id_item.iteritems()
+                        k: v for k, v in spec_id_item.items()
                         if 'score' in k.lower() or
                            'pvalue' in k.lower() or
                            'evalue' in k.lower() or

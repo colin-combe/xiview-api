@@ -4,8 +4,8 @@ from parser.database import PostgreSQL, SQLite
 import logging
 from parser.peaklistReader.PeakListWrapper import PeakListWrapper
 import subprocess
-from compare import compare_postgresql_dumps, compare_databases
-from utils import recreate_db
+from .compare import compare_postgresql_dumps, compare_databases
+from .utils import recreate_db
 from shutil import copyfile
 import ntpath
 

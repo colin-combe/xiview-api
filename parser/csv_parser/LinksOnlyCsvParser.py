@@ -1,5 +1,5 @@
-from AbstractCsvParser import AbstractCsvParser
-from AbstractCsvParser import CsvParseException
+from .AbstractCsvParser import AbstractCsvParser
+from .AbstractCsvParser import CsvParseException
 from time import time
 import re
 import json
@@ -202,7 +202,7 @@ class LinksOnlyCsvParser(AbstractCsvParser):
                 # peptide evidence - 2
 
                 if pep2_id is None:
-                    raise StandardError('Fatal! peptide id error!')
+                    raise BaseException('Fatal! peptide id error!')
 
                 for i in range(len(protein_list2)):
 
