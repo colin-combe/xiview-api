@@ -96,7 +96,7 @@ class MzIdParser:
         # schema:
         # https://raw.githubusercontent.com/HUPO-PSI/mzIdentML/master/schema/mzIdentML1.2.0.xsd
         try:
-            self.mzid_reader = py_mzid.MzIdentML(self.mzid_path)
+            self.mzid_reader = py_mzid.MzIdentML(self.mzid_path, retrieve_refs=False)
         except Exception as e:
             raise MzIdParseException(type(e).__name__, e.args)
 
@@ -120,15 +120,14 @@ class MzIdParser:
 
         return peak_list_file_names
 
-    # used by TestLoop when downloading files from PRIDE
+    # used by TestLoop when downloading files from PRIDE - ToDo: also used in test?
     def get_all_peak_list_file_names(self):
         """
         :return: list of all peak list file names
         """
         peak_list_file_names = []
         for spectra_data_id in self.mzid_reader._offset_index["SpectraData"].keys():
-            sp_datum = self.mzid_reader.get_by_id(spectra_data_id, tag_id='SpectraData',
-                                                  detailed=True)
+            sp_datum = self.mzid_reader.get_by_id(spectra_data_id, tag_id='SpectraData')
             peak_list_file_names.append(ntpath.basename(sp_datum['location']))
 
         return peak_list_file_names
@@ -142,8 +141,7 @@ class MzIdParser:
         """
         peak_list_readers = {}
         for spectra_data_id in self.mzid_reader._offset_index["SpectraData"].keys():
-            sp_datum = self.mzid_reader.get_by_id(spectra_data_id, tag_id='SpectraData',
-                                                  detailed=True)
+            sp_datum = self.mzid_reader.get_by_id(spectra_data_id, tag_id='SpectraData')
 
             self.check_spectra_data_validity(sp_datum)
 
@@ -154,16 +152,16 @@ class MzIdParser:
             try:
                 peak_list_reader = PeakListWrapper(
                     peak_list_file_path,
-                    sp_datum['FileFormat']['accession'],
-                    sp_datum['SpectrumIDFormat']['accession']
+                    sp_datum['FileFormat'].accession,
+                    sp_datum['SpectrumIDFormat'].accession
                 )
             except Exception:
                 # try gz version
                 try:
                     peak_list_reader = PeakListWrapper(
                         PeakListWrapper.extract_gz(peak_list_file_path + '.gz'),
-                        sp_datum['FileFormat']['accession'],
-                        sp_datum['SpectrumIDFormat']['accession']
+                        sp_datum['FileFormat'].accession,
+                        sp_datum['SpectrumIDFormat'].accession
                     )
                 except IOError:
                     raise MzIdParseException('Missing peak list file: %s' % peak_list_file_path)
@@ -174,8 +172,7 @@ class MzIdParser:
 
     def check_all_spectra_data_validity(self):
         for spectra_data_id in self.mzid_reader._offset_index["SpectraData"].keys():
-            sp_datum = self.mzid_reader.get_by_id(spectra_data_id, tag_id='SpectraData',
-                                                  detailed=True)
+            sp_datum = self.mzid_reader.get_by_id(spectra_data_id, tag_id='SpectraData')
             self.check_spectra_data_validity(sp_datum)
 
     @staticmethod
@@ -309,32 +306,31 @@ class MzIdParser:
 
         sid_protocols = []
 
-        analysis_collection = self.mzid_reader.iterfind('AnalysisCollection').next()
+        analysis_collection = self.mzid_reader.iterfind('AnalysisCollection', retrieve_refs=False).next()
         for spectrumIdentification in analysis_collection['SpectrumIdentification']:
             sid_protocol_ref = spectrumIdentification['spectrumIdentificationProtocol_ref']
             sid_protocol = self.mzid_reader.get_by_id(sid_protocol_ref,
                                                       tag_id='SpectrumIdentificationProtocol',
-                                                      detailed=True)
+                                                      retrieve_refs=False)
             sid_protocols.append(sid_protocol)
             try:
                 frag_tol = sid_protocol['FragmentTolerance']
                 frag_tol_plus = frag_tol['search tolerance plus value']
-                frag_tol_value = re.sub('[^0-9,.]', '', str(frag_tol_plus['value']))
-                if frag_tol_plus['unit'].lower() == 'parts per million':
+                frag_tol_value = re.sub('[^0-9,.]', '', str(frag_tol_plus))
+                if frag_tol_plus.unit_info.lower() == 'parts per million':
                     frag_tol_unit = 'ppm'
-                elif frag_tol_plus['unit'].lower() == 'dalton':
+                elif frag_tol_plus.unit_info.lower() == 'dalton':
                     frag_tol_unit = 'Da'
                 else:
-                    frag_tol_unit = frag_tol_plus['unit']
+                    frag_tol_unit = frag_tol_plus.unit_info
 
                 if not all([
-                    frag_tol['search tolerance plus value']['value'] == frag_tol['search tolerance minus value'][
-                        'value'],
-                    frag_tol['search tolerance plus value']['unit'] == frag_tol['search tolerance minus value']['unit']
+                    frag_tol['search tolerance plus value'] == frag_tol['search tolerance minus value'],
+                    frag_tol['search tolerance plus value'].unit_info == frag_tol['search tolerance minus value'].unit_info
                 ]):
                     self.warnings.append(
                         {"type": "mzidParseError",
-                         "message": "search tolerance plus value doesn't match minus value. Using plus value!"})
+                         "message": "search tolerance plus doesn't match minus. Using plus!"})
 
             except KeyError:
                 self.warnings.append({
@@ -393,9 +389,9 @@ class MzIdParser:
         # DBSEQUENCES
         inj_list = []
         for db_id in self.mzid_reader._offset_index["DBSequence"].keys():
-            db_sequence = self.mzid_reader.get_by_id(db_id, tag_id='DBSequence', detailed=True)
+            db_sequence = self.mzid_reader.get_by_id(db_id, tag_id='DBSequence')
 
-            data = [db_sequence["id"], db_sequence["accession"]]
+            data = [db_id, db_sequence["accession"]]
 
             # name, optional elem att
             if "name" in db_sequence:
@@ -441,7 +437,8 @@ class MzIdParser:
         peptide_index = 0
         peptide_inj_list = []
         for pep_id in self.mzid_reader._offset_index["Peptide"].keys():
-            peptide = self.mzid_reader.get_by_id(pep_id, tag_id='Peptide', detailed=True)
+            # ToDo: modifications are missing accession
+            peptide = self.mzid_reader.get_by_id(pep_id, tag_id='Peptide')
             pep_seq_dict = []
             for aa in peptide['PeptideSequence']:
                 pep_seq_dict.append({"Modification": "", "aminoAcid": aa})
@@ -519,11 +516,11 @@ class MzIdParser:
                         crosslinker_modmass = mod['monoisotopicMassDelta']
 
                     if 'cross-link acceptor' in mod.keys():
-                        value = mod['cross-link acceptor']['value']
+                        value = mod['cross-link acceptor']
                     if 'cross-link donor' in mod.keys():
-                        value = mod['cross-link donor']['value']
+                        value = mod['cross-link donor']
                     if 'cross-link receiver' in mod.keys():
-                        value = mod['cross-link receiver']['value']
+                        value = mod['cross-link receiver']
 
             # ToDo: we should consider swapping these over because modX format has modification
             #  before AA
@@ -588,14 +585,14 @@ class MzIdParser:
         seq_id_to_acc_map = {}
 
         for db_id in self.mzid_reader._offset_index["DBSequence"].keys():
-            db_sequence = self.mzid_reader.get_by_id(db_id, tag_id='DBSequence', detailed=True)
-            seq_id_to_acc_map[db_sequence["id"]] = db_sequence["accession"]
+            db_sequence = self.mzid_reader.get_by_id(db_id, tag_id='DBSequence')
+            seq_id_to_acc_map[db_id] = db_sequence["accession"]
 
         # PEPTIDE EVIDENCES
         inj_list = []
         for pep_ev_id in self.mzid_reader._offset_index["PeptideEvidence"].keys():
             peptide_evidence = self.mzid_reader.get_by_id(pep_ev_id, tag_id='PeptideEvidence',
-                                                          detailed=True)
+                                                          retrieve_refs=False)
 
             pep_start = -1
             if "start" in peptide_evidence:
@@ -605,11 +602,8 @@ class MzIdParser:
             if "isDecoy" in peptide_evidence:
                 is_decoy = peptide_evidence["isDecoy"]  # isDecoy att, optional
 
-            # peptide_ref = self.peptide_id_lookup[peptide_evidence["peptide_ref"]]
-            peptide_ref = peptide_evidence["peptide_ref"]  # debug use mzid peptide['id'],
-
             data = [
-                peptide_ref,                                                 # 'peptide_ref',
+                peptide_evidence["peptide_ref"],                             # 'peptide_ref',
                 peptide_evidence["dBSequence_ref"],                          # 'dbsequence_ref',
                 seq_id_to_acc_map[peptide_evidence["dBSequence_ref"]],       # 'protein_accession',
                 pep_start,                                                   # 'pep_start',
