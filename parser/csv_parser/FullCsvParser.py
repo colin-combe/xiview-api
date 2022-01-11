@@ -267,9 +267,8 @@ class FullCsvParser(AbstractCsvParser):
 
             # scanId
             try:
-                scan_id = int(id_item['scanid'])
-            except ValueError:
-                # raise CsvParseException('Invalid scanid: %s in row %s' % (id_item['scanid'], row_number))
+                scan_id = id_item['scanid']
+            except KeyError:
                 scan_id = -1
 
             # peakListFilename
@@ -296,9 +295,6 @@ class FullCsvParser(AbstractCsvParser):
             if unique_spec_identifier not in seen_spectra:
                 seen_spectra.append(unique_spec_identifier)
                 spectrum_id = len(seen_spectra) - 1
-                peak_list = None
-                precursor_mz = None
-                precursor_charge = None
                 if self.peak_list_dir:
                     # get peak list
                     try:
@@ -306,44 +302,19 @@ class FullCsvParser(AbstractCsvParser):
                     except KeyError:
                         raise CsvParseException('Missing peak list file: %s' % peak_list_file_name)
 
-                    scan = peak_list_reader.get_scan(scan_id)
-                    peak_list = scan['peaks']
-                    precursor_mz = scan['precursor']['mz']
-                    precursor_charge = scan['precursor']['charge']
-
-                    mz = []
-                    intensity = []
-
-                    if peak_list:
-                        peak_list = peak_list.strip()
-                        chunks = re.split('\n+', peak_list)
-                        # print(chunks);
-                        try:
-                            for peak in chunks:
-                                # print(peak)
-                                peak.strip()
-                                if len(peak) != 0:
-                                    values = re.split('\s', peak)
-                                    # print('mz:' + values[0] + ' int:' + values[1])
-                                    mz.append(float(values[0]))
-                                    intensity.append(float(values[1]))
-                        except ValueError as ve:
-                            print('Error {ve}')
-                            print(peak_list)
-                            print(len(mz))
-                            print(len(intensity))
+                    spectrum = peak_list_reader[scan_id]
 
                     spectrum = [
                         spectrum_id,                    # 'id',
-                        mz,                             # 'peak_list',
-                        intensity,                      # 'peak_list',
+                        spectrum.mz_values,             # 'mz',
+                        spectrum.int_values,            # 'intensity',
                         peak_list_file_name,            # 'peak_list_file_name',
                         scan_id,                        # 'scan_id',
                         fragment_tolerance,             # 'frag_tol',
                         self.upload_id,                 # 'upload_id',
                         'Spec_%s' % spectrum_id,        # 'spectrum_ref'
-                        precursor_mz,                   # 'precursor_mz',
-                        precursor_charge,               # 'precursor_charge'
+                        spectrum.precursor['mz'],       # 'precursor_mz',
+                        spectrum.precursor['charge'],   # 'precursor_charge'
                     ]
                     spectra.append(spectrum)
             else:
@@ -487,9 +458,7 @@ class FullCsvParser(AbstractCsvParser):
             except AttributeError:
                 modifications = []
 
-            for mod in modifications:
-                if mod not in self.unknown_mods:
-                    self.unknown_mods.append(mod)
+            self.unknown_mods.update(modifications)
 
         # DBSEQUENCES
         # if self.fasta:

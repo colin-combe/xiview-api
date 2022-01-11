@@ -60,7 +60,7 @@ class MzIdParser:
         # ToDo: atm we get them while looping through the peptides
         #  (might be more robust and we're doing it anyway)
         self.modlist = []
-        self.unknown_mods = []
+        self.unknown_mods = set()
 
         # From mzidentML schema 1.2.0:
         # <SpectrumIdentificationProtocol> must contain the CV term 'cross-linking search'
@@ -199,7 +199,7 @@ class MzIdParser:
             raise MzIdParseException('SpectraData is missing location')
 
     def parse(self):
-
+        """Parse the file."""
         start_time = time()
 
         if not self.upload_info_read:
@@ -437,20 +437,27 @@ class MzIdParser:
         peptide_index = 0
         peptide_inj_list = []
         for pep_id in self.mzid_reader._offset_index["Peptide"].keys():
-            # ToDo: modifications are missing accession
             peptide = self.mzid_reader.get_by_id(pep_id, tag_id='Peptide')
             pep_seq_dict = []
             for aa in peptide['PeptideSequence']:
                 pep_seq_dict.append({"Modification": "", "aminoAcid": aa})
 
             link_site = -1
-            crosslinker_modmass = None
-            value = None
+            crosslinker_modmass = 0
+            crosslinker_pair_id = None
 
             # MODIFICATIONS
             # add in modifications
             if 'Modification' in peptide.keys():
                 for mod in peptide['Modification']:
+
+                    # get the cv param accessions
+                    accessions = []
+                    for m in mod.keys():
+                        if hasattr(m, 'accession'):
+                            accessions.append(m.accession)
+                        else:
+                            accessions.append('')
 
                     if 'monoisotopicMassDelta' not in mod.keys():
                         try:
@@ -481,15 +488,15 @@ class MzIdParser:
                     if 'residues' not in mod:
                         mod['residues'] = peptide['PeptideSequence'][mod_location]
 
-                    # TODO - issues here with using names rather than cv param accession
-                    #  (cross-link acceptor/ receiver)
                     if 'name' in mod.keys():
+                        mod_accession = mod['name'].accession
                         # fix mod names
                         if isinstance(mod['name'], list):  # todo: have a look at this  - cc
                             mod['name'] = ','.join(mod['name'])
                         mod['name'] = mod['name'].lower()
                         mod['name'] = mod['name'].replace(" ", "_")
-                        if 'cross-link donor' not in mod.keys() and 'cross-link acceptor' not in mod.keys() and 'cross-link receiver' not in mod.keys():
+                        mod['accession'] = mod_accession
+                        if 'MS:1002509' not in accessions and 'MS:1002510' not in accessions:
                             cur_mod = pep_seq_dict[mod_location]
                             # join modifications into one for multiple modifications on the same aa
                             if not cur_mod['Modification'] == '':
@@ -504,23 +511,23 @@ class MzIdParser:
 
                     # error handling for mod without name
                     else:
-                        # cross-link acceptor doesn't have a name
-                        if 'cross-link acceptor' not in mod.keys() and 'cross-link receiver' not in mod.keys():
+                        # cross-link acceptor/receiver/donor don't have a name?
+                        if 'MS:1002509' not in accessions and 'MS:1002510' not in accessions:
                             raise MzIdParseException("Missing modification name")
 
-                    # add CL locations
-                    if 'cross-link donor' in mod.keys() or 'cross-link acceptor' in mod.keys() \
-                            or 'cross-link receiver' in mod.keys():
+                    # parse crosslinker info
+                    if 'MS:1002509' in accessions or 'MS:1002510' in accessions:
                         # use mod['location'] for link-site (1-based in database in line with mzIdentML specifications)
                         link_site = mod['location']
-                        crosslinker_modmass = mod['monoisotopicMassDelta']
-
-                    if 'cross-link acceptor' in mod.keys():
-                        value = mod['cross-link acceptor']
-                    if 'cross-link donor' in mod.keys():
-                        value = mod['cross-link donor']
-                    if 'cross-link receiver' in mod.keys():
-                        value = mod['cross-link receiver']
+                        # cross-link donor
+                        if 'MS:1002509' in accessions:
+                            key = list(mod.keys())[accessions.index('MS:1002509')]
+                            crosslinker_pair_id = mod[key]
+                            crosslinker_modmass = mod['monoisotopicMassDelta']
+                        # cross-link acceptor/receiver
+                        if 'MS:1002510' in accessions:
+                            key = list(mod.keys())[accessions.index('MS:1002510')]
+                            crosslinker_pair_id = mod[key]
 
             # ToDo: we should consider swapping these over because modX format has modification
             #  before AA
@@ -534,7 +541,7 @@ class MzIdParser:
                 link_site,
                 crosslinker_modmass,
                 self.upload_id,
-                str(value)
+                str(crosslinker_pair_id)
             ]
 
             peptide_inj_list.append(data)
@@ -667,53 +674,20 @@ class MzIdParser:
             if self.peak_list_dir:
                 peak_list_reader = self.peak_list_readers[sid_result['spectraData_ref']]
 
-                scan_id = peak_list_reader.parse_scan_id(sid_result["spectrumID"])
-                scan = peak_list_reader.get_scan(scan_id)
-
+                spectrum = peak_list_reader[sid_result["spectrumID"]]
                 protocol = self.spectra_data_protocol_map[sid_result['spectraData_ref']]
-
-                if scan['precursor'] is not None:
-                    precursor_mz = scan['precursor']['mz']
-                    precursor_charge = scan['precursor']['charge']
-                else:
-                    # give warning precursor info is missing
-                    precursor_mz = None
-                    precursor_charge = None
-
-                peak_list = scan['peaks']
-                mz = []
-                intensity = []
-
-                if peak_list:
-                    peak_list = peak_list.strip()
-                    chunks = re.split('\n+', peak_list)
-                    # print(chunks);
-                    try:
-                        for peak in chunks:
-                            # print(peak)
-                            peak.strip()
-                            if len(peak) != 0:
-                                values = re.split('\s', peak)
-                                # print('mz:' + values[0] + ' int:' + values[1])
-                                mz.append(float(values[0]))
-                                intensity.append(float(values[1]))
-                    except ValueError as ve:
-                        print('Error {ve}')
-                        print(peak_list)
-                        print(len(mz))
-                        print(len(intensity))
 
                 spectra.append([
                     spec_id,
-                    mz,
-                    intensity,
+                    spectrum.mz_values,
+                    spectrum.int_values,
                     ntpath.basename(peak_list_reader.peak_list_path),
-                    str(scan_id),
+                    spectrum.scan_id,
                     protocol['fragmentTolerance'],
                     self.upload_id,
                     sid_result['id'],
-                    precursor_mz,
-                    precursor_charge
+                    spectrum.precursor['mz'],
+                    spectrum.precursor['charge']
                 ])
 
             spectrum_ident_dict = dict()

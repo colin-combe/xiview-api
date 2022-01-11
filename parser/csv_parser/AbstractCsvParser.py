@@ -71,7 +71,7 @@ class AbstractCsvParser:
         # ToDo: check self.modlist against unimod?
         self.unimod_path = 'obo/unimod.obo'
         self.modlist = []
-        self.unknown_mods = []
+        self.unknown_mods = set()
 
         self.contains_crosslinks = False
         self.fasta = False
