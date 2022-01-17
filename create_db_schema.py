@@ -85,6 +85,26 @@ def create_schema(
     )
 
     Table(
+        "Enzyme",
+        base.metadata,
+        Column("id", Text, primary_key=True, nullable=False),
+        Column("upload_id", UUID, ForeignKey("Upload.id"), primary_key=True, nullable=False),
+        Column("protocol_id", Text, nullable=False),
+        Column("c_term_gain", Text, nullable=True),
+        Column("min_distance", Integer, nullable=True),
+        Column("missed_cleavages", Integer, nullable=False),
+        Column("n_term_gain", Text, nullable=True),
+        Column("name", Text, nullable=True),
+        Column("semi_specific", BOOLEAN, nullable=True),
+        Column("site_regexp", Text, nullable=True),
+        ForeignKeyConstraint(
+            ("protocol_id", "upload_id"),
+            ("SpectrumIdentificationProtocol.id", "SpectrumIdentificationProtocol.upload_id"),
+        ),
+        quote=False
+    )
+
+    Table(
         "PeptideEvidence",  # equivalent of xi2 PeptidePosition Table
         base.metadata,
         Column("upload_id", UUID, ForeignKey("Upload.id"), index=True, primary_key=True,
