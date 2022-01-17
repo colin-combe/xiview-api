@@ -49,8 +49,7 @@ def create_schema(
         Column("id", Text, primary_key=True, nullable=False),
         Column("upload_id", UUID, ForeignKey("Upload.id"), primary_key=True, nullable=False),
         Column("accession", Text, nullable=False),
-        # ToDo: why protein_?
-        Column("protein_name", Text, nullable=True),
+        Column("name", Text, nullable=True),
         Column("description", Text, nullable=True),
         Column("sequence", Text, nullable=True),
         quote=False
@@ -73,10 +72,15 @@ def create_schema(
         base.metadata,
         Column("id", BIGINT, primary_key=True, nullable=False),
         Column("upload_id", UUID, ForeignKey("Upload.id"), primary_key=True, nullable=False),
+        Column("protocol_id", Text, nullable=False),
         Column("mod_name", Text, nullable=False),
         Column("mass", FLOAT, nullable=False),
         Column("residues", Text, nullable=False),
         Column("accession", Text, nullable=True),
+        ForeignKeyConstraint(
+            ("protocol_id", "upload_id"),
+            ("SpectrumIdentificationProtocol.id", "SpectrumIdentificationProtocol.upload_id"),
+        ),
         quote=False
     )
 
@@ -87,9 +91,16 @@ def create_schema(
                nullable=False),
         Column("peptide_ref", Text, primary_key=True, nullable=False),
         Column("dbsequence_ref", Text, primary_key=True, nullable=False),
-        # Column("protein_accession", Text, nullable=True),
         Column("pep_start", Integer, primary_key=True, nullable=False),
         Column("is_decoy", BOOLEAN, nullable=True),
+        ForeignKeyConstraint(
+            ("dbsequence_ref", "upload_id"),
+            ("DBSequence.id", "DBSequence.upload_id"),
+        ),
+        ForeignKeyConstraint(
+            ("peptide_ref", "upload_id"),
+            ("ModifiedPeptide.id", "ModifiedPeptide.upload_id"),
+        ),
         quote=False
     )
 
@@ -99,7 +110,10 @@ def create_schema(
         Column("id", Text, primary_key=True, nullable=False),
         Column("upload_id", UUID, ForeignKey("Upload.id"), index=True, primary_key=True,
                nullable=False),
-        Column("seq_mods", Text, nullable=False),
+        Column("base_sequence", Text, nullable=False),
+        Column("modification_ids", ARRAY(Integer), nullable=False),
+        Column("modification_positions", ARRAY(Integer), nullable=False),
+        # following columns are not in xi2 db, but come out of the mzid on the <Peptide>s
         Column("link_site", Integer, nullable=True),
         Column("crosslinker_modmass", FLOAT, nullable=True),
         Column("crosslinker_pair_id", VARCHAR, nullable=True),
@@ -117,26 +131,25 @@ def create_schema(
         Column("peak_list_file_name", Text, nullable=False),
         Column("precursor_mz", FLOAT, nullable=False),
         Column("precursor_charge", SMALLINT, nullable=True),
-        Column("frag_tol", Text, nullable=False),
         Column("mz", ARRAY(FLOAT), nullable=False),
         Column("intensity", ARRAY(FLOAT), nullable=False),
         quote=False
     )
 
     Table(
-        "SpectrumIdentification",  # equivalent to Match table in xi2
+        "SpectrumIdentification",
         base.metadata,
         Column("id", Text, primary_key=True, nullable=False),
         Column("upload_id", UUID, ForeignKey("Upload.id"), index=True, primary_key=True,
                nullable=False),
         Column("spectrum_id", Text, nullable=False),
         Column("spectra_data_ref", Text, nullable=False),
+        Column("crosslink_identification_id", Integer, nullable=True),
         Column("pep1_id", Text, nullable=False),
         Column("pep2_id", Text, nullable=True),
         Column("charge_state", Integer, nullable=True),
         Column("pass_threshold", BOOLEAN, nullable=False),
         Column("rank", Integer, nullable=False),
-        Column("ions", Text, nullable=True),
         Column("scores", JSON, nullable=True),
         Column("exp_mz", FLOAT, nullable=True),
         Column("calc_mz", FLOAT, nullable=True),
@@ -159,13 +172,24 @@ def create_schema(
     )
 
     Table(
+        "SpectrumIdentificationProtocol",
+        base.metadata,
+        Column("id", Text, primary_key=True, nullable=False),
+        Column("upload_id", UUID, ForeignKey("Upload.id"), index=True, primary_key=True,
+               nullable=False),
+        Column("frag_tol", Text, nullable=False),
+        Column("ions", Text, nullable=True),
+        Column("analysis_software", JSON, nullable=True),
+        quote=False
+    )
+
+    Table(
         "Upload",
         base.metadata,
         Column("id", UUID, primary_key=True, nullable=False),
         Column("user_id", UUID, ForeignKey("UserAccount.id"), nullable=False),
         Column("identification_filename", Text, nullable=False),
         Column("peak_list_file_names", JSON, nullable=True),
-        Column("analysis_software", JSON, nullable=True),
         Column("provider", JSON, nullable=True),
         Column("audits", JSON, nullable=True),
         Column("samples", JSON, nullable=True),
