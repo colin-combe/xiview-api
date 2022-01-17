@@ -144,7 +144,7 @@ def create_schema(
         "Spectrum",
         base.metadata,
         Column("id", Text, primary_key=True, nullable=False),   # spectrumID from mzID
-        Column("spectra_data_ref", Text, primary_key=True, nullable=False),  # ToDo: ForeignKey?
+        Column("spectra_data_ref", Text, primary_key=True, nullable=False),
         Column("upload_id", UUID, ForeignKey("Upload.id"),  primary_key=True, index=True,
                nullable=False),
         Column("scan_id", Text, nullable=False),   # parsed scan_id ToDo: Do we need this?
@@ -208,13 +208,10 @@ def create_schema(
         base.metadata,
         Column("id", UUID, primary_key=True, nullable=False),
         Column("user_id", UUID, ForeignKey("UserAccount.id"), nullable=False),
-        Column("identification_filename", Text, nullable=False),
-        Column("peak_list_file_names", JSON, nullable=True),
+        Column("identification_file_name", Text, nullable=False),
         Column("provider", JSON, nullable=True),
         Column("audits", JSON, nullable=True),
         Column("samples", JSON, nullable=True),
-        Column("analyses", JSON, nullable=True),
-        Column("protocol", JSON, nullable=True),
         Column("bib", JSON, nullable=True),
         Column("spectra_formats", JSON, nullable=True),  # nullable=False
         Column("upload_time", TIMESTAMP, server_default=func.now(), nullable=False),
@@ -223,9 +220,7 @@ def create_schema(
         Column("error_type", Text, nullable=True),  # nullable=False
         Column("upload_warnings", JSON, nullable=True),  # nullable=False
         Column("deleted", BOOLEAN, server_default='false', nullable=False),
-        Column("ident_count", BIGINT, nullable=True),  # nullable=False
         Column("ident_file_size", BIGINT, nullable=True),  # nullable=False
-        Column("zipped_peak_list_file_size", VARCHAR, nullable=True),  # nullable=False
         quote=False
     )
 

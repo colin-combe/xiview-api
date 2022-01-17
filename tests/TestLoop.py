@@ -88,8 +88,6 @@ class TestLoop:
 
         # init parser
         try:
-            mzid_parser.initialise_mzid_reader()
-            mzid_parser.upload_info()
             mzid_parser.check_all_spectra_data_validity()
             peak_files = mzid_parser.get_supported_peak_list_file_names()
         except Exception as mzId_error:

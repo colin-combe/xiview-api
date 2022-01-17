@@ -1,11 +1,7 @@
 from uuid import uuid4
-from sqlalchemy import create_engine, MetaData, text
+from sqlalchemy import create_engine, MetaData
 from sqlalchemy import Table as SATable
 from sqlalchemy.dialects.postgresql import insert
-# from sqlalchemy.sql.expression import bindparam
-from sqlalchemy.exc import IntegrityError, NoResultFound
-import numpy as np
-import os
 
 
 def Table(name, *args, **kw):
@@ -79,7 +75,7 @@ class Writer:
             stmt = insert(upload).values(
                 id=str(self.upload_id),
                 user_id=str(self.user_id),
-                identification_filename=id_file_name,
+                identification_file_name=id_file_name,
             )
             conn.execute(stmt)
 
@@ -96,46 +92,36 @@ class Writer:
             conn.execute(statement)
             conn.close()
 
-    def write_mzid_info(self, peak_list_file_names, spectra_formats, analysis_software,
-                        provider, audits, samples, analyses, protocol, bib):
+    def write_mzid_info(self, spectra_formats,
+                        provider, audits, samples, bib):
         """
         Update Upload row with mzid info.
 
         ToDo: have this explicitly or create update func?
-        :param peak_list_file_names:
         :param spectra_formats:
-        :param analysis_software:
         :param provider:
         :param audits:
         :param samples:
-        :param analyses:
-        :param protocol:
         :param bib:
         :return:
         """
         upload = Table("Upload", self.meta, autoload_with=self.engine, quote=False)
+        stmt = upload.update().where(upload.c.id == str(self.upload_id)).values(
+            spectra_formats=spectra_formats,
+            provider=provider,
+            audits=audits,
+            samples=samples,
+            bib=bib
+        )
         with self.engine.connect() as conn:
-            stmt = upload.update().where(upload.c.id == str(self.upload_id)).values(
-                peak_list_file_names=peak_list_file_names,
-                spectra_formats=spectra_formats,
-                analysis_software=analysis_software,
-                provider=provider,
-                audits=audits,
-                samples=samples,
-                analyses=analyses,
-                protocol=protocol,
-                bib=bib 
-            )
             conn.execute(stmt)
 
-    def write_other_info(self, contains_crosslinks, ident_count, ident_file_size,
-                         upload_warnings):
+    def write_other_info(self, contains_crosslinks, ident_file_size, upload_warnings):
         """
         Update Upload row with remaining info.
 
         ToDo: have this explicitly or create update func?
         :param contains_crosslinks:
-        :param ident_count:
         :param ident_file_size:
         :param upload_warnings:
         :return:
@@ -145,56 +131,6 @@ class Writer:
             stmt = upload.update().where(upload.c.id == str(self.upload_id)).values(
                 contains_crosslinks=contains_crosslinks,
                 upload_warnings=upload_warnings,
-                ident_count=ident_count,
                 ident_file_size=ident_file_size,
             )
             conn.execute(stmt)
-
-    #
-    # def write_db_sequences(self, inj_list):
-    #     """
-    #     Write the DBSequences.
-    #
-    #     :param inj_list: (list) data to write
-    #     :return:
-    #     """
-    #     db_sequence = Table("DBSequence", self.meta, autoload_with=self.engine, quote=False)
-    #     # # add the upload_id to all rows
-    #     # inj_list = [x.update({'upload_id': self.upload_id}) for x in inj_list]
-    #     with self.engine.connect() as conn:
-    #         statement = db_sequence.insert().values(inj_list)
-    #         conn.execute(statement, inj_list)
-    #         conn.close()
-    #         # {
-    #         #     'id': bindparam('id'),
-    #         #     'accession': bindparam('temperature'),
-    #         #     'protein_name': bindparam('protein_name'),
-    #         #     'description': bindparam('protein_name'),
-    #         #     'sequence': bindparam('protein_name'),
-    #         #     'upload_id': bindparam('upload_id'),
-    #         #
-    #         # }
-    #
-    # def write_peptides(self, inj_list):
-    #     """
-    #     Write the peptides.
-    #
-    #     :param inj_list: (list) data to write
-    #     :return:
-    #     """
-    #     peptide = Table("Peptide", self.meta, autoload_with=self.engine, quote=False)
-    #     with self.engine.connect() as conn:
-    #         statement = peptide.insert().values(inj_list)
-    #         conn.execute(statement, inj_list)
-    #         conn.close()
-    #     # cur.executemany("""
-    #     # INSERT INTO peptides (
-    #     #     id,
-    #     #     seq_mods,
-    #     #     link_site,
-    #     #     crosslinker_modmass,
-    #     #     upload_id,
-    #     #     crosslinker_pair_id
-    #     # )
-    #     # VALUES (%s, %s, %s, %s, %s, %s)""", inj_list)
-    #     # con.commit()

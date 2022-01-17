@@ -45,10 +45,10 @@ if identifications_file is False or identifier is False:
     dev = True
     print ("dev test mode...")
 
-if use_postgreSQL:
-    from parser.database import PostgreSQL as db
-else:
-    from parser.database import SQLite as db
+# if use_postgreSQL:
+#     from parser.database import PostgreSQL as db
+# else:
+#     from parser.database import SQLite as db
 
 if use_ftp:
     import ftplib
@@ -234,7 +234,6 @@ try:
         else:
             id_parser = MzIdParser.xiSPEC_MzIdParser(identifications_file, upload_folder,
                                                      peak_list_folder, db, logger, db_name=database)
-        id_parser.initialise_mzid_reader()
     elif identifications_fileName.endswith('.csv'):
         logger.info('parsing csv start')
         identifications_fileType = 'csv'
