@@ -1,12 +1,7 @@
-import credentials
 from parser import MzIdParser
 from parser.writer import Writer
 import os
-from parser.database import PostgreSQL, SQLite
 import logging
-import subprocess
-from .compare import compare_postgresql_dumps, compare_databases
-# from .utils import recreate_db
 from sqlalchemy import create_engine, text
 from create_db_schema import create_schema, create_db, drop_db
 import pytest
@@ -86,7 +81,6 @@ def test_db_cleared_each_test(use_database, engine):
 
 
 def test_mzid_parser_postgres_mgf(tmpdir, db_info, use_database, engine):
-    # use_database()
     # file paths
     fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'mzid_parser')
     mzid = os.path.join(fixtures_dir, 'mgf_ecoli_dsso.mzid')
