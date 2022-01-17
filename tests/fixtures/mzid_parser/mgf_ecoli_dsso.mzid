@@ -496,163 +496,19 @@ Gustav-Meyer-Allee 25
       <SearchModification fixedMod="false" massDelta="175.03032" residues="K">
         <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
       </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="K">
+      <SearchModification fixedMod="false" massDelta="176.0143295" residues="K">
         <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
       </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="A">
+      <SearchModification fixedMod="false" massDelta="175.03032" residues=".">
         <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
       </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="B">
+      <SearchModification fixedMod="false" massDelta="176.0143295" residues=".">
         <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
       </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="C">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="D">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="E">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="F">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="G">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="H">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="I">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="K">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="L">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="M">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="N">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="O">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="P">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="Q">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="R">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="S">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="T">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="U">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="V">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="W">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="Y">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="Z">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="A">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="B">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="C">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="D">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="E">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="F">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="G">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="H">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="I">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="K">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="L">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="M">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="N">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="O">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="P">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="Q">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="R">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="S">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="T">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="U">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="V">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="W">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="Y">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="Z">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="0.984016" residues="N">
+      <SearchModification fixedMod="false" massDelta="0.984016" residues="N Q">
         <cvParam cvRef="UNIMOD" accession="UNIMOD:7" name="Deamidated"></cvParam>
       </SearchModification>
-      <SearchModification fixedMod="false" massDelta="0.984016" residues="Q">
-        <cvParam cvRef="UNIMOD" accession="UNIMOD:7" name="Deamidated"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="14.01565" residues="E">
-        <cvParam cvRef="UNIMOD" accession="UNIMOD:34" name="Methyl"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="14.01565" residues="D">
+      <SearchModification fixedMod="false" massDelta="14.01565" residues="D E">
         <cvParam cvRef="UNIMOD" accession="UNIMOD:34" name="Methyl"></cvParam>
       </SearchModification>
       <SearchModification fixedMod="true" massDelta="57.021465" residues="C">
