@@ -76,6 +76,8 @@ def create_schema(
         Column("mod_name", Text, nullable=False),
         Column("mass", FLOAT, nullable=False),
         Column("residues", Text, nullable=False),
+        Column("specificity_rules", ARRAY(Text), nullable=False),
+        Column("fixed_mod", BOOLEAN, nullable=False),
         Column("accession", Text, nullable=True),
         ForeignKeyConstraint(
             ("protocol_id", "upload_id"),

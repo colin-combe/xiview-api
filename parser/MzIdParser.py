@@ -327,15 +327,27 @@ class MzIdParser:
             mod_index = 0
             for mod in sid_protocol['ModificationParams']['SearchModification']:
                 accessions = self.get_accessions(mod)
+
+                # parse specificity rule accessions
+                specificity_rules = mod.get('SpecificityRules', [])
+                spec_rule_accessions = []
+                for spec_rule in specificity_rules:
+                    spec_rule_accession = self.get_accessions(spec_rule)
+                    if len(spec_rule_accession) != 1:
+                        raise MzIdParseException('')
+                    spec_rule_accessions.append(spec_rule_accession[0])
+
                 # cross-link acceptor/receiver
                 if 'MS:1002509' in accessions or 'MS:1002510' in accessions:
-                    continue
+                    continue    # ToDo: parse out cl specificity
 
+                # other modifications
                 # name
                 mod_name = None
                 mod_accession = None
                 # find the matching accession for the name cvParam.
                 for i, acc in enumerate(accessions):
+                    # ToDo: be more strict with the allowed accessions?
                     match = re.match('(?:MOD|UNIMOD|MS|XLMOD):[0-9]+', acc)
                     if match:
                         mod_accession = acc
@@ -359,6 +371,8 @@ class MzIdParser:
                     'mod_name': mod_name,
                     'mass': mod['massDelta'],
                     'residues': ''.join(mod['residues']),  # ToDo: reformat?
+                    'specificity_rules': spec_rule_accessions,
+                    'fixed_mod': mod['fixedMod'],
                     'accession': mod_accession
                 })
                 mod_index += 1

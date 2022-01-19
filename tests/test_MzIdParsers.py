@@ -117,7 +117,7 @@ def test_mzid_parser_postgres_mgf(tmpdir, db_info, use_database, engine):
         rs = conn.execute(text("SELECT * FROM Layout;"))
         assert 0 == rs.rowcount
 
-        # Modification - parsed from <Peptide>s
+        # Modification - parsed from <SearchModification>s
         rs = conn.execute(text("SELECT * FROM Modification;"))
         assert 8 == rs.rowcount
         results = rs.fetchall()
@@ -125,18 +125,24 @@ def test_mzid_parser_postgres_mgf(tmpdir, db_info, use_database, engine):
         assert results[0].mod_name == 'Oxidation'  # name from <SearchModification> cvParam
         assert results[0].mass == 15.99491  # massDelta from <SearchModification>
         assert results[0].residues == 'M'  # residues from <SearchModification>
+        assert results[0].specificity_rules == []  # parsed from child <SpecificityRules>
+        assert not results[0].fixed_mod  # fixedMod from <SearchModification>
         assert results[0].accession == 'UNIMOD:35'  # accession from <SearchModification> cvParam
 
         assert results[1].id == 1  # id from incrementing count
         assert results[1].mod_name == '(175.03)'  # unknown modification -> name from mass
         assert results[1].mass == 175.03032  # massDelta from <SearchModification>
         assert results[1].residues == 'K'  # residues from <SearchModification>
+        assert results[1].specificity_rules == []  # parsed from child <SpecificityRules>
+        assert not results[1].fixed_mod  # fixedMod from <SearchModification>
         assert results[1].accession == 'MS:1001460'  # accession from <SearchModification> cvParam
 
         assert results[2].id == 2  # id from incrementing count
         assert results[2].mod_name == '(176.01)'  # unknown modification -> name from mass
         assert results[2].mass == 176.0143295  # massDelta from <SearchModification>
         assert results[2].residues == 'K'  # residues from <SearchModification>
+        assert results[2].specificity_rules == []  # parsed from child <SpecificityRules>
+        assert not results[2].fixed_mod  # fixedMod from <SearchModification>
         assert results[2].accession == 'MS:1001460'  # accession from <SearchModification> cvParam
         # ToDo: check more rows?
 
@@ -1928,32 +1934,220 @@ def test_mzid_parser_postgres_mgf(tmpdir, db_info, use_database, engine):
         assert results[0].error_type is None
         assert results[0].upload_warnings == []
         assert not results[0].deleted
-        assert results[0].ident_file_size == 119537
+        assert results[0].ident_file_size == 117583
 
     engine.dispose()
 
-# ToDo:
-# def test_mzid_parser_postgres_mzml(tmpdir):
-#     # file paths
-#     fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'mzid_parser')
-#     mzid = os.path.join(fixtures_dir, 'mzml_ecoli_dsso.mzid')
-#     peak_list_folder = os.path.join(fixtures_dir, 'peaklist')
-#
-#     # parse the mzid file
-#     id_parser = MzIdParser.MzIdParser(mzid, str(tmpdir), peak_list_folder, PostgreSQL, logger,
-#                                       db_name='ximzid_unittests', user_id=0)
-#     id_parser.initialise_mzid_reader()
-#     id_parser.parse()
-#
-#     # dump the postgresql to file
-#     test_dump = os.path.join(str(tmpdir), 'test.sql')
-#     cmd = "pg_dump -d ximzid_unittests -U %s > " % credentials.username + test_dump
-#     subprocess.call(cmd, shell=True)
-#
-#     expected_dump = os.path.join(fixtures_dir, 'mzml_ecoli_dsso_db_dump.sql')
-#     compare_postgresql_dumps(expected_dump, test_dump)
-#
-#
+
+def test_mzid_parser_postgres_mzml(tmpdir, db_info, use_database, engine):
+    # file paths
+    fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'mzid_parser')
+    mzid = os.path.join(fixtures_dir, 'mzml_ecoli_dsso.mzid')
+    peak_list_folder = os.path.join(fixtures_dir, 'peaklist')
+
+    parse_mzid_into_postgresql(mzid, peak_list_folder, tmpdir, db_info, use_database, engine)
+
+    # test DBSequence (proteins)
+    with engine.connect() as conn:
+        # DBSequence
+        rs = conn.execute(text("SELECT * FROM DBSequence;"))
+        assert 12 == rs.rowcount
+        results = rs.fetchall()
+        assert results[0].id == "dbseq_P0C0V0_target"   # id from mzid
+        assert results[0].accession == "P0C0V0"  # accession from mzid
+        assert results[0].name == (  # name from mzid
+            "DEGP_ECOLI Periplasmic serine endoprotease DegP OS=Escherichia coli (strain K12) "
+            "OX=83333 GN=degP PE=1 SV=1")
+        assert results[0].description == (  # protein description cvParam
+            "DEGP_ECOLI Periplasmic serine endoprotease DegP OS=Escherichia coli (strain K12) "
+            "OX=83333 GN=degP PE=1 SV=1"
+        )
+        assert results[0].sequence == (  # <Seq> value from mzid
+            "MKKTTLALSALALSLGLALSPLSATAAETSSATTAQQMPSLAPMLEKVMPSVVSINVEGSTTVNTPRMPRNFQQFFGDDSPFCQEG"
+            "SPFQSSPFCQGGQGGNGGGQQQKFMALGSGVIIDADKGYVVTNNHVVDNATVIKVQLSDGRKFDAKMVGKDPRSDIALIQIQNPKN"
+            "LTAIKMADSDALRVGDYTVAIGNPFGLGETVTSGIVSALGRSGLNAENYENFIQTDAAINRGNSGGALVNLNGELIGINTAILAPD"
+            "GGNIGIGFAIPSNMVKNLTSQMVEYGQVKRGELGIMGTELNSELAKAMKVDAQRGAFVSQVLPNSSAAKAGIKAGDVITSLNGKPI"
+            "SSFAALRAQVGTMPVGSKLTLGLLRDGKQVNVNLELQQSSQNQVDSSSIFNGIEGAEMSNKGKDQGVVVNNVKTGTPAAQIGLKKG"
+            "DVIIGANQQAVKNIAELRKVLDSKPSVLALNIQRGDSTIYLLMQ")
+        # ToDo: check more rows?
+
+        # Layout
+        rs = conn.execute(text("SELECT * FROM Layout;"))
+        assert 0 == rs.rowcount
+
+        # Modification - parsed from <SearchModification>s
+        rs = conn.execute(text("SELECT * FROM Modification;"))
+        assert 8 == rs.rowcount
+        results = rs.fetchall()
+        assert results[0].id == 0  # id from incrementing count
+        assert results[0].mod_name == 'Oxidation'  # name from <SearchModification> cvParam
+        assert results[0].mass == 15.99491  # massDelta from <SearchModification>
+        assert results[0].residues == 'M'  # residues from <SearchModification>
+        assert results[0].accession == 'UNIMOD:35'  # accession from <SearchModification> cvParam
+
+        assert results[1].id == 1  # id from incrementing count
+        assert results[1].mod_name == '(175.03)'  # unknown modification -> name from mass
+        assert results[1].mass == 175.03032  # massDelta from <SearchModification>
+        assert results[1].residues == 'K'  # residues from <SearchModification>
+        assert results[1].accession == 'MS:1001460'  # accession from <SearchModification> cvParam
+
+        assert results[2].id == 2  # id from incrementing count
+        assert results[2].mod_name == '(176.01)'  # unknown modification -> name from mass
+        assert results[2].mass == 176.0143295  # massDelta from <SearchModification>
+        assert results[2].residues == 'K'  # residues from <SearchModification>
+        assert results[2].accession == 'MS:1001460'  # accession from <SearchModification> cvParam
+        # ToDo: check more rows?
+
+        # assert results[3].id == 3  # id from incrementing count
+        # assert results[3].mod_name == 'deamidated'  # name from <Modification> cvParam
+        # assert results[3].mass == 0.984016  # monoisotopicMassDelta from <Modification>
+        # # residues are assembled from <Modification> residues over all <Peptide>s
+        # assert results[3].residues == 'Q'
+        # assert results[3].accession == 'UNIMOD:7'  # accession from <Modification> cvParam
+
+        # PeptideEvidence
+        rs = conn.execute(text("SELECT * FROM PeptideEvidence;"))
+        assert 38 == rs.rowcount
+        results = rs.fetchall()
+        # peptide_ref from <PeptideEvidence>
+        assert results[0].peptide_ref == '29_KVLDSKPSVLALNIQR_30_KFDAKMVGK_1_5_p1'
+        # dbsequence_ref from <PeptideEvidence>
+        assert results[0].dbsequence_ref == 'dbseq_P0C0V0_target'
+        assert results[0].pep_start == 148  # start from <PeptideEvidence>
+        assert not results[0].is_decoy  # is_decoy from <PeptideEvidence>
+        # ToDo: check more rows?
+
+        # ModifiedPeptide
+        rs = conn.execute(text("SELECT * FROM ModifiedPeptide;"))
+        assert 38 == rs.rowcount
+        results = rs.fetchall()
+        # id from <Peptide> id
+        assert results[0].id == '29_KVLDSKPSVLALNIQR_30_KFDAKMVGK_1_5_p1'
+        assert results[0].base_sequence == 'KFDAKMVGK'  # value of <PeptideSequence>
+        assert results[0].modification_ids == []
+        assert results[0].modification_positions == []
+        # location of <Modification> with cross-link acceptor/receiver cvParam
+        assert results[0].link_site == 5
+        # monoisotopicMassDelta of <Modification> with cross-link acceptor/receiver cvParam
+        assert results[0].crosslinker_modmass == 0
+        # value of cross-link acceptor/receiver cvParam
+        assert results[0].crosslinker_pair_id == '1.0'
+
+        # id from <Peptide> id
+        assert results[1].id == '29_KVLDSKPSVLALNIQR_30_KFDAKMVGK_1_5_p0'
+        assert results[1].base_sequence == 'KVLDSKPSVLALNIQR'  # value of <PeptideSequence>
+        assert results[1].modification_ids == []
+        assert results[1].modification_positions == []
+        # location of <Modification> with cross-link acceptor/receiver cvParam
+        assert results[1].link_site == 1
+        # monoisotopicMassDelta of <Modification> with cross-link acceptor/receiver cvParam
+        assert results[1].crosslinker_modmass == 158.0037644600003
+        # value of cross-link acceptor/receiver cvParam
+        assert results[1].crosslinker_pair_id == '1.0'
+        # ToDo: check more rows?
+
+        # Spectrum
+        rs = conn.execute(text("SELECT * FROM Spectrum;"))
+        assert 22 == rs.rowcount
+        results = rs.fetchall()
+        # spectrumID from <SpectrumIdentificationResult>
+        assert results[0].id == 'controllerType=0 controllerNumber=1 scan=14905'
+        # spectraData_ref from <SpectrumIdentificationResult>
+        assert results[0].spectra_data_ref == (
+               'SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML')
+        # assert results[0].scan_id == '3'  # ToDo: keep this?
+        assert results[0].peak_list_file_name == (  # ToDo
+            'B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML')
+        # Precursor info from mzML
+        # Spectrum->precursorList->precursor[0]->selectedIonList->selectedIon[0]
+        assert results[0].precursor_mz == 945.677381209342  # selected ion m/z
+        assert results[0].precursor_charge == 5  # charge state
+        # assert results[0].mz == []  # ToDo
+        # assert results[0].intensity == []  # ToDo
+        # ToDo: check more rows? could loop over spectra in MGF and compare to DB
+
+        # SpectrumIdentification
+        rs = conn.execute(text("SELECT * FROM SpectrumIdentification;"))
+        assert 22 == rs.rowcount
+        results = rs.fetchall()
+        assert results[0].id == 'SII_3_1'  # id from first <SpectrumIdentificationItem>
+        # spectrumID from <SpectrumIdentificationResult>
+        assert results[0].spectrum_id == 'controllerType=0 controllerNumber=1 scan=14905'
+        # spectraData_ref from <SpectrumIdentificationResult>
+        assert results[0].spectra_data_ref == \
+               'SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML'
+        # peptide_ref from <SpectrumIdentificationItem>
+        assert results[0].pep1_id == \
+               '6_VAEmetETPHLIHKVALDPLTGPMPYQGR_11_MGHAGAIIAGGKGTADEK_11_12_p1'
+        # peptide_ref from matched <SpectrumIdentificationItem> by crosslink_identification_id
+        assert results[0].pep2_id == \
+               '6_VAEmetETPHLIHKVALDPLTGPMPYQGR_11_MGHAGAIIAGGKGTADEK_11_12_p0'
+        assert results[0].charge_state == 5  # chargeState from <SpectrumIdentificationItem>
+        assert results[0].pass_threshold  # passThreshold from <SpectrumIdentificationItem>
+        assert results[0].rank == 1  # rank from <SpectrumIdentificationItem>
+        # scores parsed from score related cvParams in <SpectrumIdentificationItem>
+        assert results[0].scores == '{"xi:score": 33.814201}'
+        # experimentalMassToCharge from <SpectrumIdentificationItem>
+        assert results[0].exp_mz == 945.677359
+        # calculatedMassToCharge from <SpectrumIdentificationItem>
+        assert results[0].calc_mz == 945.6784858667701
+        # Meta columns are only parsed from csv docs
+        assert results[0].meta1 == ''
+        assert results[0].meta2 == ''
+        assert results[0].meta3 == ''
+
+        # SpectrumIdentificationProtocol
+        rs = conn.execute(text("SELECT * FROM SpectrumIdentificationProtocol;"))
+        assert 1 == rs.rowcount
+        results = rs.fetchall()
+        # parsed from <FragmentTolerance> in <SpectrumIdentificationProtocol>
+        assert results[0].id == 'SearchProtocol_1_0'  # id from <SpectrumIdentificationProtocol>
+        assert results[0].frag_tol == '5.0 ppm'
+        assert results[0].ions == 'peptide;b;y'
+        assert results[0].analysis_software == (  # referenced <AnalysisSoftware> json
+            '{"version": "2.1.5.2", "id": "xiFDR_id", "name": "XiFDR", "SoftwareName": '
+            '{"xiFDR": ""}}')
+
+        # Upload
+        rs = conn.execute(text("SELECT * FROM Upload;"))
+        assert 1 == rs.rowcount
+        results = rs.fetchall()
+
+        assert results[0].identification_file_name == 'mzml_ecoli_dsso.mzid'
+        assert results[0].provider == (
+            '{"id": "PROVIDER", "ContactRole": ['
+            '{"contact_ref": "PERSON_DOC_OWNER", "Role": "researcher"}]}')
+        assert results[0].audits == (
+            '{"Person": {"lastName": "Kolbowski", "firstName": "Lars", "id": "PERSON_DOC_OWNER", '
+            '"Affiliation": [{"organization_ref": "ORG_DOC_OWNER"}], '
+            '"contact address": "TIB 4/4-3 Geb\\u00e4ude 17, Aufgang 1, Raum 476 '
+            'Gustav-Meyer-Allee 25 13355 Berlin", '
+            '"contact email": "lars.kolbowski@tu-berlin.de"}, '
+            '"Organization": {"id": "ORG_DOC_OWNER", "name": "TU Berlin", '
+            '"contact name": "TU Berlin"}}'
+        )
+        assert results[0].samples == '{}'
+        assert results[0].bib == '[]'
+        assert results[0].spectra_formats == (
+            '[{"location": "B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mzML", '
+            '"id": "SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mzML", '
+            '"FileFormat": "mzML format", '
+            '"SpectrumIDFormat": "mzML unique identifier"}, '
+            '{"location": "B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML", '
+            '"id": "SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML", '
+            '"FileFormat": "mzML format", '
+            '"SpectrumIDFormat": "mzML unique identifier"}]'
+        )
+        assert results[0].contains_crosslinks
+        assert results[0].upload_error is None
+        assert results[0].error_type is None
+        assert results[0].upload_warnings == []
+        assert not results[0].deleted
+        assert results[0].ident_file_size == 118422
+
+    engine.dispose()
+
+
 # def test_xispec_mzid_parser_mzml(tmpdir):
 #     # file paths
 #     fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'mzid_parser')
