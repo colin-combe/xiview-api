@@ -472,9 +472,15 @@ Gustav-Meyer-Allee 25
         <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
       </SearchModification>
       <SearchModification fixedMod="false" massDelta="175.03032" residues=".">
+        <SpecificityRules>
+          <cvParam cvRef="PSI-MS" accession="MS:1002057" name="modification specificity protein N-term"></cvParam>
+        </SpecificityRules>
         <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
       </SearchModification>
       <SearchModification fixedMod="false" massDelta="176.0143295" residues=".">
+        <SpecificityRules>
+          <cvParam cvRef="PSI-MS" accession="MS:1002057" name="modification specificity protein N-term"></cvParam>
+        </SpecificityRules>
         <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
       </SearchModification>
       <SearchModification fixedMod="false" massDelta="0.984016" residues="N Q">

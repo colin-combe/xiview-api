@@ -80,6 +80,72 @@ def test_db_cleared_each_test(use_database, engine):
     engine.dispose()
 
 
+def compare_modifications_dsso_mzid(results):
+    assert results[0].id == 0  # id from incrementing count
+    assert results[0].mod_name == 'Oxidation'  # name from <SearchModification> cvParam
+    assert results[0].mass == 15.99491  # massDelta from <SearchModification>
+    assert results[0].residues == 'M'  # residues from <SearchModification>
+    assert results[0].specificity_rules == []  # parsed from child <SpecificityRules>
+    assert not results[0].fixed_mod  # fixedMod from <SearchModification>
+    assert results[0].accession == 'UNIMOD:35'  # accession from <SearchModification> cvParam
+
+    assert results[1].id == 1  # id from incrementing count
+    assert results[1].mod_name == '(175.03)'  # unknown modification -> name from mass
+    assert results[1].mass == 175.03032  # massDelta from <SearchModification>
+    assert results[1].residues == 'K'  # residues from <SearchModification>
+    assert results[1].specificity_rules == []  # parsed from child <SpecificityRules>
+    assert not results[1].fixed_mod  # fixedMod from <SearchModification>
+    assert results[1].accession == 'MS:1001460'  # accession from <SearchModification> cvParam
+
+    assert results[2].id == 2  # id from incrementing count
+    assert results[2].mod_name == '(176.01)'  # unknown modification -> name from mass
+    assert results[2].mass == 176.0143295  # massDelta from <SearchModification>
+    assert results[2].residues == 'K'  # residues from <SearchModification>
+    assert results[2].specificity_rules == []  # parsed from child <SpecificityRules>
+    assert not results[2].fixed_mod  # fixedMod from <SearchModification>
+    assert results[2].accession == 'MS:1001460'  # accession from <SearchModification> cvParam
+    
+    assert results[3].id == 3  # id from incrementing count
+    assert results[3].mod_name == '(175.03)'  # unknown modification -> name from mass
+    assert results[3].mass == 175.03032  # massDelta from <SearchModification>
+    assert results[3].residues == '.'  # residues from <SearchModification>
+    assert results[3].specificity_rules == ['MS:1002057']  # parsed from child <SpecificityRules>
+    assert not results[3].fixed_mod  # fixedMod from <SearchModification>
+    assert results[3].accession == 'MS:1001460'  # accession from <SearchModification> cvParam
+
+    assert results[4].id == 4  # id from incrementing count
+    assert results[4].mod_name == '(176.01)'  # unknown modification -> name from mass
+    assert results[4].mass == 176.0143295  # massDelta from <SearchModification>
+    assert results[4].residues == '.'  # residues from <SearchModification>
+    assert results[4].specificity_rules == ['MS:1002057']  # parsed from child <SpecificityRules>
+    assert not results[4].fixed_mod  # fixedMod from <SearchModification>
+    assert results[4].accession == 'MS:1001460'  # accession from <SearchModification> cvParam
+
+    assert results[5].id == 5  # id from incrementing count
+    assert results[5].mod_name == 'Deamidated'  # name from <SearchModification> cvParam
+    assert results[5].mass == 0.984016  # massDelta from <SearchModification>
+    assert results[5].residues == 'N Q'  # residues from <SearchModification>
+    assert results[5].specificity_rules == []  # parsed from child <SpecificityRules>
+    assert not results[5].fixed_mod  # fixedMod from <SearchModification>
+    assert results[5].accession == 'UNIMOD:7'  # accession from <SearchModification> cvParam
+    
+    assert results[6].id == 6  # id from incrementing count
+    assert results[6].mod_name == 'Methyl'  # name from <SearchModification> cvParam
+    assert results[6].mass == 14.01565  # massDelta from <SearchModification>
+    assert results[6].residues == 'D E'  # residues from <SearchModification>
+    assert results[6].specificity_rules == []  # parsed from child <SpecificityRules>
+    assert not results[6].fixed_mod  # fixedMod from <SearchModification>
+    assert results[6].accession == 'UNIMOD:34'  # accession from <SearchModification> cvParam
+    
+    assert results[7].id == 7  # id from incrementing count
+    assert results[7].mod_name == 'Carbamidomethyl'  # name from <SearchModification> cvParam
+    assert results[7].mass == 57.021465  # massDelta from <SearchModification>
+    assert results[7].residues == 'C'  # residues from <SearchModification>
+    assert results[7].specificity_rules == []  # parsed from child <SpecificityRules>
+    assert results[7].fixed_mod  # fixedMod from <SearchModification>
+    assert results[7].accession == 'UNIMOD:4'  # accession from <SearchModification> cvParam
+
+
 def test_mzid_parser_postgres_mgf(tmpdir, db_info, use_database, engine):
     # file paths
     fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'mzid_parser')
@@ -120,38 +186,7 @@ def test_mzid_parser_postgres_mgf(tmpdir, db_info, use_database, engine):
         # Modification - parsed from <SearchModification>s
         rs = conn.execute(text("SELECT * FROM Modification;"))
         assert 8 == rs.rowcount
-        results = rs.fetchall()
-        assert results[0].id == 0  # id from incrementing count
-        assert results[0].mod_name == 'Oxidation'  # name from <SearchModification> cvParam
-        assert results[0].mass == 15.99491  # massDelta from <SearchModification>
-        assert results[0].residues == 'M'  # residues from <SearchModification>
-        assert results[0].specificity_rules == []  # parsed from child <SpecificityRules>
-        assert not results[0].fixed_mod  # fixedMod from <SearchModification>
-        assert results[0].accession == 'UNIMOD:35'  # accession from <SearchModification> cvParam
-
-        assert results[1].id == 1  # id from incrementing count
-        assert results[1].mod_name == '(175.03)'  # unknown modification -> name from mass
-        assert results[1].mass == 175.03032  # massDelta from <SearchModification>
-        assert results[1].residues == 'K'  # residues from <SearchModification>
-        assert results[1].specificity_rules == []  # parsed from child <SpecificityRules>
-        assert not results[1].fixed_mod  # fixedMod from <SearchModification>
-        assert results[1].accession == 'MS:1001460'  # accession from <SearchModification> cvParam
-
-        assert results[2].id == 2  # id from incrementing count
-        assert results[2].mod_name == '(176.01)'  # unknown modification -> name from mass
-        assert results[2].mass == 176.0143295  # massDelta from <SearchModification>
-        assert results[2].residues == 'K'  # residues from <SearchModification>
-        assert results[2].specificity_rules == []  # parsed from child <SpecificityRules>
-        assert not results[2].fixed_mod  # fixedMod from <SearchModification>
-        assert results[2].accession == 'MS:1001460'  # accession from <SearchModification> cvParam
-        # ToDo: check more rows?
-
-        # assert results[3].id == 3  # id from incrementing count
-        # assert results[3].mod_name == 'deamidated'  # name from <Modification> cvParam
-        # assert results[3].mass == 0.984016  # monoisotopicMassDelta from <Modification>
-        # # residues are assembled from <Modification> residues over all <Peptide>s
-        # assert results[3].residues == 'Q'
-        # assert results[3].accession == 'UNIMOD:7'  # accession from <Modification> cvParam
+        compare_modifications_dsso_mzid(rs.fetchall())
 
         # PeptideEvidence
         rs = conn.execute(text("SELECT * FROM PeptideEvidence;"))
@@ -1934,7 +1969,7 @@ def test_mzid_parser_postgres_mgf(tmpdir, db_info, use_database, engine):
         assert results[0].error_type is None
         assert results[0].upload_warnings == []
         assert not results[0].deleted
-        assert results[0].ident_file_size == 117583
+        assert results[0].ident_file_size == 117923
 
     engine.dispose()
 
@@ -1975,35 +2010,11 @@ def test_mzid_parser_postgres_mzml(tmpdir, db_info, use_database, engine):
         rs = conn.execute(text("SELECT * FROM Layout;"))
         assert 0 == rs.rowcount
 
+
         # Modification - parsed from <SearchModification>s
         rs = conn.execute(text("SELECT * FROM Modification;"))
         assert 8 == rs.rowcount
-        results = rs.fetchall()
-        assert results[0].id == 0  # id from incrementing count
-        assert results[0].mod_name == 'Oxidation'  # name from <SearchModification> cvParam
-        assert results[0].mass == 15.99491  # massDelta from <SearchModification>
-        assert results[0].residues == 'M'  # residues from <SearchModification>
-        assert results[0].accession == 'UNIMOD:35'  # accession from <SearchModification> cvParam
-
-        assert results[1].id == 1  # id from incrementing count
-        assert results[1].mod_name == '(175.03)'  # unknown modification -> name from mass
-        assert results[1].mass == 175.03032  # massDelta from <SearchModification>
-        assert results[1].residues == 'K'  # residues from <SearchModification>
-        assert results[1].accession == 'MS:1001460'  # accession from <SearchModification> cvParam
-
-        assert results[2].id == 2  # id from incrementing count
-        assert results[2].mod_name == '(176.01)'  # unknown modification -> name from mass
-        assert results[2].mass == 176.0143295  # massDelta from <SearchModification>
-        assert results[2].residues == 'K'  # residues from <SearchModification>
-        assert results[2].accession == 'MS:1001460'  # accession from <SearchModification> cvParam
-        # ToDo: check more rows?
-
-        # assert results[3].id == 3  # id from incrementing count
-        # assert results[3].mod_name == 'deamidated'  # name from <Modification> cvParam
-        # assert results[3].mass == 0.984016  # monoisotopicMassDelta from <Modification>
-        # # residues are assembled from <Modification> residues over all <Peptide>s
-        # assert results[3].residues == 'Q'
-        # assert results[3].accession == 'UNIMOD:7'  # accession from <Modification> cvParam
+        compare_modifications_dsso_mzid(rs.fetchall())
 
         # PeptideEvidence
         rs = conn.execute(text("SELECT * FROM PeptideEvidence;"))
@@ -2143,7 +2154,7 @@ def test_mzid_parser_postgres_mzml(tmpdir, db_info, use_database, engine):
         assert results[0].error_type is None
         assert results[0].upload_warnings == []
         assert not results[0].deleted
-        assert results[0].ident_file_size == 118422
+        assert results[0].ident_file_size == 118762
 
     engine.dispose()
 
