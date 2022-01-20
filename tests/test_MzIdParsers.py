@@ -2189,6 +2189,24 @@ def test_mzid_parser_postgres_mzml(tmpdir, db_info, use_database, engine):
 
     engine.dispose()
 
+def test_mzid_parser_postgres_matrixscience(tmpdir, db_info, use_database, engine):
+    # file paths
+    fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'mzid_parser')
+    mzid = os.path.join(fixtures_dir, 'F002553.mzid')
+    peak_list_folder = False
+
+    parse_mzid_into_postgresql(mzid, peak_list_folder, tmpdir, db_info, use_database, engine)
+
+    # test DBSequence (proteins)
+    with engine.connect() as conn:
+
+        # DBSequence
+        rs = conn.execute(text("SELECT * FROM DBSequence;"))
+        #  assert 12 == rs.rowcount
+        results = rs.fetchall()
+        pass
+
+    engine.dispose()
 
 # def test_xispec_mzid_parser_mzml(tmpdir):
 #     # file paths
