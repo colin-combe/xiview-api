@@ -188,6 +188,21 @@ def test_mzid_parser_postgres_mgf(tmpdir, db_info, use_database, engine):
         assert 8 == rs.rowcount
         compare_modifications_dsso_mzid(rs.fetchall())
 
+        # Enzyme - parsed from SpectrumIdentificationProtocols
+        rs = conn.execute(text("SELECT * FROM Enzyme;"))
+        assert 1 == rs.rowcount
+        results = rs.fetchall()
+        assert results[0].id == "Trypsin_0"  # id from Enzyme element
+        assert results[0].protocol_id == "SearchProtocol_1_0"
+        assert results[0].c_term_gain == "OH"
+        assert results[0].min_distance is None
+        assert results[0].missed_cleavages == 2
+        assert results[0].n_term_gain == "H"
+        assert results[0].name == "Trypsin"
+        assert results[0].semi_specific is False
+        assert results[0].site_regexp is None
+        assert results[0].accession == "MS:1001251"
+
         # PeptideEvidence
         rs = conn.execute(text("SELECT * FROM PeptideEvidence;"))
         assert 38 == rs.rowcount

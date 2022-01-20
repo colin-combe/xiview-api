@@ -287,6 +287,7 @@ class MzIdParser:
 
         sid_protocols = []
         search_modifications = []
+        enzymes = []
         for sid_protocol_id in self.mzid_reader._offset_index[
             'SpectrumIdentificationProtocol'].keys():
             sid_protocol = self.mzid_reader.get_by_id(sid_protocol_id, detailed=True)
@@ -404,6 +405,56 @@ class MzIdParser:
                 })
                 mod_index += 1
 
+            # Enzymes
+            for enzyme in sid_protocol['Enzymes']['Enzyme']:
+
+                name = None
+                site_regexp = None
+                accession = None
+
+                # optional potentially ambiguous common name can be fall back name if no EnzymeName element
+                try:
+                    name = enzyme['name']
+                except KeyError:
+                    # no name attribute
+                    pass
+
+                # optional child element SiteRegexp
+                try:
+                    site_regexp = enzyme['SiteRegexp']
+                except KeyError:
+                    # no SiteRegexp element
+                    pass
+
+                # optional child element EnzymeName
+                try:
+                    enzyme_name_el = enzyme['EnzymeName']
+                    # there is a mandatory UserParam subelement of EnzymeName which we are ignoring
+                    name = list(enzyme_name_el.keys())[0]
+                    enzyme_accessions = self.get_accessions(enzyme_name_el)
+                    accession = enzyme_accessions[0]
+                    # TODO - if the site_regexp was missing can now look it up using obo
+                    if site_regexp is None:
+                        # obo stuff
+                        pass
+                except KeyError:
+                    # no EnzymeName element
+                    pass
+
+            enzymes.append({
+                'id': enzyme['id'],
+                'upload_id': str(self.writer.upload_id),
+                'protocol_id': sid_protocol['id'],
+                'name': name,
+                'c_term_gain': enzyme.get('cTermGain', None),
+                'n_term_gain': enzyme.get('nTermGain', None),
+                'min_distance': enzyme.get('minDistance', None),
+                'missed_cleavages': enzyme.get('missedCleavages', None),
+                'semi_specific': enzyme.get('semiSpecific', None),
+                'site_regexp': site_regexp,
+                'accession': accession
+            })
+
             sid_protocols.append(data)
 
         self.mzid_reader.reset()
@@ -412,6 +463,7 @@ class MzIdParser:
 
         self.writer.write_data('SpectrumIdentificationProtocol', sid_protocols)
         self.writer.write_data('Modification', search_modifications)
+        self.writer.write_data('Enzyme', enzymes)
         self.search_modifications = search_modifications
 
     def parse_db_sequences(self):
