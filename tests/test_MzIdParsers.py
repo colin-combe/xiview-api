@@ -2206,6 +2206,8 @@ def test_mzid_parser_postgres_matrixscience(tmpdir, db_info, use_database, engin
         results = rs.fetchall()
         pass
 
+    engine.dispose()
+
 # def test_xispec_mzid_parser_mzml(tmpdir):
 #     # file paths
 #     fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'mzid_parser')
