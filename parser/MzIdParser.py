@@ -362,7 +362,9 @@ class MzIdParser:
                 for spec_rule in specificity_rules:
                     spec_rule_accession = self.get_accessions(spec_rule)
                     if len(spec_rule_accession) != 1:
-                        raise MzIdParseException('')
+                        raise MzIdParseException(
+                            f'Error when parsing SpecificityRules from SearchModification:\n'
+                            f'{json.dumps(mod)}')
                     spec_rule_accessions.append(spec_rule_accession[0])
 
                 # cross-link acceptor/receiver
@@ -408,52 +410,52 @@ class MzIdParser:
             # Enzymes
             for enzyme in sid_protocol['Enzymes']['Enzyme']:
 
-                name = None
-                site_regexp = None
-                accession = None
-
-                # optional potentially ambiguous common name can be fall back name if no EnzymeName element
-                try:
-                    name = enzyme['name']
-                except KeyError:
-                    # no name attribute
-                    pass
+                enzyme_name = None
+                enzyme_accession = None
 
                 # optional child element SiteRegexp
-                try:
-                    site_regexp = enzyme['SiteRegexp']
-                except KeyError:
-                    # no SiteRegexp element
-                    pass
+                site_regexp = enzyme.get('SiteRegexp', None)
 
                 # optional child element EnzymeName
                 try:
                     enzyme_name_el = enzyme['EnzymeName']
+                    # get cvParams that are children of 'cleavage agent name' (MS:1001045)
                     # there is a mandatory UserParam subelement of EnzymeName which we are ignoring
-                    name = list(enzyme_name_el.keys())[0]
-                    enzyme_accessions = self.get_accessions(enzyme_name_el)
-                    accession = enzyme_accessions[0]
-                    # TODO - if the site_regexp was missing can now look it up using obo
+                    enzyme_name = self.get_cv_params(enzyme_name_el, 'MS:1001045')
+                    if len(enzyme_name) > 1:
+                        raise MzIdParseException(
+                            f'Error when parsing EnzymeName from Enzyme:\n{json.dumps(enzyme)}')
+                    enzyme_name_cv = list(enzyme_name.keys())[0]
+                    enzyme_name = enzyme_name_cv
+                    enzyme_accession = enzyme_name_cv.accession
+                    # if the site_regexp was missing look it up using obo
                     if site_regexp is None:
-                        # obo stuff
-                        pass
+                        for child, parent, key in self.ms_obo.out_edges(enzyme_accession,
+                                                                        keys=True):
+                            if key == 'has_regexp':
+                                site_regexp = self.ms_obo.nodes[parent]['name']
+                # fallback if no EnzymeName
                 except KeyError:
-                    # no EnzymeName element
-                    pass
+                    try:
+                        # optional potentially ambiguous common name
+                        enzyme_name = enzyme['name']
+                    except KeyError:
+                        # no name attribute
+                        pass
 
-            enzymes.append({
-                'id': enzyme['id'],
-                'upload_id': str(self.writer.upload_id),
-                'protocol_id': sid_protocol['id'],
-                'name': name,
-                'c_term_gain': enzyme.get('cTermGain', None),
-                'n_term_gain': enzyme.get('nTermGain', None),
-                'min_distance': enzyme.get('minDistance', None),
-                'missed_cleavages': enzyme.get('missedCleavages', None),
-                'semi_specific': enzyme.get('semiSpecific', None),
-                'site_regexp': site_regexp,
-                'accession': accession
-            })
+                enzymes.append({
+                    'id': enzyme['id'],
+                    'upload_id': str(self.writer.upload_id),
+                    'protocol_id': sid_protocol['id'],
+                    'name': enzyme_name,
+                    'c_term_gain': enzyme.get('cTermGain', None),
+                    'n_term_gain': enzyme.get('nTermGain', None),
+                    'min_distance': enzyme.get('minDistance', None),
+                    'missed_cleavages': enzyme.get('missedCleavages', None),
+                    'semi_specific': enzyme.get('semiSpecific', None),
+                    'site_regexp': site_regexp,
+                    'accession': enzyme_accession
+                })
 
             sid_protocols.append(data)
 
