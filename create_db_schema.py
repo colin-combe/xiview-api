@@ -92,11 +92,12 @@ def create_schema(
         Column("protocol_id", Text, nullable=False),
         Column("c_term_gain", Text, nullable=True),
         Column("min_distance", Integer, nullable=True),
-        Column("missed_cleavages", Integer, nullable=False),
+        Column("missed_cleavages", Integer, nullable=True),
         Column("n_term_gain", Text, nullable=True),
         Column("name", Text, nullable=True),
         Column("semi_specific", BOOLEAN, nullable=True),
         Column("site_regexp", Text, nullable=True),
+        Column("accession", Text, nullable=True),
         ForeignKeyConstraint(
             ("protocol_id", "upload_id"),
             ("SpectrumIdentificationProtocol.id", "SpectrumIdentificationProtocol.upload_id"),
