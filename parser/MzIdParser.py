@@ -8,6 +8,7 @@ import zipfile
 import gzip
 import os
 from .NumpyEncoder import NumpyEncoder
+import obonet
 
 
 class MzIdParseException(Exception):
@@ -42,6 +43,9 @@ class MzIdParser:
 
         self.writer = writer
         self.logger = logger
+
+        self.ms_obo = obonet.read_obo(
+            'https://raw.githubusercontent.com/HUPO-PSI/psi-ms-CV/master/psi-ms.obo')
 
         # ToDo:
         # From mzidentML schema 1.2.0:
@@ -184,29 +188,28 @@ class MzIdParser:
 
         self.logger.info('all done! Total time: ' + str(round(time() - start_time, 2)) + " sec")
 
-    def get_ion_types_mzid(self, sid_item):
-        """
-        Get ion types from SpectrumIdentificationItem.
-
-        ToDo: Parse them out from SpectrumIdentificationProtocol instead!
-        """
-        try:
-            ion_names_list = [i['name'] for i in sid_item['IonType']]
-            ion_names_list = list(set(ion_names_list))
-        except KeyError:
-            return []
-
-        # ion_types = ["P"]
-        ion_types = []
-        for ion_name in ion_names_list:
-            try:
-                ion = re.search('frag: ([a-z]) ion', ion_name).groups()[0]
-                ion_types.append(ion)
-            except (IndexError, AttributeError) as e:
-                self.logger.info(e, ion_name)
-                continue
-
-        return ion_types
+    # def get_ion_types_mzid(self, sid_item):
+    #     """
+    #     Get ion types from SpectrumIdentificationItem.
+    #
+    #     """
+    #     try:
+    #         ion_names_list = [i['name'] for i in sid_item['IonType']]
+    #         ion_names_list = list(set(ion_names_list))
+    #     except KeyError:
+    #         return []
+    #
+    #     # ion_types = ["P"]
+    #     ion_types = []
+    #     for ion_name in ion_names_list:
+    #         try:
+    #             ion = re.search('frag: ([a-z]) ion', ion_name).groups()[0]
+    #             ion_types.append(ion)
+    #         except (IndexError, AttributeError) as e:
+    #             self.logger.info(e, ion_name)
+    #             continue
+    #
+    #     return ion_types
 
     # split into two functions
     @staticmethod
@@ -250,6 +253,32 @@ class MzIdParser:
 
         else:
             raise BaseException('unsupported file type: %s' % archive)
+
+    def get_cv_params(self, element, super_cls_accession=None):
+        """
+        Get the cvParams of an element.
+
+        :param element: (dict) element from MzIdParser (pyteomics).
+        :param super_cls_accession: (str) accession number of the superclass
+        :return: filtered dictionary of cvParams
+        """
+        accessions = self.get_accessions(element)
+
+        if super_cls_accession is None:
+            filtered_idx = [i for i, a in enumerate(accessions) if a != '']
+        else:
+            children = []
+            if type(super_cls_accession) != list:
+                super_cls_accession = [super_cls_accession]
+            for sp_accession in super_cls_accession:
+
+                for child, parent, key in self.ms_obo.in_edges(sp_accession, keys=True):
+                    if key != 'is_a':
+                        continue
+                    children.append(child)
+            filtered_idx = [i for i, a in enumerate(accessions) if a in children]
+
+        return {k: v for i, (k, v) in enumerate(element.items()) if i in filtered_idx}
 
     def parse_analysis_protocol_collection(self):
         """Parse the AnalysisProtocolCollection and write SpectrumIdentificationProtocols."""
@@ -300,26 +329,24 @@ class MzIdParser:
 
             #
             # fragmentation ions
-            # ToDo: parse out from SearchSettings
-            # ions = self.get_ion_types_mzid(spec_id_item)
-            # if no ion types are specified in the id file check the mzML file
-            # if len(ions) == 0 and peak_list_reader['fileType'] == 'mzml':
-            #     ions = peakListParser.get_ion_types_mzml(scan)
+            add_sp = sid_protocol.get('AdditionalSearchParams', {})
+            # get cvParams that are children of 'ion series considered in search' (MS:1002473)
+            ions = self.get_cv_params(add_sp, 'MS:1002473')
+            ions = [i.accession for i in ions]
 
-            # ions = list(set(ions))
-            ions = []
+            # fall back to using b and y ions
             if len(ions) == 0:
-                ions = ['peptide', 'b', 'y']
-                # ToDo: better error handling for general errors -
-                #  bundling together of same type errors
-                # fragment_parsing_error_scans.append(sid_result['id'])
+                ions = ['MS:1001118', 'MS:1001262']
+                self.warnings.append(
+                    'mzidentML file does not specify any fragment ions (child terms of MS_1002473) '
+                    'within <AdditionalSearchParams>. Falling back to b and y ions.')
 
             data = {
                 'id': sid_protocol['id'],
                 'upload_id': str(self.writer.upload_id),
                 # ToDo: split into multiple cols?
                 'frag_tol': f'{frag_tol_value} {frag_tol_unit}',
-                'ions': ';'.join(ions),
+                'ions': ions,
                 'analysis_software': analysis_software
             }
 
@@ -773,9 +800,7 @@ class MzIdParser:
 
     def write_other_info(self):
         """Write remaining information into Upload table."""
-        ident_file_size = os.path.getsize(self.mzid_path)
-        self.writer.write_other_info(self.contains_crosslinks, ident_file_size,
-                                     self.warnings)
+        self.writer.write_other_info(self.contains_crosslinks, self.warnings)
 
     @staticmethod
     def get_accessions(element):

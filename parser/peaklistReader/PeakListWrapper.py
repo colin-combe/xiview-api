@@ -160,20 +160,6 @@ class PeakListWrapper:
         else:
             raise Exception(f"unsupported file extension for: {zip_file}")
 
-    @staticmethod
-    def get_ion_types_mzml(scan):
-        frag_methods = {
-            'beam-type collision-induced dissociation': ["b", "y"],
-            'collision-induced dissociation': ["b", "y"],
-            'electron transfer dissociation': ["c", "z"],
-        }
-        # get fragMethod and translate that to Ion Types
-        ion_types = []
-        for key in scan.keys():
-            if key in frag_methods.keys():
-                ion_types += frag_methods[key]
-        return ion_types
-
 
 class SpectraReader(ABC):
     """Abstract Base Class for all SpectraReader."""

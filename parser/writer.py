@@ -116,13 +116,12 @@ class Writer:
         with self.engine.connect() as conn:
             conn.execute(stmt)
 
-    def write_other_info(self, contains_crosslinks, ident_file_size, upload_warnings):
+    def write_other_info(self, contains_crosslinks, upload_warnings):
         """
         Update Upload row with remaining info.
 
         ToDo: have this explicitly or create update func?
         :param contains_crosslinks:
-        :param ident_file_size:
         :param upload_warnings:
         :return:
         """
@@ -131,6 +130,5 @@ class Writer:
             stmt = upload.update().where(upload.c.id == str(self.upload_id)).values(
                 contains_crosslinks=contains_crosslinks,
                 upload_warnings=upload_warnings,
-                ident_file_size=ident_file_size,
             )
             conn.execute(stmt)

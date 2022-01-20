@@ -1930,7 +1930,8 @@ def test_mzid_parser_postgres_mgf(tmpdir, db_info, use_database, engine):
         # parsed from <FragmentTolerance> in <SpectrumIdentificationProtocol>
         assert results[0].id == 'SearchProtocol_1_0'  # id from <SpectrumIdentificationProtocol>
         assert results[0].frag_tol == '5.0 ppm'
-        assert results[0].ions == 'peptide;b;y'
+        # cvParams from <AdditionalSearchParams> 'ion series considered in search' (MS:1002473)
+        assert results[0].ions == ['MS:1001118', 'MS:1001262']
         assert results[0].analysis_software == (  # referenced <AnalysisSoftware> json
             '{"version": "2.1.5.2", "id": "xiFDR_id", "name": "XiFDR", "SoftwareName": '
             '{"xiFDR": ""}}')
@@ -1969,7 +1970,6 @@ def test_mzid_parser_postgres_mgf(tmpdir, db_info, use_database, engine):
         assert results[0].error_type is None
         assert results[0].upload_warnings == []
         assert not results[0].deleted
-        assert results[0].ident_file_size == 117923
 
     engine.dispose()
 
@@ -2114,7 +2114,7 @@ def test_mzid_parser_postgres_mzml(tmpdir, db_info, use_database, engine):
         # parsed from <FragmentTolerance> in <SpectrumIdentificationProtocol>
         assert results[0].id == 'SearchProtocol_1_0'  # id from <SpectrumIdentificationProtocol>
         assert results[0].frag_tol == '5.0 ppm'
-        assert results[0].ions == 'peptide;b;y'
+        assert results[0].ions == ['MS:1001118', 'MS:1001262']  # fallback to b and y ions
         assert results[0].analysis_software == (  # referenced <AnalysisSoftware> json
             '{"version": "2.1.5.2", "id": "xiFDR_id", "name": "XiFDR", "SoftwareName": '
             '{"xiFDR": ""}}')
@@ -2152,9 +2152,10 @@ def test_mzid_parser_postgres_mzml(tmpdir, db_info, use_database, engine):
         assert results[0].contains_crosslinks
         assert results[0].upload_error is None
         assert results[0].error_type is None
-        assert results[0].upload_warnings == []
+        assert results[0].upload_warnings == [
+            'mzidentML file does not specify any fragment ions (child terms of MS_1002473) within '
+            '<AdditionalSearchParams>. Falling back to b and y ions.']
         assert not results[0].deleted
-        assert results[0].ident_file_size == 118762
 
     engine.dispose()
 

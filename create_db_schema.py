@@ -200,7 +200,7 @@ def create_schema(
         Column("upload_id", UUID, ForeignKey("Upload.id"), index=True, primary_key=True,
                nullable=False),
         Column("frag_tol", Text, nullable=False),
-        Column("ions", Text, nullable=True),
+        Column("ions", ARRAY(Text), nullable=True),
         Column("analysis_software", JSON, nullable=True),
         quote=False
     )
@@ -222,7 +222,6 @@ def create_schema(
         Column("error_type", Text, nullable=True),  # nullable=False
         Column("upload_warnings", JSON, nullable=True),  # nullable=False
         Column("deleted", BOOLEAN, server_default='false', nullable=False),
-        Column("ident_file_size", BIGINT, nullable=True),  # nullable=False
         quote=False
     )
 
