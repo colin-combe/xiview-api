@@ -534,59 +534,61 @@ class MzIdParser:
 
             mod_pos = []
             mod_ids = []
-            if 'Modification' not in peptide.keys():
-                continue
-            # parse modifications and crosslink info
-            for mod in peptide['Modification']:
-                accessions = self.get_accessions(mod)
-                # mod_location is 0-based for assigning modifications to correct amino acid
-                # mod['location'] is 1-based with 0 = n-terminal and len(pep)+1 = C-terminal
-                if mod['location'] == 0:
-                    mod_location = 0
-                elif mod['location'] == len(peptide['PeptideSequence']) + 1:
-                    mod_location = mod['location'] - 2
-                else:
-                    mod_location = mod['location'] - 1
-
-                # parse crosslinker info
-                if 'MS:1002509' in accessions or 'MS:1002510' in accessions:
-                    # use mod['location'] for link-site (1-based in database in line with
-                    # mzIdentML specifications)
-                    link_site = mod['location']
-                    # cross-link donor
-                    if 'MS:1002509' in accessions:
-                        key = list(mod.keys())[accessions.index('MS:1002509')]
-                        crosslinker_pair_id = mod[key]
-                        crosslinker_modmass = mod['monoisotopicMassDelta']
-                    # cross-link acceptor/receiver
-                    if 'MS:1002510' in accessions:
-                        key = list(mod.keys())[accessions.index('MS:1002510')]
-                        crosslinker_pair_id = mod[key]
-                # save the modification info if it's not crosslink related
-                else:
-                    # unknown modification
-                    if mod['name'].accession == 'MS:1001460':
-                        # loop over search modifications and try to match by mass and residues
-                        m_ids = []
-                        # monoisotopicMassDelta is optional ToDo: what if not present?
-                        mod_mass = mod.get('monoisotopicMassDelta', None)
-                        # residues is optional, so fall back to getting the modified amino acid
-                        mod_residues = mod.get('residues',
-                                               [peptide['PeptideSequence'][mod_location]])
-                        for i, sm in enumerate(self.search_modifications):
-                            if sm['accession'] == 'MS:1001460' and sm['mass'] == mod_mass and \
-                                    all([m in sm['residues'] for m in mod_residues]):
-                                m_ids.append(i)
-                        if len(m_ids) != 1:
-                            raise MzIdParseException(
-                                f'Could not map unknown modification to <SearchModifications>:\n'
-                                f'{json.dumps(mod)}')
-                        else:
-                            mod_ids.append(m_ids[0])
+            if 'Modification' in peptide.keys():
+                # parse modifications and crosslink info
+                for mod in peptide['Modification']:
+                    accessions = self.get_accessions(mod)
+                    # mod_location is 0-based for assigning modifications to correct amino acid
+                    # mod['location'] is 1-based with 0 = n-terminal and len(pep)+1 = C-terminal
+                    if mod['location'] == 0:
+                        mod_location = 0
+                    elif mod['location'] == len(peptide['PeptideSequence']) + 1:
+                        mod_location = mod['location'] - 2
                     else:
-                        mod_ids.append(search_mod_accessions.index(mod['name'].accession))
+                        mod_location = mod['location'] - 1
 
-                    mod_pos.append(mod_location)
+                    # parse crosslinker info
+                    if 'MS:1002509' in accessions or 'MS:1002510' in accessions:
+                        # use mod['location'] for link-site (1-based in database in line with
+                        # mzIdentML specifications)
+                        link_site = mod['location']
+                        # cross-link donor
+                        if 'MS:1002509' in accessions:
+                            key = list(mod.keys())[accessions.index('MS:1002509')]
+                            crosslinker_pair_id = mod[key]
+                            crosslinker_modmass = mod['monoisotopicMassDelta']
+                        # cross-link acceptor/receiver
+                        if 'MS:1002510' in accessions:
+                            key = list(mod.keys())[accessions.index('MS:1002510')]
+                            crosslinker_pair_id = mod[key]
+                    # save the modification info if it's not crosslink related
+                    else:
+                        # unknown modification
+                        if mod['name'].accession == 'MS:1001460':
+                            # loop over search modifications and try to match by mass and residues
+                            m_ids = []
+                            # monoisotopicMassDelta is optional ToDo: what if not present?
+                            mod_mass = mod.get('monoisotopicMassDelta', None)
+                            # residues is optional, so fall back to getting the modified amino acid
+                            mod_residues = mod.get('residues',
+                                                   [peptide['PeptideSequence'][mod_location]])
+                            for i, sm in enumerate(self.search_modifications):
+                                if sm['accession'] == 'MS:1001460' and sm['mass'] == mod_mass and \
+                                        all([m in sm['residues'] for m in mod_residues]):
+                                    m_ids.append(i)
+                            if len(m_ids) != 1:
+                                raise MzIdParseException(
+                                    f'Could not map unknown modification to <SearchModifications>:\n'
+                                    f'{json.dumps(mod)}')
+                            else:
+                                mod_ids.append(m_ids[0])
+                        else:
+                            try:
+                                mod_ids.append(search_mod_accessions.index(mod['name'].accession))
+                            except:
+                                print("mod exception")
+
+                        mod_pos.append(mod_location)
 
             peptide_data = {
                 'id': peptide['id'],
@@ -747,7 +749,7 @@ class MzIdParser:
                         'spectrum_id': sid_result['spectrumID'],
                         'spectra_data_ref': sid_result['spectraData_ref'],
                         'pep1_id': spec_id_item['peptide_ref'],
-                        'pep2_id': '',
+                        'pep2_id': None,
                         'charge_state': int(charge_state),
                         'pass_threshold': pass_threshold,
                         'rank': int(rank),
@@ -779,7 +781,8 @@ class MzIdParser:
         db_wrap_up_start_time = time()
         self.logger.info('write remaining entries to DB - start')
 
-        self.writer.write_data('Spectrum', spectra)
+        if self.peak_list_dir:
+            self.writer.write_data('Spectrum', spectra)
         self.writer.write_data('SpectrumIdentification', spectrum_identifications)
 
         self.logger.info('write remaining entries to DB - done.  Time: {} sec'.format(

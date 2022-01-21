@@ -2201,10 +2201,9 @@ def test_mzid_parser_postgres_matrixscience(tmpdir, db_info, use_database, engin
     with engine.connect() as conn:
 
         # DBSequence
-        rs = conn.execute(text("SELECT * FROM DBSequence;"))
-        #  assert 12 == rs.rowcount
-        results = rs.fetchall()
-        pass
+        rs = conn.execute(text("SELECT * FROM modifiedpeptide;"))
+        assert 286 == rs.rowcount
+        #  results = rs.fetchall()
 
     engine.dispose()
 
