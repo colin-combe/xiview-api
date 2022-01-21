@@ -747,7 +747,7 @@ class MzIdParser:
                         'spectrum_id': sid_result['spectrumID'],
                         'spectra_data_ref': sid_result['spectraData_ref'],
                         'pep1_id': spec_id_item['peptide_ref'],
-                        'pep2_id': '',
+                        'pep2_id': None,
                         'charge_state': int(charge_state),
                         'pass_threshold': pass_threshold,
                         'rank': int(rank),
