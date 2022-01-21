@@ -1,15 +1,14 @@
 from sqlalchemy import Column, Integer, ForeignKey, ForeignKeyConstraint, Table
-from sqlalchemy.dialects.postgresql import UUID
+from parser.database.guid import GUID
 from sqlalchemy.types import (
-    VARCHAR,
     FLOAT,
     JSON,
     BOOLEAN,
-    ARRAY,
     SMALLINT,
     BIGINT,
     Text,
     TIMESTAMP,
+    LargeBinary
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine
@@ -18,36 +17,26 @@ from credentials import *
 from sqlalchemy.sql import func
 
 
-def create_db(
-    host=hostname, db=database, dbuser=username, dbpassword=password
-):
-    engine = create_engine(f"postgresql://{dbuser}:{dbpassword}@{host}/{db}")
+def create_db(connection_str):
+    engine = create_engine(connection_str)
     if not database_exists(engine.url):
         create_database(engine.url)
 
 
-def drop_db(
-    host=hostname, db=database, dbuser=username, dbpassword=password
-):
-    engine = create_engine(f"postgresql://{dbuser}:{dbpassword}@{host}/{db}")
+def drop_db(connection_str):
+    engine = create_engine(connection_str)
     drop_database(engine.url)
 
 
-def create_schema(
-    host=hostname, db=database, dbuser=username, dbpassword=password
-):
-
-    # Engine provided a common interface the database.
-    # Here we are using the 'postgresql' driver.
-    engine = create_engine(f"postgresql://{dbuser}:{dbpassword}@{host}/{db}")
-
+def create_schema(connection_str):
+    engine = create_engine(connection_str)
     base = declarative_base()
 
     Table(
         "DBSequence",
         base.metadata,
         Column("id", Text, primary_key=True, nullable=False),
-        Column("upload_id", UUID, ForeignKey("Upload.id"), primary_key=True, nullable=False),
+        Column("upload_id", GUID, ForeignKey("Upload.id"), primary_key=True, nullable=False),
         Column("accession", Text, nullable=False),
         Column("name", Text, nullable=True),
         Column("description", Text, nullable=True),
@@ -58,9 +47,9 @@ def create_schema(
     Table(
         "Layout",
         base.metadata,
-        Column("upload_id", UUID, ForeignKey("Upload.id"), primary_key=True, index=True,
+        Column("upload_id", GUID, ForeignKey("Upload.id"), primary_key=True, index=True,
                nullable=False),
-        Column("user_id", UUID, ForeignKey("UserAccount.id"), primary_key=True,  nullable=False),
+        Column("user_id", GUID, ForeignKey("UserAccount.id"), primary_key=True,  nullable=False),
         Column("time", TIMESTAMP, server_default=func.now(),  primary_key=True, nullable=False),
         Column("layout", JSON, nullable=False),
         Column("description", Text, nullable=True),
@@ -71,12 +60,12 @@ def create_schema(
         "Modification",
         base.metadata,
         Column("id", BIGINT, primary_key=True, nullable=False),
-        Column("upload_id", UUID, ForeignKey("Upload.id"), primary_key=True, nullable=False),
+        Column("upload_id", GUID, ForeignKey("Upload.id"), primary_key=True, nullable=False),
         Column("protocol_id", Text, nullable=False),
         Column("mod_name", Text, nullable=False),
         Column("mass", FLOAT, nullable=False),
         Column("residues", Text, nullable=False),
-        Column("specificity_rules", ARRAY(Text), nullable=False),
+        Column("specificity_rules", JSON, nullable=False),
         Column("fixed_mod", BOOLEAN, nullable=False),
         Column("accession", Text, nullable=True),
         ForeignKeyConstraint(
@@ -90,7 +79,7 @@ def create_schema(
         "Enzyme",
         base.metadata,
         Column("id", Text, primary_key=True, nullable=False),
-        Column("upload_id", UUID, ForeignKey("Upload.id"), primary_key=True, nullable=False),
+        Column("upload_id", GUID, ForeignKey("Upload.id"), primary_key=True, nullable=False),
         Column("protocol_id", Text, nullable=False),
         Column("c_term_gain", Text, nullable=True),
         Column("min_distance", Integer, nullable=True),
@@ -110,7 +99,7 @@ def create_schema(
     Table(
         "PeptideEvidence",  # equivalent of xi2 PeptidePosition Table
         base.metadata,
-        Column("upload_id", UUID, ForeignKey("Upload.id"), index=True, primary_key=True,
+        Column("upload_id", GUID, ForeignKey("Upload.id"), index=True, primary_key=True,
                nullable=False),
         Column("peptide_ref", Text, primary_key=True, nullable=False),
         Column("dbsequence_ref", Text, primary_key=True, nullable=False),
@@ -131,15 +120,15 @@ def create_schema(
         "ModifiedPeptide",
         base.metadata,
         Column("id", Text, primary_key=True, nullable=False),
-        Column("upload_id", UUID, ForeignKey("Upload.id"), index=True, primary_key=True,
+        Column("upload_id", GUID, ForeignKey("Upload.id"), index=True, primary_key=True,
                nullable=False),
         Column("base_sequence", Text, nullable=False),
-        Column("modification_ids", ARRAY(Integer), nullable=False),
-        Column("modification_positions", ARRAY(Integer), nullable=False),
+        Column("modification_ids", JSON, nullable=False),
+        Column("modification_positions", JSON, nullable=False),
         # following columns are not in xi2 db, but come out of the mzid on the <Peptide>s
         Column("link_site", Integer, nullable=True),
         Column("crosslinker_modmass", FLOAT, nullable=True),
-        Column("crosslinker_pair_id", VARCHAR, nullable=True),
+        Column("crosslinker_pair_id", Text, nullable=True),
         quote=False
     )
 
@@ -148,14 +137,14 @@ def create_schema(
         base.metadata,
         Column("id", Text, primary_key=True, nullable=False),   # spectrumID from mzID
         Column("spectra_data_ref", Text, primary_key=True, nullable=False),
-        Column("upload_id", UUID, ForeignKey("Upload.id"),  primary_key=True, index=True,
+        Column("upload_id", GUID, ForeignKey("Upload.id"),  primary_key=True, index=True,
                nullable=False),
         Column("scan_id", Text, nullable=False),   # parsed scan_id ToDo: Do we need this?
         Column("peak_list_file_name", Text, nullable=False),
         Column("precursor_mz", FLOAT, nullable=False),
         Column("precursor_charge", SMALLINT, nullable=True),
-        Column("mz", ARRAY(FLOAT), nullable=False),
-        Column("intensity", ARRAY(FLOAT), nullable=False),
+        Column("mz", LargeBinary, nullable=False),
+        Column("intensity", LargeBinary, nullable=False),
         quote=False
     )
 
@@ -163,7 +152,7 @@ def create_schema(
         "SpectrumIdentification",
         base.metadata,
         Column("id", Text, primary_key=True, nullable=False),
-        Column("upload_id", UUID, ForeignKey("Upload.id"), index=True, primary_key=True,
+        Column("upload_id", GUID, ForeignKey("Upload.id"), index=True, primary_key=True,
                nullable=False),
         Column("spectrum_id", Text, nullable=True),
         Column("spectra_data_ref", Text, nullable=True),
@@ -176,9 +165,10 @@ def create_schema(
         Column("scores", JSON, nullable=True),
         Column("exp_mz", FLOAT, nullable=True),
         Column("calc_mz", FLOAT, nullable=True),
-        Column("meta1", VARCHAR, server_default='', nullable=True),
-        Column("meta2", VARCHAR, server_default='', nullable=True),
-        Column("meta3", VARCHAR, server_default='', nullable=True),
+        Column("meta1", Text, server_default='', nullable=True),
+        Column("meta2", Text, server_default='', nullable=True),
+        Column("meta3", Text, server_default='', nullable=True),
+        # Can't use this ForeignKeyConstraint, because we want to allow people to upload data without spectra
         # ForeignKeyConstraint(
         #     ["spectrum_id", "spectra_data_ref", "upload_id"],
         #     ["Spectrum.id", "Spectrum.spectra_data_ref", "Spectrum.upload_id"],
@@ -198,10 +188,10 @@ def create_schema(
         "SpectrumIdentificationProtocol",
         base.metadata,
         Column("id", Text, primary_key=True, nullable=False),
-        Column("upload_id", UUID, ForeignKey("Upload.id"), index=True, primary_key=True,
+        Column("upload_id", GUID, ForeignKey("Upload.id"), index=True, primary_key=True,
                nullable=False),
         Column("frag_tol", Text, nullable=False),
-        Column("ions", ARRAY(Text), nullable=True),
+        Column("ions", JSON, nullable=True),
         Column("analysis_software", JSON, nullable=True),
         quote=False
     )
@@ -209,8 +199,8 @@ def create_schema(
     Table(
         "Upload",
         base.metadata,
-        Column("id", UUID, primary_key=True, nullable=False),
-        Column("user_id", UUID, ForeignKey("UserAccount.id"), nullable=False),
+        Column("id", GUID, primary_key=True, nullable=False),
+        Column("user_id", GUID, ForeignKey("UserAccount.id"), nullable=False),
         Column("identification_file_name", Text, nullable=False),
         Column("provider", JSON, nullable=True),
         Column("audits", JSON, nullable=True),
@@ -229,12 +219,12 @@ def create_schema(
     Table(
         "UserAccount",
         base.metadata,
-        Column("id", UUID, primary_key=True, nullable=False),
-        Column("user_name", VARCHAR, nullable=False),
-        Column("password", VARCHAR, nullable=False),
-        Column("email", VARCHAR, nullable=False),
-        Column("gdpr_token", VARCHAR, nullable=True),
-        Column("ptoken", VARCHAR, nullable=True),
+        Column("id", GUID, primary_key=True, nullable=False),
+        Column("user_name", Text, nullable=False),
+        Column("password", Text, nullable=False),
+        Column("email", Text, nullable=False),
+        Column("gdpr_token", Text, nullable=True),
+        Column("ptoken", Text, nullable=True),
         Column("ptoken_timestamp", TIMESTAMP, nullable=True),
         Column("gdpr_timestamp", TIMESTAMP, nullable=True),
         quote=False
@@ -245,5 +235,6 @@ def create_schema(
 
 
 if __name__ == "__main__":
-    create_db()
-    create_schema()
+    conn_str = f"postgresql://{username}:{password}@{hostname}/{database}"
+    create_db(conn_str)
+    create_schema(conn_str)

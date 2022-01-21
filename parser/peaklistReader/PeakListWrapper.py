@@ -56,8 +56,8 @@ class Spectrum:
         # make sure that the m/z values are sorted asc
         sorted_indices = np.argsort(mz_array)
         # convert to list because psycopg2 can't handle numpy arrays
-        self.mz_values = mz_array[sorted_indices].tolist()
-        self.int_values = int_array[sorted_indices].tolist()
+        self.mz_values = mz_array[sorted_indices]
+        self.int_values = int_array[sorted_indices]
         self._precursor_mass = None
 
 

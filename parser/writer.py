@@ -1,7 +1,8 @@
 from uuid import uuid4
-from sqlalchemy import create_engine, MetaData
+from sqlalchemy import create_engine, MetaData, inspect
 from sqlalchemy import Table as SATable
 from sqlalchemy.dialects.postgresql import insert
+from create_db_schema import create_schema
 
 
 def Table(name, *args, **kw):
@@ -24,44 +25,28 @@ class Writer:
     # update.
     """
 
-    def __init__(self, hostname, port, username, password, database, user_id):
+    def __init__(self, connection_str, user_id=None):
         """
         Initialises the database connection and the writer in general.
 
-        :param hostname: address of the database server
-        :param username: database username/role to use for the connection
-        :param password: password of the user/role
-        :param port: port the database server is listening to
-        :param database: name of the DB to write the result out to
-        :param user_id: UUID of the UserAccount
+        :param connection_str: database connection string
+        :param user_id: UUID of the UserAccount (postgresql specific)
         """
-        # # Currently only MS2 Spectra are delt with
-        # self.default_ms_level = 2
-
         # Connection setup.
         # The 'engine' in SQLAlchemy is a Factory and connection pool to the database.
         # It has lazy initialisation.
-        self.engine = create_engine(
-            f"postgresql://{username}:{password}@{hostname}:{port}/{database}"
-        )
+
+        self.engine = create_engine(connection_str)
         self.meta = MetaData()
         self.upload_id = uuid4()
         self.user_id = user_id
+        # Create table schema if necessary
+        if not inspect(self.engine).has_table('spectrumidentification'):
+            create_schema(self.engine.url)
 
-        # with self.engine.connect() as conn:
-        #
-        #     # make sure we have the needed matched spectrum types in the DB
-        #     self._init_matched_spectrum_types(conn)
-        #
-        #     self._init_result_set_types(conn)
-        #
-        #     self._prepare_search_tables(conn, self.search_uuid,
-        #                                 self.result_set_uuid, self.json_config)
-        #
-        #     # Write the Proteins table from the context
-        #     self._write_protein(conn, self.search_uuid, self.context.proteins)
-        #
-        #     self._write_score_names(conn, self.result_set_uuid)
+        # ToDo: check if this would work
+        # if not database_exists(engine.url):
+        #     create_database(engine.url)
 
     def new_upload(self, id_file_name):
         """
@@ -132,3 +117,42 @@ class Writer:
                 upload_warnings=upload_warnings,
             )
             conn.execute(stmt)
+
+    def fill_in_missing_scores(self):
+        """
+        ToDo: this needs to be adapted to sqlalchemy from old SQLite version
+        """
+        pass
+        # try:
+        #     cur.execute("""
+        #       SELECT DISTINCT scoresJSON.key as scoreKey
+        #       FROM spectrum_identifications, json_each(spectrum_identifications.scores) AS scoresJSON""")
+        #
+        #     all_scores = cur.fetchall()
+        #     all_scores = set([str(x[0]) for x in all_scores])
+        #
+        #     inj_list = []
+        #
+        #     cur.execute('SELECT id, scores FROM spectrum_identifications')
+        #     res = cur.fetchall()
+        #
+        #     for row in res:
+        #         row_scores = json.loads(row[1])
+        #         missing = all_scores - set(row_scores.keys())
+        #
+        #         if len(missing) > 0:
+        #             missing_dict = {key: -1 for key in missing}
+        #             row_scores.update(missing_dict)
+        #             inj_list.append([json.dumps(row_scores), row[0]])
+        #             # cur.execute('UPDATE identifications SET allScores=? WHERE id = row[0]', json.dumps(row_scores))
+        #
+        #     cur.executemany("""
+        #         UPDATE spectrum_identifications
+        #         SET `scores` = ?
+        #         WHERE `id` = ?""", inj_list)
+        #
+        #     con.commit()
+        #
+        # except sqlite3.Error as e:
+        #     raise DBException(e.message)
+        # pass

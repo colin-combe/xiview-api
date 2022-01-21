@@ -54,8 +54,7 @@ class MzIdParser:
         self.contains_crosslinks = False
 
         self.warnings = []
-
-        self.writer.new_upload(os.path.basename(self.mzid_path))
+        self.write_new_upload()
 
         # init self.mzid_reader (pyteomics mzid reader)
         if self.mzid_path.endswith('.gz') or self.mzid_path.endswith('.zip'):
@@ -183,33 +182,10 @@ class MzIdParser:
         self.parse_peptide_evidences()
         self.main_loop()
 
-        # self.fill_in_missing_scores()  # empty here, overridden in xiSPEC subclass to do stuff
-        self.write_other_info()
+        self.fill_in_missing_scores()  # empty here, overridden in xiSPEC subclass to do stuff
+        self.write_other_info()  # overridden (empty function) in xiSPEC subclass
 
         self.logger.info('all done! Total time: ' + str(round(time() - start_time, 2)) + " sec")
-
-    # def get_ion_types_mzid(self, sid_item):
-    #     """
-    #     Get ion types from SpectrumIdentificationItem.
-    #
-    #     """
-    #     try:
-    #         ion_names_list = [i['name'] for i in sid_item['IonType']]
-    #         ion_names_list = list(set(ion_names_list))
-    #     except KeyError:
-    #         return []
-    #
-    #     # ion_types = ["P"]
-    #     ion_types = []
-    #     for ion_name in ion_names_list:
-    #         try:
-    #             ion = re.search('frag: ([a-z]) ion', ion_name).groups()[0]
-    #             ion_types.append(ion)
-    #         except (IndexError, AttributeError) as e:
-    #             self.logger.info(e, ion_name)
-    #             continue
-    #
-    #     return ion_types
 
     # split into two functions
     @staticmethod
@@ -679,7 +655,6 @@ class MzIdParser:
         spec_count = 0
         spectra = []
         spectrum_identifications = []
-        fragment_parsing_error_scans = []
         for sid_result in self.mzid_reader:
             if self.peak_list_dir:
                 peak_list_reader = self.peak_list_readers[sid_result['spectraData_ref']]
@@ -788,19 +763,6 @@ class MzIdParser:
         self.logger.info('write remaining entries to DB - done.  Time: {} sec'.format(
             round(time() - db_wrap_up_start_time, 2)))
 
-        # warnings
-        if len(fragment_parsing_error_scans) > 0:
-            if len(fragment_parsing_error_scans) > 50:
-                id_string = '; '.join(fragment_parsing_error_scans[:50]) + ' ...'
-            else:
-                id_string = '; '.join(fragment_parsing_error_scans)
-
-            self.warnings.append({
-                "type": "IonParsing",
-                "message": "mzidentML file does not specify fragment ions.",
-                'id': id_string
-            })
-
     def upload_info(self):
         upload_info_start_time = time()
         self.logger.info('parse upload info - start')
@@ -855,6 +817,10 @@ class MzIdParser:
     def fill_in_missing_scores(self):
         pass
 
+    def write_new_upload(self):
+        """Write new upload."""
+        self.writer.new_upload(os.path.basename(self.mzid_path))
+
     def write_other_info(self):
         """Write remaining information into Upload table."""
         self.writer.write_other_info(self.contains_crosslinks, self.warnings)
@@ -873,10 +839,16 @@ class MzIdParser:
 
 class xiSPEC_MzIdParser(MzIdParser):
 
+    def write_new_upload(self):
+        """Overrides base class function - not needed for xiSPEC."""
+        pass
+
     def upload_info(self):
+        """Overrides base class function - not needed for xiSPEC."""
         pass
 
     def parse_db_sequences(self):
+        """Overrides base class function - not needed for xiSPEC."""
         pass
 
     def fill_in_missing_scores(self):
@@ -888,4 +860,5 @@ class xiSPEC_MzIdParser(MzIdParser):
             round(time() - score_fill_start_time, 2)))
 
     def write_other_info(self):
+        """Overrides base class function - not needed for xiSPEC."""
         pass
