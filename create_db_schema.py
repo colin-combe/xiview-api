@@ -165,8 +165,8 @@ def create_schema(
         Column("id", Text, primary_key=True, nullable=False),
         Column("upload_id", UUID, ForeignKey("Upload.id"), index=True, primary_key=True,
                nullable=False),
-        Column("spectrum_id", Text, nullable=False),
-        Column("spectra_data_ref", Text, nullable=False),
+        Column("spectrum_id", Text, nullable=True),
+        Column("spectra_data_ref", Text, nullable=True),
         Column("crosslink_identification_id", Integer, nullable=True),
         Column("pep1_id", Text, nullable=False),
         Column("pep2_id", Text, nullable=True),
@@ -179,10 +179,10 @@ def create_schema(
         Column("meta1", VARCHAR, server_default='', nullable=True),
         Column("meta2", VARCHAR, server_default='', nullable=True),
         Column("meta3", VARCHAR, server_default='', nullable=True),
-        ForeignKeyConstraint(
-            ["spectrum_id", "spectra_data_ref", "upload_id"],
-            ["Spectrum.id", "Spectrum.spectra_data_ref", "Spectrum.upload_id"],
-        ),
+        # ForeignKeyConstraint(
+        #     ["spectrum_id", "spectra_data_ref", "upload_id"],
+        #     ["Spectrum.id", "Spectrum.spectra_data_ref", "Spectrum.upload_id"],
+        # ),
         ForeignKeyConstraint(
             ["pep1_id", "upload_id"],
             ["ModifiedPeptide.id", "ModifiedPeptide.upload_id"],
