@@ -1,7 +1,6 @@
 import numpy as np
 from numpy.testing import assert_array_equal
-from parser import MzIdParser
-from parser.writer import Writer, Table
+from parser.writer import Table
 import os
 import logging
 from sqlalchemy import text
@@ -206,14 +205,14 @@ def test_psql_mgf_mzid_parser(tmpdir, use_database, engine):
         compare_enzyme(rs.fetchall())
 
         # PeptideEvidence
-        stmt = Table("PeptideEvidence", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
-                     quote=False).select()
+        stmt = Table("PeptideEvidence", id_parser.writer.meta,
+                     autoload_with=id_parser.writer.engine, quote=False).select()
         rs = conn.execute(stmt)
         compare_peptide_evidence(rs.fetchall())
 
         # ModifiedPeptide
-        stmt = Table("ModifiedPeptide", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
-                     quote=False).select()
+        stmt = Table("ModifiedPeptide", id_parser.writer.meta,
+                     autoload_with=id_parser.writer.engine, quote=False).select()
         rs = conn.execute(stmt)
         compare_modified_peptide(rs.fetchall())
 
@@ -241,8 +240,8 @@ def test_psql_mgf_mzid_parser(tmpdir, use_database, engine):
                 assert_array_equal(np.frombuffer(r.intensity), spectrum['intensity array'])
 
         # SpectrumIdentification
-        stmt = Table("SpectrumIdentification", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
-                     quote=False).select()
+        stmt = Table("SpectrumIdentification", id_parser.writer.meta,
+                     autoload_with=id_parser.writer.engine, quote=False).select()
         rs = conn.execute(stmt)
         assert 22 == rs.rowcount
         results = rs.fetchall()
@@ -273,8 +272,8 @@ def test_psql_mgf_mzid_parser(tmpdir, use_database, engine):
         # ToDo: check more rows?
 
         # SpectrumIdentificationProtocol
-        stmt = Table("SpectrumIdentificationProtocol", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
-                     quote=False).select()
+        stmt = Table("SpectrumIdentificationProtocol", id_parser.writer.meta,
+                     autoload_with=id_parser.writer.engine, quote=False).select()
         rs = conn.execute(stmt)
         assert 1 == rs.rowcount
         results = rs.fetchall()
@@ -363,14 +362,14 @@ def test_psql_mzml_mzid_parser(tmpdir, use_database, engine):
         compare_enzyme(rs.fetchall())
 
         # PeptideEvidence
-        stmt = Table("PeptideEvidence", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
-                     quote=False).select()
+        stmt = Table("PeptideEvidence", id_parser.writer.meta,
+                     autoload_with=id_parser.writer.engine, quote=False).select()
         rs = conn.execute(stmt)
         compare_peptide_evidence(rs.fetchall())
 
         # ModifiedPeptide
-        stmt = Table("ModifiedPeptide", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
-                     quote=False).select()
+        stmt = Table("ModifiedPeptide", id_parser.writer.meta,
+                     autoload_with=id_parser.writer.engine, quote=False).select()
         rs = conn.execute(stmt)
         compare_modified_peptide(rs.fetchall())
 
@@ -397,8 +396,8 @@ def test_psql_mzml_mzid_parser(tmpdir, use_database, engine):
         # ToDo: check more rows? could loop over spectra in MGF and compare to DB
 
         # SpectrumIdentification
-        stmt = Table("SpectrumIdentification", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
-                     quote=False).select()
+        stmt = Table("SpectrumIdentification", id_parser.writer.meta,
+                     autoload_with=id_parser.writer.engine, quote=False).select()
         rs = conn.execute(stmt)
         assert 22 == rs.rowcount
         results = rs.fetchall()
@@ -430,8 +429,8 @@ def test_psql_mzml_mzid_parser(tmpdir, use_database, engine):
         # ToDo: check more rows?
 
         # SpectrumIdentificationProtocol
-        stmt = Table("SpectrumIdentificationProtocol", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
-                     quote=False).select()
+        stmt = Table("SpectrumIdentificationProtocol", id_parser.writer.meta,
+                     autoload_with=id_parser.writer.engine, quote=False).select()
         rs = conn.execute(stmt)
         assert 1 == rs.rowcount
         results = rs.fetchall()
