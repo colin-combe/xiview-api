@@ -779,7 +779,8 @@ class MzIdParser:
         db_wrap_up_start_time = time()
         self.logger.info('write remaining entries to DB - start')
 
-        self.writer.write_data('Spectrum', spectra)
+        if self.peak_list_dir:
+            self.writer.write_data('Spectrum', spectra)
         self.writer.write_data('SpectrumIdentification', spectrum_identifications)
 
         self.logger.info('write remaining entries to DB - done.  Time: {} sec'.format(
