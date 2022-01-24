@@ -126,7 +126,8 @@ def create_schema(connection_str):
         Column("modification_ids", JSON, nullable=False),
         Column("modification_positions", JSON, nullable=False),
         # following columns are not in xi2 db, but come out of the mzid on the <Peptide>s
-        Column("link_site", Integer, nullable=True),
+        Column("link_site1", Integer, nullable=True),
+        Column("link_site2", Integer, nullable=True),  # only used for storing loop links
         Column("crosslinker_modmass", FLOAT, nullable=True),
         Column("crosslinker_pair_id", Text, nullable=True),
         quote=False
@@ -168,7 +169,8 @@ def create_schema(connection_str):
         Column("meta1", Text, server_default='', nullable=True),
         Column("meta2", Text, server_default='', nullable=True),
         Column("meta3", Text, server_default='', nullable=True),
-        # Can't use this ForeignKeyConstraint, because we want to allow people to upload data without spectra
+        # Can't use this ForeignKeyConstraint, because we want to allow people to upload data
+        # without spectra
         # ForeignKeyConstraint(
         #     ["spectrum_id", "spectra_data_ref", "upload_id"],
         #     ["Spectrum.id", "Spectrum.spectra_data_ref", "Spectrum.upload_id"],

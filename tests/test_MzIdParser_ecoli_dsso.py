@@ -65,7 +65,7 @@ def compare_modified_peptide(results):
     assert results[0].modification_ids == []
     assert results[0].modification_positions == []
     # location of <Modification> with cross-link acceptor/receiver cvParam
-    assert results[0].link_site == 5
+    assert results[0].link_site1 == 5
     # monoisotopicMassDelta of <Modification> with cross-link acceptor/receiver cvParam
     assert results[0].crosslinker_modmass == 0
     # value of cross-link acceptor/receiver cvParam
@@ -77,7 +77,7 @@ def compare_modified_peptide(results):
     assert results[1].modification_ids == []
     assert results[1].modification_positions == []
     # location of <Modification> with cross-link acceptor/receiver cvParam
-    assert results[1].link_site == 1
+    assert results[1].link_site1 == 1
     # monoisotopicMassDelta of <Modification> with cross-link acceptor/receiver cvParam
     assert results[1].crosslinker_modmass == 158.0037644600003
     # value of cross-link acceptor/receiver cvParam
@@ -131,7 +131,7 @@ def compare_modification(results):
     assert results[5].id == 5  # id from incrementing count
     assert results[5].mod_name == 'Deamidated'  # name from <SearchModification> cvParam
     assert results[5].mass == 0.984016  # massDelta from <SearchModification>
-    assert results[5].residues == 'N Q'  # residues from <SearchModification>
+    assert results[5].residues == 'NQ'  # residues from <SearchModification>
     assert results[5].specificity_rules == []  # parsed from child <SpecificityRules>
     assert not results[5].fixed_mod  # fixedMod from <SearchModification>
     assert results[5].accession == 'UNIMOD:7'  # accession from <SearchModification> cvParam
@@ -139,7 +139,7 @@ def compare_modification(results):
     assert results[6].id == 6  # id from incrementing count
     assert results[6].mod_name == 'Methyl'  # name from <SearchModification> cvParam
     assert results[6].mass == 14.01565  # massDelta from <SearchModification>
-    assert results[6].residues == 'D E'  # residues from <SearchModification>
+    assert results[6].residues == 'DE'  # residues from <SearchModification>
     assert results[6].specificity_rules == []  # parsed from child <SpecificityRules>
     assert not results[6].fixed_mod  # fixedMod from <SearchModification>
     assert results[6].accession == 'UNIMOD:34'  # accession from <SearchModification> cvParam

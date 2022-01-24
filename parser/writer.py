@@ -1,8 +1,8 @@
-from uuid import uuid4
-from sqlalchemy import create_engine, MetaData, inspect
+from uuid import uuid4, UUID
+from sqlalchemy import create_engine, MetaData
 from sqlalchemy import Table as SATable
-from sqlalchemy.dialects.postgresql import insert
 from create_db_schema import create_schema
+from sqlalchemy_utils import database_exists
 
 
 def Table(name, *args, **kw):
@@ -15,15 +15,7 @@ def Table(name, *args, **kw):
 
 
 class Writer:
-    """
-    Write results to database
-    # Implementation of a ResultWriter which outputs results into the
-    # tables of a Relational Database.
-
-    # Currently no batching is done. I.e. every match is writing every spectra one a at a time,
-    # with individual round trips to the DB. Might have to update to include some form of batch
-    # update.
-    """
+    """Class for writing results to a relational database."""
 
     def __init__(self, connection_str, user_id=None):
         """
@@ -35,34 +27,15 @@ class Writer:
         # Connection setup.
         # The 'engine' in SQLAlchemy is a Factory and connection pool to the database.
         # It has lazy initialisation.
-
         self.engine = create_engine(connection_str)
         self.meta = MetaData()
-        self.upload_id = uuid4()
-        self.user_id = user_id
-        # Create table schema if necessary
-        if not inspect(self.engine).has_table('spectrumidentification'):
+        self.upload_id = str(uuid4())
+        if user_id is not None and not isinstance(user_id, UUID):
+            raise Exception('user_id must be a uuid!')
+        self.user_id = str(user_id)
+        # Create table schema if necessary (SQLite)
+        if not database_exists(self.engine.url):
             create_schema(self.engine.url)
-
-        # ToDo: check if this would work
-        # if not database_exists(engine.url):
-        #     create_database(engine.url)
-
-    def new_upload(self, id_file_name):
-        """
-        Write a new Upload into the Database.
-
-        ToDo: use write_data()?
-        :param: id_file_name: file name of the identification file (mzid, csv)
-        """
-        upload = Table("Upload", self.meta, autoload_with=self.engine, quote=False)
-        with self.engine.connect() as conn:
-            stmt = insert(upload).values(
-                id=str(self.upload_id),
-                user_id=str(self.user_id),
-                identification_file_name=id_file_name,
-            )
-            conn.execute(stmt)
 
     def write_data(self, table, data):
         """
@@ -126,7 +99,8 @@ class Writer:
         # try:
         #     cur.execute("""
         #       SELECT DISTINCT scoresJSON.key as scoreKey
-        #       FROM spectrum_identifications, json_each(spectrum_identifications.scores) AS scoresJSON""")
+        #       FROM spectrum_identifications, json_each(spectrum_identifications.scores)
+        #       AS scoresJSON""")
         #
         #     all_scores = cur.fetchall()
         #     all_scores = set([str(x[0]) for x in all_scores])
@@ -144,7 +118,8 @@ class Writer:
         #             missing_dict = {key: -1 for key in missing}
         #             row_scores.update(missing_dict)
         #             inj_list.append([json.dumps(row_scores), row[0]])
-        #             # cur.execute('UPDATE identifications SET allScores=? WHERE id = row[0]', json.dumps(row_scores))
+        #             # cur.execute('UPDATE identifications SET allScores=? WHERE id = row[0]',
+        #             json.dumps(row_scores))
         #
         #     cur.executemany("""
         #         UPDATE spectrum_identifications
