@@ -1,3 +1,9 @@
+"""
+ToDo: add test that writes multiple mzids into the db and check that results are written in
+    properly.
+"""
+
+
 import numpy as np
 from numpy.testing import assert_array_equal
 from parser.writer import Table
@@ -161,6 +167,43 @@ def compare_enzyme(results):
     assert results[0].accession == "MS:1001251"
 
 
+def compare_spectrum_identification_protocol(results):
+    assert len(results) == 1
+    # parsed from <FragmentTolerance> in <SpectrumIdentificationProtocol>
+    assert results[0].id == 'SearchProtocol_1_0'  # id from <SpectrumIdentificationProtocol>
+    assert results[0].frag_tol == '5.0 ppm'
+    # cvParams from <AdditionalSearchParams> 'ion series considered in search' (MS:1002473)
+    assert results[0].ions == ['MS:1001118', 'MS:1001262']
+    assert results[0].analysis_software == (  # referenced <AnalysisSoftware> json
+        '{"version": "2.1.5.2", "id": "xiFDR_id", "name": "XiFDR", "SoftwareName": '
+        '{"xiFDR": ""}}')
+
+
+def compare_spectrum_mgf(conn, peak_list_folder):
+    peaklists = [
+        'recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mgf',
+        'recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mgf'
+    ]
+    for pl in peaklists:
+        rs = conn.execute(text(f"SELECT * FROM Spectrum WHERE peak_list_file_name = '{pl}'"))
+        results = rs.fetchall()
+        assert len(results) == 11
+        reader = mgf.read(os.path.join(peak_list_folder, pl))
+        for r in rs:
+            # For MGF the index is encoded as e.g. index=3
+            reader_idx = int(r.id.replace('index=', ''))
+            spectrum = reader[reader_idx]
+            # spectrumID from <SpectrumIdentificationResult>
+            assert r.id == f'index={reader_idx}'  # a bit circular here
+            # spectraData_ref from <SpectrumIdentificationResult>
+            assert r.spectra_data_ref == f'SD_0_{pl}'
+            assert r.peak_list_file_name == pl
+            assert r.precursor_mz == spectrum['params']['pepmass'][0]
+            assert r.precursor_charge == spectrum['params']['charge'][0]
+            assert_array_equal(np.frombuffer(r.mz), spectrum['m/z array'])
+            assert_array_equal(np.frombuffer(r.intensity), spectrum['intensity array'])
+
+
 def test_psql_db_cleared_each_test(use_database, engine):
     """Check that the database is empty."""
     with engine.connect() as conn:
@@ -217,27 +260,7 @@ def test_psql_mgf_mzid_parser(tmpdir, use_database, engine):
         compare_modified_peptide(rs.fetchall())
 
         # Spectrum
-        peaklists = [
-            'recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mgf',
-            'recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mgf'
-        ]
-        for pl in peaklists:
-            rs = conn.execute(text(f"SELECT * FROM Spectrum WHERE peak_list_file_name = '{pl}'"))
-            assert 11 == rs.rowcount
-            reader = mgf.read(os.path.join(peak_list_folder, pl))
-            for r in rs:
-                # For MGF the index is encoded as e.g. index=3
-                reader_idx = int(r.id.replace('index=', ''))
-                spectrum = reader[reader_idx]
-                # spectrumID from <SpectrumIdentificationResult>
-                assert r.id == f'index={reader_idx}'  # a bit circular here
-                # spectraData_ref from <SpectrumIdentificationResult>
-                assert r.spectra_data_ref == f'SD_0_{pl}'
-                assert r.peak_list_file_name == pl
-                assert r.precursor_mz == spectrum['params']['pepmass'][0]
-                assert r.precursor_charge == spectrum['params']['charge'][0]
-                assert_array_equal(np.frombuffer(r.mz), spectrum['m/z array'])
-                assert_array_equal(np.frombuffer(r.intensity), spectrum['intensity array'])
+        compare_spectrum_mgf(conn, peak_list_folder)
 
         # SpectrumIdentification
         stmt = Table("SpectrumIdentification", id_parser.writer.meta,
@@ -275,16 +298,7 @@ def test_psql_mgf_mzid_parser(tmpdir, use_database, engine):
         stmt = Table("SpectrumIdentificationProtocol", id_parser.writer.meta,
                      autoload_with=id_parser.writer.engine, quote=False).select()
         rs = conn.execute(stmt)
-        assert 1 == rs.rowcount
-        results = rs.fetchall()
-        # parsed from <FragmentTolerance> in <SpectrumIdentificationProtocol>
-        assert results[0].id == 'SearchProtocol_1_0'  # id from <SpectrumIdentificationProtocol>
-        assert results[0].frag_tol == '5.0 ppm'
-        # cvParams from <AdditionalSearchParams> 'ion series considered in search' (MS:1002473)
-        assert results[0].ions == ['MS:1001118', 'MS:1001262']
-        assert results[0].analysis_software == (  # referenced <AnalysisSoftware> json
-            '{"version": "2.1.5.2", "id": "xiFDR_id", "name": "XiFDR", "SoftwareName": '
-            '{"xiFDR": ""}}')
+        compare_spectrum_identification_protocol(rs.fetchall())
 
         # Upload
         stmt = Table("Upload", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
@@ -374,6 +388,7 @@ def test_psql_mzml_mzid_parser(tmpdir, use_database, engine):
         compare_modified_peptide(rs.fetchall())
 
         # Spectrum
+        # ToDo: create and use compare_spectrum_mzml()
         stmt = Table("Spectrum", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
                      quote=False).select()
         rs = conn.execute(stmt)
@@ -393,7 +408,6 @@ def test_psql_mzml_mzid_parser(tmpdir, use_database, engine):
         assert results[0].precursor_charge == 5  # charge state
         # assert results[0].mz == []  # ToDo
         # assert results[0].intensity == []  # ToDo
-        # ToDo: check more rows? could loop over spectra in MGF and compare to DB
 
         # SpectrumIdentification
         stmt = Table("SpectrumIdentification", id_parser.writer.meta,
@@ -432,15 +446,7 @@ def test_psql_mzml_mzid_parser(tmpdir, use_database, engine):
         stmt = Table("SpectrumIdentificationProtocol", id_parser.writer.meta,
                      autoload_with=id_parser.writer.engine, quote=False).select()
         rs = conn.execute(stmt)
-        assert 1 == rs.rowcount
-        results = rs.fetchall()
-        # parsed from <FragmentTolerance> in <SpectrumIdentificationProtocol>
-        assert results[0].id == 'SearchProtocol_1_0'  # id from <SpectrumIdentificationProtocol>
-        assert results[0].frag_tol == '5.0 ppm'
-        assert results[0].ions == ['MS:1001118', 'MS:1001262']  # fallback to b and y ions
-        assert results[0].analysis_software == (  # referenced <AnalysisSoftware> json
-            '{"version": "2.1.5.2", "id": "xiFDR_id", "name": "XiFDR", "SoftwareName": '
-            '{"xiFDR": ""}}')
+        compare_spectrum_identification_protocol(rs.fetchall())
 
         # Upload
         stmt = Table("Upload", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
@@ -535,10 +541,7 @@ def test_sqlite_mgf_xispec_mzid_parser(tmpdir):
         compare_modified_peptide(rs.fetchall())
 
         # Spectrum
-        stmt = Table("Spectrum", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
-                     quote=False).select()
-        rs = conn.execute(stmt)
-        # ToDo:
+        compare_spectrum_mgf(conn, peak_list_folder)
 
         # SpectrumIdentification
         stmt = Table("SpectrumIdentification", id_parser.writer.meta,
@@ -550,8 +553,7 @@ def test_sqlite_mgf_xispec_mzid_parser(tmpdir):
         stmt = Table("SpectrumIdentificationProtocol", id_parser.writer.meta,
                      autoload_with=id_parser.writer.engine, quote=False).select()
         rs = conn.execute(stmt)
-        results = rs.fetchall()
-        # ToDo
+        compare_spectrum_identification_protocol(rs.fetchall())
 
         # Upload - not written for xiSPEC
         stmt = Table("Upload", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
@@ -616,7 +618,7 @@ def test_sqlite_mzml_xispec_mzid_parser(tmpdir):
         stmt = Table("Spectrum", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
                      quote=False).select()
         rs = conn.execute(stmt)
-        # ToDo:
+        # ToDo: create and use compare_spectrum_mzml()
 
         # SpectrumIdentification
         stmt = Table("SpectrumIdentification", id_parser.writer.meta,
@@ -628,8 +630,7 @@ def test_sqlite_mzml_xispec_mzid_parser(tmpdir):
         stmt = Table("SpectrumIdentificationProtocol", id_parser.writer.meta,
                      autoload_with=id_parser.writer.engine, quote=False).select()
         rs = conn.execute(stmt)
-        results = rs.fetchall()
-        # ToDo
+        compare_spectrum_identification_protocol(rs.fetchall())
 
         # Upload - not written for xiSPEC
         stmt = Table("Upload", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
