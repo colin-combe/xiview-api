@@ -61,7 +61,7 @@ def create_schema(connection_str):
         base.metadata,
         Column("id", BIGINT, primary_key=True, nullable=False),
         Column("upload_id", GUID, ForeignKey("Upload.id"), primary_key=True, nullable=False),
-        Column("protocol_id", Text, nullable=False),
+        Column("protocol_id", Text, primary_key=True, nullable=False),
         Column("mod_name", Text, nullable=False),
         Column("mass", FLOAT, nullable=False),
         Column("residues", Text, nullable=False),
