@@ -89,7 +89,7 @@ def test_psql_matrixscience_mzid_parser(tmpdir, db_info, use_database, engine):
         assert len(rs.fetchall()) == 0
 
         # Modification - parsed from <SearchModification>s
-        stmt = Table("Modification", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
+        stmt = Table("SearchModification", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
                      quote=False).select()
         rs = conn.execute(stmt)
         compare_modification(rs.fetchall())
