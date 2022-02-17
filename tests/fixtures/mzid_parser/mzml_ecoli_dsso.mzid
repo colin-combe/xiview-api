@@ -414,12 +414,12 @@ Gustav-Meyer-Allee 25
   <PeptideEvidence dBSequence_ref="dbseq_P0AGE9_target" peptide_ref="21_EHVTKPVVGYIAGVTAPKGK_31_FAALEAAGVKTVR_18_10_p0" start="224" end="243" isDecoy="false" id="pepevid_pep_21_EHVTKPVVGYIAGVTAPKGK_protP0AGE9_target_224_pepkey_0_21_EHVTKPVVGYIAGVTAPKGK_31_FAALEAAGVKTVR_18_10_p0_21_EHVTKPVVGYIAGVTAPKGK_31_FAALEAAGVKTVR_18_10_p1"></PeptideEvidence>
 </SequenceCollection>
 <AnalysisCollection >
-  <SpectrumIdentification spectrumIdentificationProtocol_ref="SearchProtocol_1_0" spectrumIdentificationList_ref="SII_LIST_1_1_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mgf" id="SpecIdent__0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mgf">
-    <InputSpectra spectraData_ref="SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mgf"></InputSpectra>
+  <SpectrumIdentification spectrumIdentificationProtocol_ref="SearchProtocol_1_0" spectrumIdentificationList_ref="SII_LIST_1_1_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mzML" id="SpecIdent__0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mzML">
+    <InputSpectra spectraData_ref="SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mzML"></InputSpectra>
     <SearchDatabaseRef searchDatabase_ref="SDB_0_0"></SearchDatabaseRef>
   </SpectrumIdentification>
-  <SpectrumIdentification spectrumIdentificationProtocol_ref="SearchProtocol_1_0" spectrumIdentificationList_ref="SII_LIST_1_1_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mgf" id="SpecIdent__0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mgf">
-    <InputSpectra spectraData_ref="SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mgf"></InputSpectra>
+  <SpectrumIdentification spectrumIdentificationProtocol_ref="SearchProtocol_1_0" spectrumIdentificationList_ref="SII_LIST_1_1_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML" id="SpecIdent__0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML">
+    <InputSpectra spectraData_ref="SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML"></InputSpectra>
     <SearchDatabaseRef searchDatabase_ref="SDB_0_0"></SearchDatabaseRef>
   </SpectrumIdentification>
 </AnalysisCollection>
@@ -455,39 +455,11 @@ Gustav-Meyer-Allee 25
         <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
         <cvParam cvRef="PSI-MS" accession="MS:1002510" name="cross-link acceptor" value="0"></cvParam>
       </SearchModification>
-      <SearchModification fixedMod="false" massDelta="0.0" residues="A B C D E F G H I K L M N O P Q R S T U V W Y Z">
+      <SearchModification fixedMod="false" massDelta="0.0" residues=".">
         <cvParam cvRef="PSI-MS" accession="MS:1002509" name="cross-link donor" value="1"></cvParam>
         <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
       </SearchModification>
-      <SearchModification fixedMod="true" massDelta="0.0" residues="A B C D E F G H I K L M N O P Q R S T U V W Y Z">
-        <cvParam cvRef="PSI-MS" accession="MS:1002510" name="cross-link acceptor" value="1"></cvParam>
-      </SearchModification>
       <SearchModification fixedMod="true" massDelta="0.0" residues=".">
-        <SpecificityRules>
-          <cvParam cvRef="PSI-MS" accession="MS:1002058" name="modification specificity protein C-term"></cvParam>
-        </SpecificityRules>
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-        <cvParam cvRef="PSI-MS" accession="MS:1002509" name="cross-link donor" value="1"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="true" massDelta="0.0" residues=".">
-        <SpecificityRules>
-          <cvParam cvRef="PSI-MS" accession="MS:1002058" name="modification specificity protein C-term"></cvParam>
-        </SpecificityRules>
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-        <cvParam cvRef="PSI-MS" accession="MS:1002510" name="cross-link acceptor" value="1"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="true" massDelta="0.0" residues=".">
-        <SpecificityRules>
-          <cvParam cvRef="PSI-MS" accession="MS:1002057" name="modification specificity protein N-term"></cvParam>
-        </SpecificityRules>
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-        <cvParam cvRef="PSI-MS" accession="MS:1002509" name="cross-link donor" value="1"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="true" massDelta="0.0" residues=".">
-        <SpecificityRules>
-          <cvParam cvRef="PSI-MS" accession="MS:1002057" name="modification specificity protein N-term"></cvParam>
-        </SpecificityRules>
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
         <cvParam cvRef="PSI-MS" accession="MS:1002510" name="cross-link acceptor" value="1"></cvParam>
       </SearchModification>
       <SearchModification fixedMod="false" massDelta="15.99491" residues="M">
@@ -496,163 +468,25 @@ Gustav-Meyer-Allee 25
       <SearchModification fixedMod="false" massDelta="175.03032" residues="K">
         <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
       </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="K">
+      <SearchModification fixedMod="false" massDelta="176.0143295" residues="K">
         <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
       </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="A">
+      <SearchModification fixedMod="false" massDelta="175.03032" residues=".">
+        <SpecificityRules>
+          <cvParam cvRef="PSI-MS" accession="MS:1002057" name="modification specificity protein N-term"></cvParam>
+        </SpecificityRules>
         <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
       </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="B">
+      <SearchModification fixedMod="false" massDelta="176.0143295" residues=".">
+        <SpecificityRules>
+          <cvParam cvRef="PSI-MS" accession="MS:1002057" name="modification specificity protein N-term"></cvParam>
+        </SpecificityRules>
         <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
       </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="C">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="D">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="E">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="F">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="G">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="H">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="I">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="K">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="L">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="M">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="N">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="O">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="P">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="Q">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="R">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="S">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="T">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="U">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="V">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="W">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="Y">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="175.03032" residues="Z">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="A">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="B">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="C">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="D">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="E">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="F">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="G">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="H">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="I">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="K">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="L">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="M">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="N">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="O">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="P">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="Q">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="R">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="S">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="T">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="U">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="V">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="W">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="Y">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="176.01433" residues="Z">
-        <cvParam cvRef="PSI-MS" accession="MS:1001460" name="unknown modification"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="0.984016" residues="N">
+      <SearchModification fixedMod="false" massDelta="0.984016" residues="N Q">
         <cvParam cvRef="UNIMOD" accession="UNIMOD:7" name="Deamidated"></cvParam>
       </SearchModification>
-      <SearchModification fixedMod="false" massDelta="0.984016" residues="Q">
-        <cvParam cvRef="UNIMOD" accession="UNIMOD:7" name="Deamidated"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="14.01565" residues="E">
-        <cvParam cvRef="UNIMOD" accession="UNIMOD:34" name="Methyl"></cvParam>
-      </SearchModification>
-      <SearchModification fixedMod="false" massDelta="14.01565" residues="D">
+      <SearchModification fixedMod="false" massDelta="14.01565" residues="D E">
         <cvParam cvRef="UNIMOD" accession="UNIMOD:34" name="Methyl"></cvParam>
       </SearchModification>
       <SearchModification fixedMod="true" massDelta="57.021465" residues="C">
@@ -689,7 +523,7 @@ Gustav-Meyer-Allee 25
       <userParam name="/home/lars/Xi/xiSPEC_ms_parser/tests/fixtures/uniprot-k12-filtered-proteome_UP000000625.fasta"></userParam>
     </DatabaseName>
   </SearchDatabase>
-  <SpectraData location="B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mzML" id="SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mgf">
+  <SpectraData location="B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mzML" id="SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mzML">
     <FileFormat>
       <cvParam cvRef="PSI-MS" accession="MS:1000584" name="mzML format"></cvParam>
     </FileFormat>
@@ -697,7 +531,7 @@ Gustav-Meyer-Allee 25
       <cvParam cvRef="PSI-MS" accession="MS:1001530" name="mzML unique identifier"></cvParam>
     </SpectrumIDFormat>
   </SpectraData>
-  <SpectraData location="B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML" id="SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mgf">
+  <SpectraData location="B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML" id="SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML">
     <FileFormat>
       <cvParam cvRef="PSI-MS" accession="MS:1000584" name="mzML format"></cvParam>
     </FileFormat>
@@ -707,8 +541,8 @@ Gustav-Meyer-Allee 25
   </SpectraData>
 </Inputs>
 <AnalysisData>
-<SpectrumIdentificationList  id="SII_LIST_1_1_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mgf">
-  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=14905" spectraData_ref="SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mgf" id="SIR_3">
+<SpectrumIdentificationList  id="SII_LIST_1_1_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML">
+  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=14905" spectraData_ref="SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML" id="SIR_3">
     <SpectrumIdentificationItem chargeState="5" experimentalMassToCharge="945.677359" calculatedMassToCharge="945.6784858667701" peptide_ref="6_VAEmetETPHLIHKVALDPLTGPMPYQGR_11_MGHAGAIIAGGKGTADEK_11_12_p1" rank="1" passThreshold="true" id="SII_3_1">
       <PeptideEvidenceRef peptideEvidence_ref="pepevid_pep_11_MGHAGAIIAGGKGTADEK_protP0AGE9_target_245_pepkey_1_6_VAEmetETPHLIHKVALDPLTGPMPYQGR_11_MGHAGAIIAGGKGTADEK_11_12_p0_6_VAEmetETPHLIHKVALDPLTGPMPYQGR_11_MGHAGAIIAGGKGTADEK_11_12_p1"></PeptideEvidenceRef>
       <cvParam cvRef="PSI-MS" accession="MS:1002511" name="cross-link spectrum identification item" value="3"></cvParam>
@@ -721,7 +555,7 @@ Gustav-Meyer-Allee 25
     </SpectrumIdentificationItem>
     <cvParam cvRef="PSI-MS" accession="MS:1000797" name="peak list scans" value="14905"></cvParam>
   </SpectrumIdentificationResult>
-  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=14728" spectraData_ref="SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mgf" id="SIR_4">
+  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=14728" spectraData_ref="SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML" id="SIR_4">
     <SpectrumIdentificationItem chargeState="5" experimentalMassToCharge="945.677186" calculatedMassToCharge="945.6784858667701" peptide_ref="8_VAEETPHLIHKVALDPLTGPMPYQGR_3_MGHAGAIIAGGKGTADEmetK_11_12_p1" rank="1" passThreshold="true" id="SII_4_1">
       <PeptideEvidenceRef peptideEvidence_ref="pepevid_pep_3_MGHAGAIIAGGKGTADEmetK_protP0AGE9_target_245_pepkey_1_8_VAEETPHLIHKVALDPLTGPMPYQGR_3_MGHAGAIIAGGKGTADEmetK_11_12_p0_8_VAEETPHLIHKVALDPLTGPMPYQGR_3_MGHAGAIIAGGKGTADEmetK_11_12_p1"></PeptideEvidenceRef>
       <cvParam cvRef="PSI-MS" accession="MS:1002511" name="cross-link spectrum identification item" value="4"></cvParam>
@@ -734,7 +568,7 @@ Gustav-Meyer-Allee 25
     </SpectrumIdentificationItem>
     <cvParam cvRef="PSI-MS" accession="MS:1000797" name="peak list scans" value="14728"></cvParam>
   </SpectrumIdentificationResult>
-  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=13958" spectraData_ref="SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mgf" id="SIR_9">
+  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=13958" spectraData_ref="SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML" id="SIR_9">
     <SpectrumIdentificationItem chargeState="5" experimentalMassToCharge="948.877478" calculatedMassToCharge="948.87746786677" peptide_ref="2_VAEETPHLIHKVALDPLTGPMoxPYQGR_3_MGHAGAIIAGGKGTADEmetK_11_12_p1" rank="1" passThreshold="true" id="SII_9_1">
       <PeptideEvidenceRef peptideEvidence_ref="pepevid_pep_3_MGHAGAIIAGGKGTADEmetK_protP0AGE9_target_245_pepkey_1_2_VAEETPHLIHKVALDPLTGPMoxPYQGR_3_MGHAGAIIAGGKGTADEmetK_11_12_p0_2_VAEETPHLIHKVALDPLTGPMoxPYQGR_3_MGHAGAIIAGGKGTADEmetK_11_12_p1"></PeptideEvidenceRef>
       <cvParam cvRef="PSI-MS" accession="MS:1002511" name="cross-link spectrum identification item" value="9"></cvParam>
@@ -747,7 +581,7 @@ Gustav-Meyer-Allee 25
     </SpectrumIdentificationItem>
     <cvParam cvRef="PSI-MS" accession="MS:1000797" name="peak list scans" value="13958"></cvParam>
   </SpectrumIdentificationResult>
-  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=14819" spectraData_ref="SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mgf" id="SIR_11">
+  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=14819" spectraData_ref="SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML" id="SIR_11">
     <SpectrumIdentificationItem chargeState="5" experimentalMassToCharge="682.372471" calculatedMassToCharge="682.37292686677" peptide_ref="9_RLAKLANAPFIK_10_EIVSELDKHIIGQDNAK_4_8_p1" rank="1" passThreshold="true" id="SII_11_1">
       <PeptideEvidenceRef peptideEvidence_ref="pepevid_pep_10_EIVSELDKHIIGQDNAK_protP0A6H5_target_8_pepkey_1_9_RLAKLANAPFIK_10_EIVSELDKHIIGQDNAK_4_8_p0_9_RLAKLANAPFIK_10_EIVSELDKHIIGQDNAK_4_8_p1"></PeptideEvidenceRef>
       <cvParam cvRef="PSI-MS" accession="MS:1002511" name="cross-link spectrum identification item" value="11"></cvParam>
@@ -760,7 +594,7 @@ Gustav-Meyer-Allee 25
     </SpectrumIdentificationItem>
     <cvParam cvRef="PSI-MS" accession="MS:1000797" name="peak list scans" value="14819"></cvParam>
   </SpectrumIdentificationResult>
-  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=15081" spectraData_ref="SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mgf" id="SIR_13">
+  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=15081" spectraData_ref="SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML" id="SIR_13">
     <SpectrumIdentificationItem chargeState="5" experimentalMassToCharge="945.677849" calculatedMassToCharge="945.6784858667701" peptide_ref="12_VAEETPHLIHKVALDmetPLTGPMPYQGR_11_MGHAGAIIAGGKGTADEK_11_12_p1" rank="1" passThreshold="true" id="SII_13_1">
       <PeptideEvidenceRef peptideEvidence_ref="pepevid_pep_11_MGHAGAIIAGGKGTADEK_protP0AGE9_target_245_pepkey_1_12_VAEETPHLIHKVALDmetPLTGPMPYQGR_11_MGHAGAIIAGGKGTADEK_11_12_p0_12_VAEETPHLIHKVALDmetPLTGPMPYQGR_11_MGHAGAIIAGGKGTADEK_11_12_p1"></PeptideEvidenceRef>
       <cvParam cvRef="PSI-MS" accession="MS:1002511" name="cross-link spectrum identification item" value="13"></cvParam>
@@ -773,7 +607,7 @@ Gustav-Meyer-Allee 25
     </SpectrumIdentificationItem>
     <cvParam cvRef="PSI-MS" accession="MS:1000797" name="peak list scans" value="15081"></cvParam>
   </SpectrumIdentificationResult>
-  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=14663" spectraData_ref="SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mgf" id="SIR_14">
+  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=14663" spectraData_ref="SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML" id="SIR_14">
     <SpectrumIdentificationItem chargeState="5" experimentalMassToCharge="948.877599" calculatedMassToCharge="948.87746786677" peptide_ref="6_VAEmetETPHLIHKVALDPLTGPMPYQGR_7_MoxGHAGAIIAGGKGTADEK_11_12_p1" rank="1" passThreshold="true" id="SII_14_1">
       <PeptideEvidenceRef peptideEvidence_ref="pepevid_pep_7_MoxGHAGAIIAGGKGTADEK_protP0AGE9_target_245_pepkey_1_6_VAEmetETPHLIHKVALDPLTGPMPYQGR_7_MoxGHAGAIIAGGKGTADEK_11_12_p0_6_VAEmetETPHLIHKVALDPLTGPMPYQGR_7_MoxGHAGAIIAGGKGTADEK_11_12_p1"></PeptideEvidenceRef>
       <cvParam cvRef="PSI-MS" accession="MS:1002511" name="cross-link spectrum identification item" value="14"></cvParam>
@@ -786,7 +620,7 @@ Gustav-Meyer-Allee 25
     </SpectrumIdentificationItem>
     <cvParam cvRef="PSI-MS" accession="MS:1000797" name="peak list scans" value="14663"></cvParam>
   </SpectrumIdentificationResult>
-  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=14458" spectraData_ref="SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mgf" id="SIR_16">
+  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=14458" spectraData_ref="SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML" id="SIR_16">
     <SpectrumIdentificationItem chargeState="4" experimentalMassToCharge="738.636595" calculatedMassToCharge="738.63783496677" peptide_ref="4_AQNADVKTDIPR_5_KYLAEKFGIEIR_7_6_p1" rank="1" passThreshold="true" id="SII_16_1">
       <PeptideEvidenceRef peptideEvidence_ref="pepevid_pep_5_KYLAEKFGIEIR_protP12008_target_143_pepkey_1_4_AQNADVKTDIPR_5_KYLAEKFGIEIR_7_6_p0_4_AQNADVKTDIPR_5_KYLAEKFGIEIR_7_6_p1"></PeptideEvidenceRef>
       <cvParam cvRef="PSI-MS" accession="MS:1002511" name="cross-link spectrum identification item" value="16"></cvParam>
@@ -799,7 +633,7 @@ Gustav-Meyer-Allee 25
     </SpectrumIdentificationItem>
     <cvParam cvRef="PSI-MS" accession="MS:1000797" name="peak list scans" value="14458"></cvParam>
   </SpectrumIdentificationResult>
-  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=14927" spectraData_ref="SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mgf" id="SIR_18">
+  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=14927" spectraData_ref="SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML" id="SIR_18">
     <SpectrumIdentificationItem chargeState="6" experimentalMassToCharge="788.232336" calculatedMassToCharge="788.2332843001034" peptide_ref="6_VAEmetETPHLIHKVALDPLTGPMPYQGR_11_MGHAGAIIAGGKGTADEK_11_12_p1" rank="1" passThreshold="true" id="SII_18_1">
       <PeptideEvidenceRef peptideEvidence_ref="pepevid_pep_11_MGHAGAIIAGGKGTADEK_protP0AGE9_target_245_pepkey_1_6_VAEmetETPHLIHKVALDPLTGPMPYQGR_11_MGHAGAIIAGGKGTADEK_11_12_p0_6_VAEmetETPHLIHKVALDPLTGPMPYQGR_11_MGHAGAIIAGGKGTADEK_11_12_p1"></PeptideEvidenceRef>
       <cvParam cvRef="PSI-MS" accession="MS:1002511" name="cross-link spectrum identification item" value="18"></cvParam>
@@ -812,7 +646,7 @@ Gustav-Meyer-Allee 25
     </SpectrumIdentificationItem>
     <cvParam cvRef="PSI-MS" accession="MS:1000797" name="peak list scans" value="14927"></cvParam>
   </SpectrumIdentificationResult>
-  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=14674" spectraData_ref="SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mgf" id="SIR_19">
+  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=14674" spectraData_ref="SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML" id="SIR_19">
     <SpectrumIdentificationItem chargeState="6" experimentalMassToCharge="790.898736" calculatedMassToCharge="790.8991026334367" peptide_ref="6_VAEmetETPHLIHKVALDPLTGPMPYQGR_7_MoxGHAGAIIAGGKGTADEK_11_12_p1" rank="1" passThreshold="true" id="SII_19_1">
       <PeptideEvidenceRef peptideEvidence_ref="pepevid_pep_7_MoxGHAGAIIAGGKGTADEK_protP0AGE9_target_245_pepkey_1_6_VAEmetETPHLIHKVALDPLTGPMPYQGR_7_MoxGHAGAIIAGGKGTADEK_11_12_p0_6_VAEmetETPHLIHKVALDPLTGPMPYQGR_7_MoxGHAGAIIAGGKGTADEK_11_12_p1"></PeptideEvidenceRef>
       <cvParam cvRef="PSI-MS" accession="MS:1002511" name="cross-link spectrum identification item" value="19"></cvParam>
@@ -825,7 +659,7 @@ Gustav-Meyer-Allee 25
     </SpectrumIdentificationItem>
     <cvParam cvRef="PSI-MS" accession="MS:1000797" name="peak list scans" value="14674"></cvParam>
   </SpectrumIdentificationResult>
-  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=13214" spectraData_ref="SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mgf" id="SIR_20">
+  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=13214" spectraData_ref="SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML" id="SIR_20">
     <SpectrumIdentificationItem chargeState="5" experimentalMassToCharge="964.69103" calculatedMassToCharge="964.6902278667699" peptide_ref="0_QDNKIIRPSANYVGPEDRPFVALDK_1_GPKHGGANEVSLEIQQR_4_3_p1" rank="1" passThreshold="true" id="SII_20_1">
       <PeptideEvidenceRef peptideEvidence_ref="pepevid_pep_1_GPKHGGANEVSLEIQQR_protP31660_target_232_pepkey_1_0_QDNKIIRPSANYVGPEDRPFVALDK_1_GPKHGGANEVSLEIQQR_4_3_p0_0_QDNKIIRPSANYVGPEDRPFVALDK_1_GPKHGGANEVSLEIQQR_4_3_p1"></PeptideEvidenceRef>
       <cvParam cvRef="PSI-MS" accession="MS:1002511" name="cross-link spectrum identification item" value="20"></cvParam>
@@ -838,7 +672,7 @@ Gustav-Meyer-Allee 25
     </SpectrumIdentificationItem>
     <cvParam cvRef="PSI-MS" accession="MS:1000797" name="peak list scans" value="13214"></cvParam>
   </SpectrumIdentificationResult>
-  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=18456" spectraData_ref="SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mgf" id="SIR_21">
+  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=18456" spectraData_ref="SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML" id="SIR_21">
     <SpectrumIdentificationItem chargeState="4" experimentalMassToCharge="812.438959" calculatedMassToCharge="812.43854946677" peptide_ref="13_KDELPKVMAGLGIAVVSTSK_14_LQdeamDSLSVKR_1_8_p1" rank="1" passThreshold="true" id="SII_21_1">
       <PeptideEvidenceRef peptideEvidence_ref="pepevid_pep_14_LQdeamDSLSVKR_protP0AD30_decoy_186_pepkey_1_13_KDELPKVMAGLGIAVVSTSK_14_LQdeamDSLSVKR_1_8_p0_13_KDELPKVMAGLGIAVVSTSK_14_LQdeamDSLSVKR_1_8_p1"></PeptideEvidenceRef>
       <cvParam cvRef="PSI-MS" accession="MS:1002511" name="cross-link spectrum identification item" value="21"></cvParam>
@@ -852,8 +686,8 @@ Gustav-Meyer-Allee 25
     <cvParam cvRef="PSI-MS" accession="MS:1000797" name="peak list scans" value="18456"></cvParam>
   </SpectrumIdentificationResult>
 </SpectrumIdentificationList>
-<SpectrumIdentificationList  id="SII_LIST_1_1_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mgf">
-  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=12936" spectraData_ref="SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mgf" id="SIR_1">
+<SpectrumIdentificationList  id="SII_LIST_1_1_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mzML">
+  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=12936" spectraData_ref="SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mzML" id="SIR_1">
     <SpectrumIdentificationItem chargeState="5" experimentalMassToCharge="593.131104" calculatedMassToCharge="593.13109866677" peptide_ref="29_KVLDSKPSVLALNIQR_30_KFDAKMVGK_1_5_p1" rank="1" passThreshold="true" id="SII_1_1">
       <PeptideEvidenceRef peptideEvidence_ref="pepevid_pep_30_KFDAKMVGK_protP0C0V0_target_148_pepkey_1_29_KVLDSKPSVLALNIQR_30_KFDAKMVGK_1_5_p0_29_KVLDSKPSVLALNIQR_30_KFDAKMVGK_1_5_p1"></PeptideEvidenceRef>
       <cvParam cvRef="PSI-MS" accession="MS:1002511" name="cross-link spectrum identification item" value="1"></cvParam>
@@ -866,7 +700,7 @@ Gustav-Meyer-Allee 25
     </SpectrumIdentificationItem>
     <cvParam cvRef="PSI-MS" accession="MS:1000797" name="peak list scans" value="12936"></cvParam>
   </SpectrumIdentificationResult>
-  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=9229" spectraData_ref="SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mgf" id="SIR_2">
+  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=9229" spectraData_ref="SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mzML" id="SIR_2">
     <SpectrumIdentificationItem chargeState="4" experimentalMassToCharge="747.154232" calculatedMassToCharge="747.15391796677" peptide_ref="19_LLAEHNLDmetASAIKGTGVGGR_20_HLAKAPAK_13_4_p1" rank="1" passThreshold="true" id="SII_2_1">
       <PeptideEvidenceRef peptideEvidence_ref="pepevid_pep_20_HLAKAPAK_protP0AFG6_target_149_pepkey_1_19_LLAEHNLDmetASAIKGTGVGGR_20_HLAKAPAK_13_4_p0_19_LLAEHNLDmetASAIKGTGVGGR_20_HLAKAPAK_13_4_p1"></PeptideEvidenceRef>
       <cvParam cvRef="PSI-MS" accession="MS:1002511" name="cross-link spectrum identification item" value="2"></cvParam>
@@ -879,7 +713,7 @@ Gustav-Meyer-Allee 25
     </SpectrumIdentificationItem>
     <cvParam cvRef="PSI-MS" accession="MS:1000797" name="peak list scans" value="9229"></cvParam>
   </SpectrumIdentificationResult>
-  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=6556" spectraData_ref="SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mgf" id="SIR_5">
+  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=6556" spectraData_ref="SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mzML" id="SIR_5">
     <SpectrumIdentificationItem chargeState="4" experimentalMassToCharge="750.399346" calculatedMassToCharge="750.39992196677" peptide_ref="17_VTKPEAGHFAKAGVEAGR_18_AIQVTTGAKK_11_9_p1" rank="1" passThreshold="true" id="SII_5_1">
       <PeptideEvidenceRef peptideEvidence_ref="pepevid_pep_18_AIQVTTGAKK_protP60438_target_47_pepkey_1_17_VTKPEAGHFAKAGVEAGR_18_AIQVTTGAKK_11_9_p0_17_VTKPEAGHFAKAGVEAGR_18_AIQVTTGAKK_11_9_p1"></PeptideEvidenceRef>
       <cvParam cvRef="PSI-MS" accession="MS:1002511" name="cross-link spectrum identification item" value="5"></cvParam>
@@ -892,7 +726,7 @@ Gustav-Meyer-Allee 25
     </SpectrumIdentificationItem>
     <cvParam cvRef="PSI-MS" accession="MS:1000797" name="peak list scans" value="6556"></cvParam>
   </SpectrumIdentificationResult>
-  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=12306" spectraData_ref="SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mgf" id="SIR_6">
+  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=12306" spectraData_ref="SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mzML" id="SIR_6">
     <SpectrumIdentificationItem chargeState="5" experimentalMassToCharge="616.545966" calculatedMassToCharge="616.54541566677" peptide_ref="26_LLAEmetHNLDASAIKGTGVGGR_27_KIKELAVK_13_3_p1" rank="1" passThreshold="true" id="SII_6_1">
       <PeptideEvidenceRef peptideEvidence_ref="pepevid_pep_27_KIKELAVK_protP0AFG6_target_298_pepkey_1_26_LLAEmetHNLDASAIKGTGVGGR_27_KIKELAVK_13_3_p0_26_LLAEmetHNLDASAIKGTGVGGR_27_KIKELAVK_13_3_p1"></PeptideEvidenceRef>
       <cvParam cvRef="PSI-MS" accession="MS:1002511" name="cross-link spectrum identification item" value="6"></cvParam>
@@ -905,7 +739,7 @@ Gustav-Meyer-Allee 25
     </SpectrumIdentificationItem>
     <cvParam cvRef="PSI-MS" accession="MS:1000797" name="peak list scans" value="12306"></cvParam>
   </SpectrumIdentificationResult>
-  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=10048" spectraData_ref="SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mgf" id="SIR_7">
+  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=10048" spectraData_ref="SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mzML" id="SIR_7">
     <SpectrumIdentificationItem chargeState="5" experimentalMassToCharge="672.345127" calculatedMassToCharge="672.34521786677" peptide_ref="22_MoxNLHEYQAK_21_EHVTKPVVGYIAGVTAPKGK_1_18_p1" rank="1" passThreshold="true" id="SII_7_1">
       <PeptideEvidenceRef peptideEvidence_ref="pepevid_pep_21_EHVTKPVVGYIAGVTAPKGK_protP0AGE9_target_224_pepkey_1_22_MoxNLHEYQAK_21_EHVTKPVVGYIAGVTAPKGK_1_18_p0_22_MoxNLHEYQAK_21_EHVTKPVVGYIAGVTAPKGK_1_18_p1"></PeptideEvidenceRef>
       <cvParam cvRef="PSI-MS" accession="MS:1002511" name="cross-link spectrum identification item" value="7"></cvParam>
@@ -918,7 +752,7 @@ Gustav-Meyer-Allee 25
     </SpectrumIdentificationItem>
     <cvParam cvRef="PSI-MS" accession="MS:1000797" name="peak list scans" value="10048"></cvParam>
   </SpectrumIdentificationResult>
-  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=11836" spectraData_ref="SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mgf" id="SIR_8">
+  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=11836" spectraData_ref="SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mzML" id="SIR_8">
     <SpectrumIdentificationItem chargeState="4" experimentalMassToCharge="836.180832" calculatedMassToCharge="836.18097571677" peptide_ref="23_MNLHEYQAK_21_EHVTKPVVGYIAGVTAPKGK_1_18_p1" rank="1" passThreshold="true" id="SII_8_1">
       <PeptideEvidenceRef peptideEvidence_ref="pepevid_pep_21_EHVTKPVVGYIAGVTAPKGK_protP0AGE9_target_224_pepkey_1_23_MNLHEYQAK_21_EHVTKPVVGYIAGVTAPKGK_1_18_p0_23_MNLHEYQAK_21_EHVTKPVVGYIAGVTAPKGK_1_18_p1"></PeptideEvidenceRef>
       <cvParam cvRef="PSI-MS" accession="MS:1002511" name="cross-link spectrum identification item" value="8"></cvParam>
@@ -931,7 +765,7 @@ Gustav-Meyer-Allee 25
     </SpectrumIdentificationItem>
     <cvParam cvRef="PSI-MS" accession="MS:1000797" name="peak list scans" value="11836"></cvParam>
   </SpectrumIdentificationResult>
-  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=12826" spectraData_ref="SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mgf" id="SIR_10">
+  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=12826" spectraData_ref="SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mzML" id="SIR_10">
     <SpectrumIdentificationItem chargeState="5" experimentalMassToCharge="671.949492" calculatedMassToCharge="671.94936586677" peptide_ref="28_MNLHEmetYQAK_21_EHVTKPVVGYIAGVTAPKGK_1_18_p1" rank="1" passThreshold="true" id="SII_10_1">
       <PeptideEvidenceRef peptideEvidence_ref="pepevid_pep_21_EHVTKPVVGYIAGVTAPKGK_protP0AGE9_target_224_pepkey_1_28_MNLHEmetYQAK_21_EHVTKPVVGYIAGVTAPKGK_1_18_p0_28_MNLHEmetYQAK_21_EHVTKPVVGYIAGVTAPKGK_1_18_p1"></PeptideEvidenceRef>
       <cvParam cvRef="PSI-MS" accession="MS:1002511" name="cross-link spectrum identification item" value="10"></cvParam>
@@ -944,7 +778,7 @@ Gustav-Meyer-Allee 25
     </SpectrumIdentificationItem>
     <cvParam cvRef="PSI-MS" accession="MS:1000797" name="peak list scans" value="12826"></cvParam>
   </SpectrumIdentificationResult>
-  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=11911" spectraData_ref="SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mgf" id="SIR_12">
+  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=11911" spectraData_ref="SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mzML" id="SIR_12">
     <SpectrumIdentificationItem chargeState="5" experimentalMassToCharge="616.545502" calculatedMassToCharge="616.54541566677" peptide_ref="24_LLAEHNLDASAIKGTGVGGR_25_KIKEmetLAVK_13_3_p1" rank="1" passThreshold="true" id="SII_12_1">
       <PeptideEvidenceRef peptideEvidence_ref="pepevid_pep_25_KIKEmetLAVK_protP0AFG6_target_298_pepkey_1_24_LLAEHNLDASAIKGTGVGGR_25_KIKEmetLAVK_13_3_p0_24_LLAEHNLDASAIKGTGVGGR_25_KIKEmetLAVK_13_3_p1"></PeptideEvidenceRef>
       <cvParam cvRef="PSI-MS" accession="MS:1002511" name="cross-link spectrum identification item" value="12"></cvParam>
@@ -957,7 +791,7 @@ Gustav-Meyer-Allee 25
     </SpectrumIdentificationItem>
     <cvParam cvRef="PSI-MS" accession="MS:1000797" name="peak list scans" value="11911"></cvParam>
   </SpectrumIdentificationResult>
-  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=11892" spectraData_ref="SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mgf" id="SIR_15">
+  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=11892" spectraData_ref="SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mzML" id="SIR_15">
     <SpectrumIdentificationItem chargeState="4" experimentalMassToCharge="770.429942" calculatedMassToCharge="770.42995046677" peptide_ref="24_LLAEHNLDASAIKGTGVGGR_25_KIKEmetLAVK_13_3_p1" rank="1" passThreshold="true" id="SII_15_1">
       <PeptideEvidenceRef peptideEvidence_ref="pepevid_pep_25_KIKEmetLAVK_protP0AFG6_target_298_pepkey_1_24_LLAEHNLDASAIKGTGVGGR_25_KIKEmetLAVK_13_3_p0_24_LLAEHNLDASAIKGTGVGGR_25_KIKEmetLAVK_13_3_p1"></PeptideEvidenceRef>
       <cvParam cvRef="PSI-MS" accession="MS:1002511" name="cross-link spectrum identification item" value="15"></cvParam>
@@ -970,7 +804,7 @@ Gustav-Meyer-Allee 25
     </SpectrumIdentificationItem>
     <cvParam cvRef="PSI-MS" accession="MS:1000797" name="peak list scans" value="11892"></cvParam>
   </SpectrumIdentificationResult>
-  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=6252" spectraData_ref="SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mgf" id="SIR_17">
+  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=6252" spectraData_ref="SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mzML" id="SIR_17">
     <SpectrumIdentificationItem chargeState="4" experimentalMassToCharge="734.867013" calculatedMassToCharge="734.86708946677" peptide_ref="15_KGGKGGR_16_KdssoohGSSLQQGFQKPAQAVNR_1_11_p1" rank="1" passThreshold="true" id="SII_17_1">
       <PeptideEvidenceRef peptideEvidence_ref="pepevid_pep_16_KdssoohGSSLQQGFQKPAQAVNR_protP0A705_target_291_pepkey_1_15_KGGKGGR_16_KdssoohGSSLQQGFQKPAQAVNR_1_11_p0_15_KGGKGGR_16_KdssoohGSSLQQGFQKPAQAVNR_1_11_p1"></PeptideEvidenceRef>
       <cvParam cvRef="PSI-MS" accession="MS:1002511" name="cross-link spectrum identification item" value="17"></cvParam>
@@ -983,7 +817,7 @@ Gustav-Meyer-Allee 25
     </SpectrumIdentificationItem>
     <cvParam cvRef="PSI-MS" accession="MS:1000797" name="peak list scans" value="6252"></cvParam>
   </SpectrumIdentificationResult>
-  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=13995" spectraData_ref="SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mgf" id="SIR_22">
+  <SpectrumIdentificationResult spectrumID="controllerType=0 controllerNumber=1 scan=13995" spectraData_ref="SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mzML" id="SIR_22">
     <SpectrumIdentificationItem chargeState="6" experimentalMassToCharge="590.993628" calculatedMassToCharge="590.9935103001034" peptide_ref="21_EHVTKPVVGYIAGVTAPKGK_31_FAALEAAGVKTVR_18_10_p1" rank="1" passThreshold="true" id="SII_22_1">
       <PeptideEvidenceRef peptideEvidence_ref="pepevid_pep_31_FAALEAAGVKTVR_protP0AGE9_target_263_pepkey_1_21_EHVTKPVVGYIAGVTAPKGK_31_FAALEAAGVKTVR_18_10_p0_21_EHVTKPVVGYIAGVTAPKGK_31_FAALEAAGVKTVR_18_10_p1"></PeptideEvidenceRef>
       <cvParam cvRef="PSI-MS" accession="MS:1002511" name="cross-link spectrum identification item" value="22"></cvParam>

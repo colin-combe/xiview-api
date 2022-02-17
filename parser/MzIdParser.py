@@ -1,14 +1,14 @@
-import pyteomics.mzid as py_mzid
+from pyteomics import mzid
 import re
 import ntpath
 import json
-import sys
 from time import time
 from parser.peaklistReader.PeakListWrapper import PeakListWrapper
 import zipfile
 import gzip
 import os
 from .NumpyEncoder import NumpyEncoder
+import obonet
 
 
 class MzIdParseException(Exception):
@@ -16,22 +16,19 @@ class MzIdParseException(Exception):
 
 
 class MzIdParser:
-    """
+    """Class for parsing identification data from mzIdentML."""
 
-    """
-
-    def __init__(self, mzid_path, temp_dir, peak_list_dir, db, logger, db_name='', user_id=0,
-                 origin=''):
+    def __init__(self, mzid_path, temp_dir, peak_list_dir, writer, logger):
         """
+        Initialise the Parser.
 
         :param mzid_path: path to mzidentML file
         :param temp_dir: absolute path to temp dir for unzipping/storing files
-        :param db: database python module to use (xiUI_pg or xiSPEC_sqlite)
-        :param db_name: db name for SQLite
-        :param origin: ftp dir of pride project
+        :param peak_list_dir: path to the directory containing the peak list file(s)
+        :param writer: result writer
+        :param logger: logger
         """
-
-        self.upload_id = 0
+        self.search_modifications = None
         self.mzid_path = mzid_path
 
         self.peak_list_readers = {}  # peak list readers indexed by spectraData_ref
@@ -42,52 +39,22 @@ class MzIdParser:
         if peak_list_dir and not peak_list_dir.endswith('/'):
             self.peak_list_dir += '/'
 
-        self.user_id = user_id
-        self.random_id = 0
-
-        self.db = db
+        self.writer = writer
         self.logger = logger
 
-        # look up table populated by parse_peptides function
-        # self.peptide_id_lookup = {}
+        self.ms_obo = obonet.read_obo(
+            'https://raw.githubusercontent.com/HUPO-PSI/psi-ms-CV/master/psi-ms.obo')
 
-        self.spectra_data_protocol_map = {}
-        # ToDo: Might change to pyteomics unimod obo module
-        self.unimod_path = os.path.abspath('obo/unimod.obo')
-
-        # ToDo: modifications might be globally stored in mzIdentML under
-        # ToDo: AnalysisProtocolCollection->SpectrumIdentificationProtocol->ModificationParams
-        # ToDo: atm we get them while looping through the peptides
-        #  (might be more robust and we're doing it anyway)
-        self.modlist = []
-        self.unknown_mods = set()
-
+        # ToDo:
         # From mzidentML schema 1.2.0:
         # <SpectrumIdentificationProtocol> must contain the CV term 'cross-linking search'
         # (MS:1002494)
         self.contains_crosslinks = False
 
         self.warnings = []
+        self.write_new_upload()  # overridden (empty function) in xiSPEC subclass
 
-        # connect to DB
-        try:
-            self.con = db.connect(db_name)
-            self.cur = self.con.cursor()
-
-        except db.DBException as e:
-            self.logger.error(e)
-            print(e)
-            sys.exit(1)
-
-        self.upload_id = self.db.new_upload([user_id, os.path.basename(self.mzid_path), origin],
-                                            self.cur, self.con)
-
-        self.random_id = self.db.get_random_id(self.upload_id, self.cur, self.con)
-
-        self.upload_info_read = False
-        self.mzid_reader = None
-
-    def initialise_mzid_reader(self):
+        # init self.mzid_reader (pyteomics mzid reader)
         if self.mzid_path.endswith('.gz') or self.mzid_path.endswith('.zip'):
             self.mzid_path = MzIdParser.extract_mzid(self.mzid_path)
 
@@ -96,84 +63,61 @@ class MzIdParser:
         # schema:
         # https://raw.githubusercontent.com/HUPO-PSI/mzIdentML/master/schema/mzIdentML1.2.0.xsd
         try:
-            self.mzid_reader = py_mzid.MzIdentML(self.mzid_path, retrieve_refs=False)
+            self.mzid_reader = mzid.MzIdentML(self.mzid_path, retrieve_refs=False)
         except Exception as e:
             raise MzIdParseException(type(e).__name__, e.args)
 
         self.logger.info('reading mzid - done. Time: {} sec'.format(round(time() - start_time, 2)))
 
+        self.upload_info()  # overridden (empty function) in xiSPEC subclass
+
     # used by TestLoop when downloading files from PRIDE
-    def get_supported_peak_list_file_names(self):
-        """
-        :return: list of all supported peak list file names
-        """
-        peak_list_file_names = []
-        for spectra_data_id in self.mzid_reader._offset_index["SpectraData"].keys():
-            sp_datum = self.mzid_reader.get_by_id(spectra_data_id, tag_id='SpectraData',
-                                                  detailed=True)
-            ff_acc = sp_datum['FileFormat']['accession']
-            if any([ff_acc == 'MS:1001062',  # MGF
-                    ff_acc == 'MS:1000584',  # mzML
-                    ff_acc == 'MS:1001466',  # ms2
-                    ]):
-                peak_list_file_names.append(ntpath.basename(sp_datum['location']))
+    # def get_supported_peak_list_file_names(self):
+    #     """
+    #     :return: list of all supported peak list file names
+    #     """
+    #     peak_list_file_names = []
+    #     for spectra_data_id in self.mzid_reader._offset_index["SpectraData"].keys():
+    #         sp_datum = self.mzid_reader.get_by_id(spectra_data_id, tag_id='SpectraData',
+    #                                               detailed=True)
+    #         ff_acc = sp_datum['FileFormat']['accession']
+    #         if any([ff_acc == 'MS:1001062',  # MGF
+    #                 ff_acc == 'MS:1000584',  # mzML
+    #                 ff_acc == 'MS:1001466',  # ms2
+    #                 ]):
+    #             peak_list_file_names.append(ntpath.basename(sp_datum['location']))
+    #
+    #     return peak_list_file_names
 
-        return peak_list_file_names
+    # # used by TestLoop when downloading files from PRIDE
+    # def get_all_peak_list_file_names(self):
+    #     """
+    #     :return: list of all peak list file names
+    #     """
+    #     peak_list_file_names = []
+    #     for spectra_data_id in self.mzid_reader._offset_index["SpectraData"].keys():
+    #         sp_datum = self.mzid_reader.get_by_id(spectra_data_id, tag_id='SpectraData')
+    #         peak_list_file_names.append(ntpath.basename(sp_datum['location']))
+    #
+    #     return peak_list_file_names
 
-    # used by TestLoop when downloading files from PRIDE - ToDo: also used in test?
-    def get_all_peak_list_file_names(self):
-        """
-        :return: list of all peak list file names
-        """
-        peak_list_file_names = []
-        for spectra_data_id in self.mzid_reader._offset_index["SpectraData"].keys():
-            sp_datum = self.mzid_reader.get_by_id(spectra_data_id, tag_id='SpectraData')
-            peak_list_file_names.append(ntpath.basename(sp_datum['location']))
+    def parse(self):
+        """Parse the file."""
+        start_time = time()
 
-        return peak_list_file_names
+        if self.peak_list_dir:
+            self.init_peak_list_readers()
 
-    def init_peak_list_readers(self):
-        """
-        sets self.peak_list_readers by looping through SpectraData elements
-        dictionary:
-            key: spectra_data_ref
-            value: associated peak_list_reader
-        """
-        peak_list_readers = {}
-        for spectra_data_id in self.mzid_reader._offset_index["SpectraData"].keys():
-            sp_datum = self.mzid_reader.get_by_id(spectra_data_id, tag_id='SpectraData')
+        self.parse_analysis_protocol_collection()
+        self.parse_db_sequences()  # overridden (empty function) in xiSPEC subclass
+        self.parse_peptides()
+        self.parse_peptide_evidences()
+        self.main_loop()
 
-            self.check_spectra_data_validity(sp_datum)
+        self.fill_in_missing_scores()  # empty here, overridden in xiSPEC subclass to do stuff
+        self.write_other_info()  # overridden (empty function) in xiSPEC subclass
 
-            sd_id = sp_datum['id']
-            peak_list_file_name = ntpath.basename(sp_datum['location'])
-            peak_list_file_path = self.peak_list_dir + peak_list_file_name
-
-            try:
-                peak_list_reader = PeakListWrapper(
-                    peak_list_file_path,
-                    sp_datum['FileFormat'].accession,
-                    sp_datum['SpectrumIDFormat'].accession
-                )
-            except Exception:
-                # try gz version
-                try:
-                    peak_list_reader = PeakListWrapper(
-                        PeakListWrapper.extract_gz(peak_list_file_path + '.gz'),
-                        sp_datum['FileFormat'].accession,
-                        sp_datum['SpectrumIDFormat'].accession
-                    )
-                except IOError:
-                    raise MzIdParseException('Missing peak list file: %s' % peak_list_file_path)
-
-            peak_list_readers[sd_id] = peak_list_reader
-
-        self.peak_list_readers = peak_list_readers
-
-    def check_all_spectra_data_validity(self):
-        for spectra_data_id in self.mzid_reader._offset_index["SpectraData"].keys():
-            sp_datum = self.mzid_reader.get_by_id(spectra_data_id, tag_id='SpectraData')
-            self.check_spectra_data_validity(sp_datum)
+        self.logger.info('all done! Total time: ' + str(round(time() - start_time, 2)) + " sec")
 
     @staticmethod
     def check_spectra_data_validity(sp_datum):
@@ -198,52 +142,676 @@ class MzIdParser:
         if 'location' not in sp_datum or sp_datum['location'] is None:
             raise MzIdParseException('SpectraData is missing location')
 
-    def parse(self):
-        """Parse the file."""
+    def init_peak_list_readers(self):
+        """
+        Sets self.peak_list_readers by looping through SpectraData elements
+
+        dictionary:
+            key: spectra_data_ref
+            value: associated peak_list_reader
+        """
+        peak_list_readers = {}
+        for spectra_data_id in self.mzid_reader._offset_index["SpectraData"].keys():
+            sp_datum = self.mzid_reader.get_by_id(spectra_data_id, tag_id='SpectraData')
+
+            self.check_spectra_data_validity(sp_datum)
+
+            sd_id = sp_datum['id']
+            peak_list_file_name = ntpath.basename(sp_datum['location'])
+            peak_list_file_path = self.peak_list_dir + peak_list_file_name
+
+            try:
+                peak_list_reader = PeakListWrapper(
+                    peak_list_file_path,
+                    sp_datum['FileFormat'].accession,
+                    sp_datum['SpectrumIDFormat'].accession
+                )
+            # ToDo: gz/zip code parts could do with refactoring
+            except Exception:
+                # try gz version
+                try:
+                    peak_list_reader = PeakListWrapper(
+                        PeakListWrapper.extract_gz(peak_list_file_path + '.gz'),
+                        sp_datum['FileFormat'].accession,
+                        sp_datum['SpectrumIDFormat'].accession
+                    )
+                except IOError:
+                    raise MzIdParseException('Missing peak list file: %s' % peak_list_file_path)
+
+            peak_list_readers[sd_id] = peak_list_reader
+
+        self.peak_list_readers = peak_list_readers
+
+    def parse_analysis_protocol_collection(self):
+        """Parse the AnalysisProtocolCollection and write SpectrumIdentificationProtocols."""
+        self.logger.info('parsing AnalysisProtocolCollection- start')
         start_time = time()
 
-        if not self.upload_info_read:
-            self.upload_info()  # overridden (empty function) in xiSPEC subclass
+        sid_protocols = []
+        search_modifications = []
+        enzymes = []
+        for sid_protocol_id in self.mzid_reader._offset_index[
+            'SpectrumIdentificationProtocol'].keys():
+            sid_protocol = self.mzid_reader.get_by_id(sid_protocol_id, detailed=True)
+
+            # FragmentTolerance
+            try:
+                frag_tol = sid_protocol['FragmentTolerance']
+                frag_tol_plus = frag_tol['search tolerance plus value']
+                frag_tol_value = re.sub('[^0-9,.]', '', str(frag_tol_plus))
+                if frag_tol_plus.unit_info.lower() == 'parts per million':
+                    frag_tol_unit = 'ppm'
+                elif frag_tol_plus.unit_info.lower() == 'dalton':
+                    frag_tol_unit = 'Da'
+                else:
+                    frag_tol_unit = frag_tol_plus.unit_info
+
+                if not all([
+                    frag_tol['search tolerance plus value'] ==
+                    frag_tol['search tolerance minus value'],
+                    frag_tol['search tolerance plus value'].unit_info ==
+                    frag_tol['search tolerance minus value'].unit_info
+                ]):
+                    raise MzIdParseException("Different values for search tolerance plus value"
+                                             "and minus value are not yet supported.")
+
+            except KeyError:
+                self.warnings.append({
+                    "type": "mzidParseError",
+                    "message": "could not parse ms2tolerance. Falling back to default: 10 ppm.",
+                })
+                frag_tol_value = '10'
+                frag_tol_unit = 'ppm'
+
+            try:
+                analysis_software = json.dumps(self.mzid_reader.get_by_id(
+                    sid_protocol['analysisSoftware_ref']))
+            except KeyError:
+                analysis_software = '{}'
+
+            # Fragmentation ions
+            add_sp = sid_protocol.get('AdditionalSearchParams', {})
+            # get cvParams that are children of 'ion series considered in search' (MS:1002473)
+            ions = self.get_cv_params(add_sp, 'MS:1002473')
+            ions = [i.accession for i in ions]
+
+            # fall back to using b and y ions
+            if len(ions) == 0:
+                ions = ['MS:1001118', 'MS:1001262']
+                self.warnings.append(
+                    'mzidentML file does not specify any fragment ions (child terms of MS_1002473) '
+                    'within <AdditionalSearchParams>. Falling back to b and y ions.')
+
+            data = {
+                'id': sid_protocol['id'],
+                'upload_id': self.writer.upload_id,
+                # ToDo: split into multiple cols
+                'frag_tol': f'{frag_tol_value} {frag_tol_unit}',
+                'ions': ions,
+                'analysis_software': analysis_software
+            }
+
+            # Modifications
+            mod_index = 0
+            for mod in sid_protocol['ModificationParams']['SearchModification']:
+                accessions = self.get_accessions(mod)
+
+                # parse specificity rule accessions
+                specificity_rules = mod.get('SpecificityRules', [])
+                spec_rule_accessions = []
+                for spec_rule in specificity_rules:
+                    spec_rule_accession = self.get_accessions(spec_rule)
+                    if len(spec_rule_accession) != 1:
+                        raise MzIdParseException(
+                            f'Error when parsing SpecificityRules from SearchModification:\n'
+                            f'{json.dumps(mod)}')
+                    spec_rule_accessions.append(spec_rule_accession[0])
+
+                # other modifications
+                # name
+                mod_name = None
+                mod_accession = None
+                crosslinker_id = None
+                # find the matching accession for the name cvParam.
+                for i, acc in enumerate(accessions):
+                    # ToDo: be more strict with the allowed accessions?
+                    match = re.match('(?:MOD|UNIMOD|MS|XLMOD):[0-9]+', acc)
+                    if match:
+                        # not cross-link donor
+                        if match.group() != 'MS:1002509':
+                            mod_accession = acc
+                        # if cross-link acceptor/donor get the value of the cvParam as crosslink_id
+                        if match.group() == 'MS:1002509' or match.group() == 'MS:1002510':
+                            crosslinker_id = mod[list(mod)[i]]
+                        # name
+                        # unknown modification
+                        if match.group() == 'MS:1001460':
+                            mod_name = "({0:.2f})".format(mod['massDelta'])
+                        # others
+                        elif match.group() != 'MS:1002509':
+                            # name is the key in mod dict corresponding to the matched accession.
+                            mod_name = list(mod.keys())[i]
+
+                if mod_name is None or mod_accession is None:
+                    raise MzIdParseException(
+                        f'Error parsing <SearchModification>s! '
+                        f'Could not parse name/accession of modification:\n{json.dumps(mod)}')
+
+                if crosslinker_id:
+                    crosslinker_id = str(crosslinker_id)  # it's a string but don't want to convert null to word 'None'
+
+                search_modifications.append({
+                    'id': mod_index,
+                    'upload_id': self.writer.upload_id,
+                    'protocol_id': sid_protocol['id'],
+                    'mod_name': mod_name,
+                    'mass': mod['massDelta'],
+                    'residues': ''.join([r for r in mod['residues'] if r != ' ']),
+                    'specificity_rules': spec_rule_accessions,
+                    'fixed_mod': mod['fixedMod'],
+                    'accession': mod_accession,
+                    'crosslinker_id': crosslinker_id
+                })
+                mod_index += 1
+
+            # Enzymes
+            for enzyme in sid_protocol['Enzymes']['Enzyme']:
+
+                enzyme_name = None
+                enzyme_accession = None
+
+                # optional child element SiteRegexp
+                site_regexp = enzyme.get('SiteRegexp', None)
+
+                # optional child element EnzymeName
+                try:
+                    enzyme_name_el = enzyme['EnzymeName']
+                    # get cvParams that are children of 'cleavage agent name' (MS:1001045)
+                    # there is a mandatory UserParam subelement of EnzymeName which we are ignoring
+                    enzyme_name = self.get_cv_params(enzyme_name_el, 'MS:1001045')
+                    if len(enzyme_name) > 1:
+                        raise MzIdParseException(
+                            f'Error when parsing EnzymeName from Enzyme:\n{json.dumps(enzyme)}')
+                    enzyme_name_cv = list(enzyme_name.keys())[0]
+                    enzyme_name = enzyme_name_cv
+                    enzyme_accession = enzyme_name_cv.accession
+                    # if the site_regexp was missing look it up using obo
+                    if site_regexp is None:
+                        for child, parent, key in self.ms_obo.out_edges(enzyme_accession,
+                                                                        keys=True):
+                            if key == 'has_regexp':
+                                site_regexp = self.ms_obo.nodes[parent]['name']
+                # fallback if no EnzymeName
+                except KeyError:
+                    try:
+                        # optional potentially ambiguous common name
+                        enzyme_name = enzyme['name']
+                    except KeyError:
+                        # no name attribute
+                        pass
+
+                enzymes.append({
+                    'id': enzyme['id'],
+                    'upload_id': self.writer.upload_id,
+                    'protocol_id': sid_protocol['id'],
+                    'name': enzyme_name,
+                    'c_term_gain': enzyme.get('cTermGain', None),
+                    'n_term_gain': enzyme.get('nTermGain', None),
+                    'min_distance': enzyme.get('minDistance', None),
+                    'missed_cleavages': enzyme.get('missedCleavages', None),
+                    'semi_specific': enzyme.get('semiSpecific', None),
+                    'site_regexp': site_regexp,
+                    'accession': enzyme_accession
+                })
+
+            sid_protocols.append(data)
+
+        self.mzid_reader.reset()
+        self.logger.info('parsing AnalysisProtocolCollection - done. Time: {} sec'.format(
+            round(time() - start_time, 2)))
+
+        self.writer.write_data('SpectrumIdentificationProtocol', sid_protocols)
+        self.writer.write_data('SearchModification', search_modifications)
+        self.writer.write_data('Enzyme', enzymes)
+        self.search_modifications = search_modifications
+
+    # def check_all_spectra_data_validity(self):
+    #     for spectra_data_id in self.mzid_reader._offset_index["SpectraData"].keys():
+    #         sp_datum = self.mzid_reader.get_by_id(spectra_data_id, tag_id='SpectraData')
+    #         self.check_spectra_data_validity(sp_datum)
+    #
+
+    def parse_db_sequences(self):
+        """Parse and write the DBSequences."""
+        self.logger.info('parse db sequences - start')
+        start_time = time()
+
+        db_sequences = []
+        for db_id in self.mzid_reader._offset_index["DBSequence"].keys():
+            db_sequence = self.mzid_reader.get_by_id(db_id, tag_id='DBSequence')
+            db_sequence_accessions = self.get_accessions(db_sequence)
+            db_sequence_data = {
+                'id': db_id,
+                'accession': db_sequence["accession"],
+                'upload_id': self.writer.upload_id
+            }
+
+            # name, optional elem att
+            if "name" in db_sequence:
+                db_sequence_data['name'] = db_sequence["name"]
+            else:
+                db_sequence_data['name'] = db_sequence["accession"]
+
+            # description
+            try:
+                # get the key by checking for the protein description accession number
+                desc_key = list(db_sequence.keys())[db_sequence_accessions.index('MS:1001088')]
+                db_sequence_data['description'] = db_sequence[desc_key]
+            except ValueError:
+                db_sequence_data['description'] = None
+
+            # Seq is optional child elem of DBSequence
+            if "Seq" in db_sequence and isinstance(db_sequence["Seq"], str):
+                db_sequence_data['sequence'] = db_sequence["Seq"]
+            elif "length" in db_sequence:
+                db_sequence_data['sequence'] = "X" * db_sequence["length"]
+            else:
+                # todo: get sequence
+                db_sequence_data['sequence'] = ""
+
+            db_sequences.append(db_sequence_data)
+
+        self.writer.write_data('DBSequence', db_sequences)
+
+        self.logger.info('parse db sequences - done. Time: {} sec'.format(
+            round(time() - start_time, 2)))
+
+    def parse_peptides(self):
+        """Parse and write the peptides."""
+        start_time = time()
+        self.logger.info('parse peptides - start')
+
+        search_mod_accessions = [m['accession'] for m in self.search_modifications]
+
+        peptide_index = 0
+        peptides = []
+        for pep_id in self.mzid_reader._offset_index["Peptide"].keys():
+            peptide = self.mzid_reader.get_by_id(pep_id, tag_id='Peptide')
+
+            link_site1 = -1  # ToDo: None?
+            crosslinker_modmass = 0
+            crosslinker_pair_id = None
+            crosslinker_accession = None
+
+            mod_pos = []
+            mod_accessions = []
+            mod_masses = []
+            if 'Modification' in peptide.keys():
+                # parse modifications and crosslink info
+                for mod in peptide['Modification']:
+                    accessions = self.get_accessions(mod)
+                    # mod_location is 0-based for assigning modifications to correct amino acid
+                    # mod['location'] is 1-based with 0 = n-terminal and len(pep)+1 = C-terminal
+                    if mod['location'] == 0:
+                        mod_location = 0
+                    elif mod['location'] == len(peptide['PeptideSequence']) + 1:
+                        mod_location = mod['location'] - 2
+                    else:
+                        mod_location = mod['location'] - 1
+
+                    # parse crosslinker info
+                    # ToDo: crosslinker mod mass should go into Crosslinker Table together with
+                    #   specificity info. Mapping to this table would work same as for modifications
+                    if 'MS:1002509' in accessions or 'MS:1002510' in accessions:
+                        # use mod['location'] for link-site (1-based in database in line with
+                        # mzIdentML specifications)
+                        link_site1 = mod['location']
+                        # cross-link donor
+                        if 'MS:1002509' in accessions:
+                            key = list(mod.keys())[accessions.index('MS:1002509')]
+                            crosslinker_pair_id = mod[key]
+                            crosslinker_modmass = mod['monoisotopicMassDelta']
+                            crosslinker_accession = mod['name'].accession
+                        # cross-link acceptor/receiver
+                        if 'MS:1002510' in accessions:
+                            key = list(mod.keys())[accessions.index('MS:1002510')]
+                            crosslinker_pair_id = mod[key]
+                            crosslinker_modmass = mod['monoisotopicMassDelta'] # should be zero but i guess include anyway? - CC
+
+                    else:  # save the modification info if it's not crosslink related
+                        # Commented out block that tried to match modifications on peptides to SearchModifications
+                        # ToDo: Might want to revisit this in the future
+                        # if mod['name'].accession == 'MS:1001460':  # unknown modification
+                        #     # loop over search modifications and try to match by mass and residues
+                        #     m_ids = []
+                        #     # monoisotopicMassDelta is optional ToDo: what if not present?
+                        #     mod_mass = mod.get('monoisotopicMassDelta', None)
+                        #     # residues is optional, so fall back to getting the modified amino acid
+                        #     mod_residues = mod.get('residues',
+                        #                            [peptide['PeptideSequence'][mod_location]])
+                        #     for i, sm in enumerate(self.search_modifications):
+                        #         # this doesn't seem super reliable coz of rounding errors in mod masses - cc
+                        #         if sm['accession'] == 'MS:1001460' and sm['mass'] == mod_mass and \
+                        #                 all([m in sm['residues'] for m in mod_residues]):
+                        #             m_ids.append(i)
+                        #     if len(m_ids) != 1:
+                        #         raise MzIdParseException(
+                        #             f'Could not map unknown modification to <SearchModifications>:'
+                        #             f'\n{json.dumps(mod)}')
+                        #     else:
+                        #         mod_ids.append(m_ids[0])
+                        # else:  # not unknown modification accession
+                        #     try:
+                        #         mod_ids.append(search_mod_accessions.index(mod['name'].accession))
+                        #     except ValueError:
+                        #         MzIdParseException(
+                        #             f'Modification not found in <SearchModification>s: '
+                        #             f'{json.dumps(mod)}')
+
+                        mod_pos.append(mod_location)
+                        mod_accessions.append(mod['name'].accession)
+                        mod_masses.append(mod.get('monoisotopicMassDelta', None))
+
+            peptide_data = {
+                'id': peptide['id'],
+                'base_sequence': peptide['PeptideSequence'],
+                'modification_accessions': mod_accessions,
+                'modification_positions': mod_pos,
+                'modification_masses': mod_masses,
+                'link_site1': link_site1,
+                # 'link_site2': link_site2,  # ToDo: loop link support
+                'crosslinker_modmass': crosslinker_modmass,
+                'upload_id': self.writer.upload_id,
+                'crosslinker_pair_id': str(crosslinker_pair_id),
+                'crosslinker_accession': crosslinker_accession
+            }
+
+            peptides.append(peptide_data)
+
+            # Batch write 1000 peptides into the DB
+            if peptide_index % 1000 == 0:
+                self.logger.info('writing 1000 peptides to DB')
+                try:
+                    self.writer.write_data('ModifiedPeptide', peptides)
+                    peptides = []
+                except Exception as e:
+                    raise e
+            peptide_index += 1
+
+        # write the remaining peptides
+        try:
+            self.writer.write_data('ModifiedPeptide', peptides)
+        except Exception as e:
+            raise e
+
+        self.logger.info(
+            f'parse peptides - done. Time: {round(time() - start_time, 2)} sec')
+
+    def parse_peptide_evidences(self):
+        """Parse and write the peptide evidences."""
+        start_time = time()
+        self.logger.info('parse peptide evidences - start')
+
+        pep_evidences = []
+        for pep_ev_id in self.mzid_reader._offset_index["PeptideEvidence"].keys():
+            peptide_evidence = self.mzid_reader.get_by_id(pep_ev_id, tag_id='PeptideEvidence',
+                                                          retrieve_refs=False)
+
+            pep_start = -1
+            if "start" in peptide_evidence:
+                pep_start = peptide_evidence["start"]  # start att, optional
+
+            is_decoy = False
+            if "isDecoy" in peptide_evidence:
+                is_decoy = peptide_evidence["isDecoy"]  # isDecoy att, optional
+
+            pep_ev_data = {
+                'upload_id': self.writer.upload_id,
+                'peptide_ref': peptide_evidence["peptide_ref"],
+                'dbsequence_ref': peptide_evidence["dBSequence_ref"],
+                # 'protein_accession': seq_id_to_acc_map[peptide_evidence["dBSequence_ref"]],
+                'pep_start': pep_start,
+                'is_decoy': is_decoy,
+            }
+
+            pep_evidences.append(pep_ev_data)
+
+            # Batch write 1000 peptide evidences into the DB
+            if len(pep_evidences) % 1000 == 0:
+                self.logger.info('writing 1000 peptide_evidences to DB')
+                try:
+                    self.writer.write_data('PeptideEvidence', pep_evidences)
+                    pep_evidences = []
+                except Exception as e:
+                    raise e
+
+        # write the remaining data
+        try:
+            self.writer.write_data('PeptideEvidence', pep_evidences)
+        except Exception as e:
+            raise e
+
+        self.mzid_reader.reset()
+
+        self.logger.info('parse peptide evidences - done. Time: {} sec'.format(
+            round(time() - start_time, 2)))
+
+    def main_loop(self):
+        """Parse the <SpectrumIdentificationResult>s and <SpectrumIdentificationItem>s within."""
+        main_loop_start_time = time()
+        self.logger.info('main loop - start')
+
+        spec_count = 0
+        spectra = []
+        spectrum_identifications = []
+        for sid_result in self.mzid_reader:
+            if self.peak_list_dir:
+                peak_list_reader = self.peak_list_readers[sid_result['spectraData_ref']]
+
+                spectrum = peak_list_reader[sid_result["spectrumID"]]
+                spectra.append({
+                    'id': sid_result["spectrumID"],
+                    'spectra_data_ref': sid_result['spectraData_ref'],
+                    'upload_id': self.writer.upload_id,
+                    'scan_id': spectrum.scan_id,  # ToDo: Do we need this parsed scan_id?
+                    # ToDo: from Spectrum?
+                    'peak_list_file_name': ntpath.basename(peak_list_reader.peak_list_path),
+                    'precursor_mz': spectrum.precursor['mz'],
+                    'precursor_charge': spectrum.precursor['charge'],
+                    'mz': spectrum.mz_values,
+                    'intensity': spectrum.int_values,
+                })
+
+            spectrum_ident_dict = dict()
+
+            for spec_id_item in sid_result['SpectrumIdentificationItem']:
+                # get suitable id # ToDo: use accession instead of cvParam string?
+                if 'cross-link spectrum identification item' in spec_id_item.keys():
+                    self.contains_crosslinks = True
+                    cross_link_id = spec_id_item['cross-link spectrum identification item']
+                else:  # assuming linear
+                    cross_link_id = None
+
+                # check if seen it before
+                if cross_link_id in spectrum_ident_dict.keys():
+                    # do crosslink specific stuff
+                    ident_data = spectrum_ident_dict.get(cross_link_id)
+                    ident_data['pep2_id'] = spec_id_item['peptide_ref']
+                else:
+                    # do stuff common to linears and crosslinks
+                    # ToDo: refactor with MS: cvParam list of all scores
+                    scores = {
+                        k: v for k, v in spec_id_item.items()
+                        if 'score' in k.lower() or
+                           'pvalue' in k.lower() or
+                           'evalue' in k.lower() or
+                           'sequest' in k.lower() or
+                           'scaffold' in k.lower()
+                    }
+
+                    rank = spec_id_item['rank']
+                    # from mzidentML schema 1.2.0: For PMF data, the rank attribute may be
+                    # meaningless and values of rank = 0 should be given.
+                    # xiSPEC front-end expects rank = 1 as default
+                    if rank is None or int(rank) == 0:
+                        rank = 1
+
+                    calculated_mass_to_charge = None
+                    if 'calculatedMassToCharge' in spec_id_item.keys():
+                        calculated_mass_to_charge = float(spec_id_item['calculatedMassToCharge'])
+
+                    ident_data = {
+                        'id': spec_id_item['id'],
+                        'upload_id': self.writer.upload_id,
+                        'spectrum_id': sid_result['spectrumID'],
+                        'spectra_data_ref': sid_result['spectraData_ref'],
+                        'pep1_id': spec_id_item['peptide_ref'],
+                        'pep2_id': None,
+                        'charge_state': int(spec_id_item['chargeState']),
+                        'pass_threshold': spec_id_item['passThreshold'],
+                        'rank': int(rank),
+                        'scores': json.dumps(scores),
+                        'exp_mz': spec_id_item['experimentalMassToCharge'],
+                        'calc_mz': calculated_mass_to_charge,
+                    }
+
+                    if cross_link_id:
+                        spectrum_ident_dict[cross_link_id] = ident_data
+
+            spectrum_identifications += spectrum_ident_dict.values()
+            spec_count += 1
+
+            if spec_count % 1000 == 0:
+                self.logger.info('writing 1000 entries (1000 spectra and their idents) to DB')
+                try:
+                    if self.peak_list_dir:
+                        self.writer.write_data('Spectrum', spectra)
+                    spectra = []
+                    self.writer.write_data('SpectrumIdentification', spectrum_identifications)
+                    spectrum_identifications = []
+                except Exception as e:
+                    raise e
+
+        # end main loop
+        self.logger.info('main loop - done Time: {} sec'.format(
+            round(time() - main_loop_start_time, 2)))
+
+        # once loop is done write remaining data to DB
+        db_wrap_up_start_time = time()
+        self.logger.info('write remaining entries to DB - start')
 
         if self.peak_list_dir:
-            self.init_peak_list_readers()
+            self.writer.write_data('Spectrum', spectra)
+        self.writer.write_data('SpectrumIdentification', spectrum_identifications)
 
-        self.parse_db_sequences()  # overridden (empty function) in xiSPEC subclass
-        self.parse_peptides()
-        self.parse_peptide_evidences()
-        self.map_spectra_data_to_protocol()
-        self.main_loop()
+        self.logger.info('write remaining entries to DB - done.  Time: {} sec'.format(
+            round(time() - db_wrap_up_start_time, 2)))
 
-        # meta_data = [self.upload_id, -1, -1, -1, -1]
-        # self.db.write_meta_data(meta_data, self.cur, self.con)
+    def upload_info(self):
+        upload_info_start_time = time()
+        self.logger.info('parse upload info - start')
 
-        self.fill_in_missing_scores()  # empty here, overridden in xiSPEC subclass to do stuff
+        spectra_formats = []
+        for spectra_data_id in self.mzid_reader._offset_index["SpectraData"].keys():
+            sp_datum = self.mzid_reader.get_by_id(spectra_data_id, tag_id='SpectraData',
+                                                  detailed=True)
+            spectra_formats.append(sp_datum)
+        spectra_formats = json.dumps(spectra_formats, cls=NumpyEncoder)
 
-        self.other_info()
-
-        self.logger.info('all done! Total time: ' + str(round(time() - start_time, 2)) + " sec")
-
-        self.con.close()
-
-    def get_ion_types_mzid(self, sid_item):
+        # Provider - optional element
         try:
-            ion_names_list = [i['name'] for i in sid_item['IonType']]
-            ion_names_list = list(set(ion_names_list))
-        except KeyError:
-            return []
+            provider = json.dumps(self.mzid_reader.iterfind('Provider').next())
+        except StopIteration:
+            provider = '{}'
+        except Exception as e:
+            raise MzIdParseException(type(e).__name__, e.args)
+        self.mzid_reader.reset()
 
-        # ion_types = ["P"]
-        ion_types = []
-        for ion_name in ion_names_list:
-            try:
-                ion = re.search('frag: ([a-z]) ion', ion_name).groups()[0]
-                ion_types.append(ion)
-            except (IndexError, AttributeError) as e:
-                self.logger.info(e, ion_name)
-                continue
+        # AuditCollection - optional element
+        try:
+            audits = json.dumps(self.mzid_reader.iterfind('AuditCollection').next())
+        except StopIteration:
+            audits = '{}'
+        except Exception as e:
+            raise MzIdParseException(type(e).__name__, e.args)
+        self.mzid_reader.reset()
 
-        return ion_types
+        # AnalysisSampleCollection - optional element
+        try:
+            samples = json.dumps(
+                self.mzid_reader.iterfind('AnalysisSampleCollection').next()['Sample'])
+        except StopIteration:
+            samples = '{}'
+        except Exception as e:
+            raise MzIdParseException(type(e).__name__, e.args)
+        self.mzid_reader.reset()
 
+        # BibliographicReference - optional element
+        bib_refs = []
+        for bib in self.mzid_reader.iterfind('BibliographicReference'):
+            bib_refs.append(bib)
+        bib_refs = json.dumps(bib_refs)
+        self.mzid_reader.reset()
+
+        self.writer.write_mzid_info(spectra_formats, provider, audits, samples, bib_refs)
+
+        self.logger.info('getting upload info - done  Time: {} sec'.format(
+            round(time() - upload_info_start_time, 2)))
+
+    def fill_in_missing_scores(self):
+        pass
+
+    def write_new_upload(self):
+        """Write new upload."""
+        upload_data = {
+                'id': self.writer.upload_id,
+                'user_id': self.writer.user_id,
+                'identification_file_name': os.path.basename(self.mzid_path),
+        }
+        self.writer.write_data('Upload', upload_data)
+
+    def write_other_info(self):
+        """Write remaining information into Upload table."""
+        self.writer.write_other_info(self.contains_crosslinks, self.warnings)
+
+    @staticmethod
+    def get_accessions(element):
+        """Get the cvParam accessions for the given element."""
+        accessions = []
+        for el in element.keys():
+            if hasattr(el, 'accession'):
+                accessions.append(el.accession)
+            else:
+                accessions.append('')
+        return accessions
+
+    def get_cv_params(self, element, super_cls_accession=None):
+        """
+        Get the cvParams of an element.
+
+        :param element: (dict) element from MzIdParser (pyteomics).
+        :param super_cls_accession: (str) accession number of the superclass
+        :return: filtered dictionary of cvParams
+        """
+        accessions = self.get_accessions(element)
+
+        if super_cls_accession is None:
+            filtered_idx = [i for i, a in enumerate(accessions) if a != '']
+        else:
+            children = []
+            if type(super_cls_accession) != list:
+                super_cls_accession = [super_cls_accession]
+            for sp_accession in super_cls_accession:
+
+                for child, parent, key in self.ms_obo.in_edges(sp_accession, keys=True):
+                    if key != 'is_a':
+                        continue
+                    children.append(child)
+            filtered_idx = [i for i, a in enumerate(accessions) if a in children]
+
+        return {k: v for i, (k, v) in enumerate(element.items()) if i in filtered_idx}
+
+    # ToDo: refactor gz/zip
     # split into two functions
     @staticmethod
     def extract_mzid(archive):
@@ -287,666 +855,29 @@ class MzIdParser:
         else:
             raise BaseException('unsupported file type: %s' % archive)
 
-    def map_spectra_data_to_protocol(self):
-        """
-        extract and map spectrumIdentificationProtocol which includes annotation data like fragment
-         tolerance only fragment tolerance is extracted for now
-        # ToDo: improve error handling
-        #       extract modifications, cl mod mass, ...
-
-        Parameters:
-        ------------------------
-        mzid_reader: pyteomics mzid_reader
-        """
-
-        self.logger.info('generating spectra data protocol map - start')
-        start_time = time()
-
-        spectra_data_protocol_map = {}
-
-        sid_protocols = []
-
-        analysis_collection = self.mzid_reader.iterfind('AnalysisCollection', retrieve_refs=False).next()
-        for spectrumIdentification in analysis_collection['SpectrumIdentification']:
-            sid_protocol_ref = spectrumIdentification['spectrumIdentificationProtocol_ref']
-            sid_protocol = self.mzid_reader.get_by_id(sid_protocol_ref,
-                                                      tag_id='SpectrumIdentificationProtocol',
-                                                      retrieve_refs=False)
-            sid_protocols.append(sid_protocol)
-            try:
-                frag_tol = sid_protocol['FragmentTolerance']
-                frag_tol_plus = frag_tol['search tolerance plus value']
-                frag_tol_value = re.sub('[^0-9,.]', '', str(frag_tol_plus))
-                if frag_tol_plus.unit_info.lower() == 'parts per million':
-                    frag_tol_unit = 'ppm'
-                elif frag_tol_plus.unit_info.lower() == 'dalton':
-                    frag_tol_unit = 'Da'
-                else:
-                    frag_tol_unit = frag_tol_plus.unit_info
-
-                if not all([
-                    frag_tol['search tolerance plus value'] == frag_tol['search tolerance minus value'],
-                    frag_tol['search tolerance plus value'].unit_info == frag_tol['search tolerance minus value'].unit_info
-                ]):
-                    self.warnings.append(
-                        {"type": "mzidParseError",
-                         "message": "search tolerance plus doesn't match minus. Using plus!"})
-
-            except KeyError:
-                self.warnings.append({
-                    "type": "mzidParseError",
-                    "message": "could not parse ms2tolerance. Falling back to default: 10 ppm.",
-                    # 'id': id_string
-                })
-                frag_tol_value = '10'
-                frag_tol_unit = 'ppm'
-                # spectra_data_protocol_map['errors'].append(
-                #     {"type": "mzidParseError",
-                #      "message": "could not parse ms2tolerance. Falling back to default values."})
-
-            for inputSpectra in spectrumIdentification['InputSpectra']:
-                spectra_data_ref = inputSpectra['spectraData_ref']
-
-                spectra_data_protocol_map[spectra_data_ref] = {
-                    'protocol_ref': sid_protocol_ref,
-                    'fragmentTolerance': ' '.join([frag_tol_value, frag_tol_unit])
-                }
-
-        self.mzid_reader.reset()
-        self.spectra_data_protocol_map = spectra_data_protocol_map
-        self.logger.info('generating spectraData_ProtocolMap - done. Time: {} sec'.format(
-            round(time() - start_time, 2)))
-
-        # self.db.write.protocols()
-
-    def add_to_modlist(self, mod):
-        if mod['name'] == "unknown_modification":
-            mod['name'] = "({0:.2f})".format(mod['monoisotopicMassDelta'])
-
-        mod['monoisotopicMassDelta'] = float(mod['monoisotopicMassDelta'])
-
-        mod['residues'] = [aa for aa in mod['residues']]
-
-        if mod['name'] in [m['name'] for m in self.modlist]:
-            old_mod = self.modlist[[m['name'] for m in self.modlist].index(mod['name'])]
-            # check if modname with different mass exists already
-            if mod['monoisotopicMassDelta'] != old_mod['monoisotopicMassDelta']:
-                mod['name'] += "*"
-                self.add_to_modlist(mod)
-            else:
-                for res in mod['residues']:
-                    if res not in old_mod['residues']:
-                        old_mod['residues'].append(res)
-        else:
-            self.modlist.append(mod)
-
-        return mod['name']
-
-    def parse_db_sequences(self):
-
-        self.logger.info('parse db sequences - start')
-        start_time = time()
-        # DBSEQUENCES
-        inj_list = []
-        for db_id in self.mzid_reader._offset_index["DBSequence"].keys():
-            db_sequence = self.mzid_reader.get_by_id(db_id, tag_id='DBSequence')
-
-            data = [db_id, db_sequence["accession"]]
-
-            # name, optional elem att
-            if "name" in db_sequence:
-                data.append(db_sequence["name"])
-            else:
-                data.append(db_sequence["accession"])
-
-            # description, officially not there?
-            if "protein description" in db_sequence:
-                data.append(json.dumps(db_sequence["protein description"], cls=NumpyEncoder))
-            else:
-                data.append(None)
-
-            # searchDatabase_ref
-
-            # Seq is optional child elem of DBSequence
-            if "Seq" in db_sequence and isinstance(db_sequence["Seq"], str):
-                seq = db_sequence["Seq"]
-                data.append(seq)
-            elif "length" in db_sequence:
-                data.append("X" * db_sequence["length"])
-            else:
-                # todo: get sequence
-                data.append("")
-
-            data.append(self.upload_id)
-
-            inj_list.append(data)
-
-        self.db.write_db_sequences(inj_list, self.cur, self.con)
-
-        self.logger.info('parse db sequences - done. Time: {} sec'.format(
-            round(time() - start_time, 2)))
-
-    def parse_peptides(self):
-        start_time = time()
-        self.logger.info('parse peptides, modifications - start')
-
-        # ToDo: might be stuff in pyteomics lib for this?
-        unimod_masses = self.get_unimod_masses(self.unimod_path)
-
-        # PEPTIDES
-        peptide_index = 0
-        peptide_inj_list = []
-        for pep_id in self.mzid_reader._offset_index["Peptide"].keys():
-            peptide = self.mzid_reader.get_by_id(pep_id, tag_id='Peptide')
-            pep_seq_dict = []
-            for aa in peptide['PeptideSequence']:
-                pep_seq_dict.append({"Modification": "", "aminoAcid": aa})
-
-            link_site = -1
-            crosslinker_modmass = 0
-            crosslinker_pair_id = None
-
-            # MODIFICATIONS
-            # add in modifications
-            if 'Modification' in peptide.keys():
-                for mod in peptide['Modification']:
-
-                    # get the cv param accessions
-                    accessions = []
-                    for m in mod.keys():
-                        if hasattr(m, 'accession'):
-                            accessions.append(m.accession)
-                        else:
-                            accessions.append('')
-
-                    if 'monoisotopicMassDelta' not in mod.keys():
-                        try:
-                            mod['monoisotopicMassDelta'] = unimod_masses[mod['accession']]
-
-                        # ToDo: what's going on here?
-                        except KeyError:
-                            # seq_ref_prot_map['errors'].append({
-                            #     "type": "mzidParseError",
-                            #     "message": "could not get modification mass for modification {}".format(mod),
-                            #     "id": mod["id"]
-                            # })
-                            continue
-
-                    # link_index = 0  # TODO: multilink support
-                    # mod_location is 0-based for assigning modifications to correct amino acid
-                    # mod['location'] is 1-based with 0 = n-terminal and len(pep)+1 = C-terminal
-                    if mod['location'] == 0:
-                        mod_location = 0
-                        # n_terminal_mod = True
-                    elif mod['location'] == len(peptide['PeptideSequence']) + 1:
-                        mod_location = mod['location'] - 2
-                        # c_terminal_mod = True
-                    else:
-                        mod_location = mod['location'] - 1
-                        # n_terminal_mod = False
-                        # c_terminal_mod = False
-                    if 'residues' not in mod:
-                        mod['residues'] = peptide['PeptideSequence'][mod_location]
-
-                    if 'name' in mod.keys():
-                        mod_accession = mod['name'].accession
-                        # fix mod names
-                        if isinstance(mod['name'], list):  # todo: have a look at this  - cc
-                            mod['name'] = ','.join(mod['name'])
-                        mod['name'] = mod['name'].lower()
-                        mod['name'] = mod['name'].replace(" ", "_")
-                        mod['accession'] = mod_accession
-                        if 'MS:1002509' not in accessions and 'MS:1002510' not in accessions:
-                            cur_mod = pep_seq_dict[mod_location]
-                            # join modifications into one for multiple modifications on the same aa
-                            if not cur_mod['Modification'] == '':
-                                mod['name'] = '_'.join(sorted([cur_mod['Modification'], mod['name']], key=str.lower))
-                                cur_mod_mass = [x['monoisotopicMassDelta'] for x in self.modlist if
-                                                x['name'] == cur_mod['Modification']][0]
-                                mod['monoisotopicMassDelta'] += cur_mod_mass
-
-                            # save to all mods list and get back new_name
-                            mod['name'] = self.add_to_modlist(mod)
-                            cur_mod['Modification'] = mod['name']
-
-                    # error handling for mod without name
-                    else:
-                        # cross-link acceptor/receiver/donor don't have a name?
-                        if 'MS:1002509' not in accessions and 'MS:1002510' not in accessions:
-                            raise MzIdParseException("Missing modification name")
-
-                    # parse crosslinker info
-                    if 'MS:1002509' in accessions or 'MS:1002510' in accessions:
-                        # use mod['location'] for link-site (1-based in database in line with mzIdentML specifications)
-                        link_site = mod['location']
-                        # cross-link donor
-                        if 'MS:1002509' in accessions:
-                            key = list(mod.keys())[accessions.index('MS:1002509')]
-                            crosslinker_pair_id = mod[key]
-                            crosslinker_modmass = mod['monoisotopicMassDelta']
-                        # cross-link acceptor/receiver
-                        if 'MS:1002510' in accessions:
-                            key = list(mod.keys())[accessions.index('MS:1002510')]
-                            crosslinker_pair_id = mod[key]
-
-            # ToDo: we should consider swapping these over because modX format has modification
-            #  before AA
-            peptide_seq_with_mods = ''.join(
-                [''.join([x['aminoAcid'], x['Modification']]) for x in pep_seq_dict])
-
-            data = [
-                # peptide_index,      # debug use mzid peptide['id'],
-                peptide['id'],
-                peptide_seq_with_mods,
-                link_site,
-                crosslinker_modmass,
-                self.upload_id,
-                str(crosslinker_pair_id)
-            ]
-
-            peptide_inj_list.append(data)
-            #  self.peptide_id_lookup[peptide['id']] = peptide_index
-
-            if peptide_index % 1000 == 0:
-                self.logger.info('writing 1000 peptides to DB')
-                try:
-                    self.db.write_peptides(peptide_inj_list, self.cur, self.con)
-                    peptide_inj_list = []
-                    self.con.commit()
-                except Exception as e:
-                    raise e
-
-            peptide_index += 1
-
-        try:
-            self.db.write_peptides(peptide_inj_list, self.cur, self.con)
-            self.con.commit()
-        except Exception as e:
-            raise e
-        #
-        mod_index = 0
-        modifications_inj_list = []
-        for mod in self.modlist:
-            try:
-                mod_accession = mod['accession']
-            except KeyError:
-                mod_accession = ''
-            modifications_inj_list.append([
-                mod_index,
-                self.upload_id,
-                mod['name'],
-                mod['monoisotopicMassDelta'],
-                ''.join(mod['residues']),
-                mod_accession
-            ])
-            mod_index += 1
-        self.db.write_modifications(modifications_inj_list, self.cur, self.con)
-
-        self.logger.info('parse peptides, modifications - done. Time: {} sec'.format(
-            round(time() - start_time, 2)))
-
-    def parse_peptide_evidences(self):
-        start_time = time()
-        self.logger.info('parse peptide evidences - start')
-
-        seq_id_to_acc_map = {}
-
-        for db_id in self.mzid_reader._offset_index["DBSequence"].keys():
-            db_sequence = self.mzid_reader.get_by_id(db_id, tag_id='DBSequence')
-            seq_id_to_acc_map[db_id] = db_sequence["accession"]
-
-        # PEPTIDE EVIDENCES
-        inj_list = []
-        for pep_ev_id in self.mzid_reader._offset_index["PeptideEvidence"].keys():
-            peptide_evidence = self.mzid_reader.get_by_id(pep_ev_id, tag_id='PeptideEvidence',
-                                                          retrieve_refs=False)
-
-            pep_start = -1
-            if "start" in peptide_evidence:
-                pep_start = peptide_evidence["start"]  # start att, optional
-
-            is_decoy = False
-            if "isDecoy" in peptide_evidence:
-                is_decoy = peptide_evidence["isDecoy"]  # isDecoy att, optional
-
-            data = [
-                peptide_evidence["peptide_ref"],                             # 'peptide_ref',
-                peptide_evidence["dBSequence_ref"],                          # 'dbsequence_ref',
-                seq_id_to_acc_map[peptide_evidence["dBSequence_ref"]],       # 'protein_accession',
-                pep_start,                                                   # 'pep_start',
-                is_decoy,                                                    # 'is_decoy',
-                self.upload_id                                               # 'upload_id'
-            ]
-
-            inj_list.append(data)
-
-            if len(inj_list) % 1000 == 0:
-                self.logger.info('writing 1000 peptide_evidences to DB')
-                try:
-                    self.db.write_peptide_evidences(inj_list, self.cur, self.con)
-                    inj_list = []
-                    self.con.commit()
-                except Exception as e:
-                    raise e
-
-        try:
-            self.db.write_peptide_evidences(inj_list, self.cur, self.con)
-            self.con.commit()
-        except Exception as e:
-            raise e
-
-        self.con.commit()
-        self.mzid_reader.reset()
-
-        self.logger.info('parse peptide evidences - done. Time: {} sec'.format(
-            round(time() - start_time, 2)))
-
-    @staticmethod
-    def get_unimod_masses(unimod_path):
-        masses = {}
-        mod_id = -1
-
-        with open(unimod_path) as f:
-            for line in f:
-                if line.startswith('id: '):
-                    mod_id = ''.join(line.replace('id: ', '').split())
-
-                elif line.startswith('xref: delta_mono_mass ') and not mod_id == -1:
-                    mass = float(line.replace('xref: delta_mono_mass ', '').replace('"', ''))
-                    masses[mod_id] = mass
-
-        return masses
-
-    def main_loop(self):
-        spec_id = 0
-        identification_id = 0
-        spectra = []
-        spectrum_identifications = []
-
-        fragment_parsing_error_scans = []
-
-        #
-        # main loop
-        main_loop_start_time = time()
-        self.logger.info('main loop - start')
-
-        for sid_result in self.mzid_reader:
-            if self.peak_list_dir:
-                peak_list_reader = self.peak_list_readers[sid_result['spectraData_ref']]
-
-                spectrum = peak_list_reader[sid_result["spectrumID"]]
-                protocol = self.spectra_data_protocol_map[sid_result['spectraData_ref']]
-
-                spectra.append([
-                    spec_id,
-                    spectrum.mz_values,
-                    spectrum.int_values,
-                    ntpath.basename(peak_list_reader.peak_list_path),
-                    spectrum.scan_id,
-                    protocol['fragmentTolerance'],
-                    self.upload_id,
-                    sid_result['id'],
-                    spectrum.precursor['mz'],
-                    spectrum.precursor['charge']
-                ])
-
-            spectrum_ident_dict = dict()
-            linear_index = -1  # negative index values for linear peptides
-
-            for spec_id_item in sid_result['SpectrumIdentificationItem']:
-                # get suitable id
-                if 'cross-link spectrum identification item' in spec_id_item.keys():
-                    self.contains_crosslinks = True
-                    cross_link_id = spec_id_item['cross-link spectrum identification item']
-                else:  # assuming linear
-                    # misusing 'cross-link spectrum identification item'
-                    # for linear peptides with negative index
-                    # specIdItem['cross-link spectrum identification item'] = linear_index
-                    # spec_id_set.add(get_cross_link_identifier(specIdItem))
-
-                    cross_link_id = linear_index
-                    linear_index -= 1
-
-                # check if seen it before
-                if cross_link_id in spectrum_ident_dict.keys():
-                    # do crosslink specific stuff
-                    ident_data = spectrum_ident_dict.get(cross_link_id)
-                    # ident_data[4] = self.peptide_id_lookup[spec_id_item['peptide_ref']]
-                    ident_data[4] = spec_id_item['peptide_ref']  # debug
-                else:
-                    # do stuff common to linears and crosslinks
-                    charge_state = spec_id_item['chargeState']
-                    pass_threshold = spec_id_item['passThreshold']
-                    # ToDo: refactor with MS: cv Param list of all scores
-                    scores = {
-                        k: v for k, v in spec_id_item.items()
-                        if 'score' in k.lower() or
-                           'pvalue' in k.lower() or
-                           'evalue' in k.lower() or
-                           'sequest' in k.lower() or
-                           'scaffold' in k.lower()
-                    }
-                    #
-                    # fragmentation ions
-                    # ToDo: do we want to make assumptions of fragIon types by fragMethod from mzML?
-                    ions = self.get_ion_types_mzid(spec_id_item)
-                    # if no ion types are specified in the id file check the mzML file
-                    # if len(ions) == 0 and peak_list_reader['fileType'] == 'mzml':
-                    #     ions = peakListParser.get_ion_types_mzml(scan)
-
-                    ions = list(set(ions))
-
-                    if len(ions) == 0:
-                        ions = ['peptide', 'b', 'y']
-                        # ToDo: better error handling for general errors -
-                        #  bundling together of same type errors
-                        fragment_parsing_error_scans.append(sid_result['id'])
-
-                    ions = ';'.join(ions)
-
-                    # extract other useful info to display
-                    rank = spec_id_item['rank']
-
-                    # from mzidentML schema 1.2.0: For PMF data, the rank attribute may be
-                    # meaningless and values of rank = 0 should be given.
-                    # xiSPEC front-end expects rank = 1 as default
-                    if rank is None or int(rank) == 0:
-                        rank = 1
-
-                    experimental_mass_to_charge = spec_id_item['experimentalMassToCharge']
-                    try:
-                        calculated_mass_to_charge = spec_id_item['calculatedMassToCharge']
-                    except KeyError:
-                        calculated_mass_to_charge = None
-
-                    ident_data = [
-                        identification_id,
-                        # spec_id_item['id'],
-                        self.upload_id,
-                        spec_id,
-                        # self.peptide_id_lookup[spec_id_item['peptide_ref']], # debug use spec_id_item['peptide_ref'],
-                        spec_id_item['peptide_ref'],
-                        '',  # pep2
-                        charge_state,
-                        rank,
-                        pass_threshold,
-                        ions,
-                        json.dumps(scores),
-                        experimental_mass_to_charge,
-                        calculated_mass_to_charge,
-                        "",
-                        "",
-                        ""
-                    ]
-
-                    spectrum_ident_dict[cross_link_id] = ident_data
-
-                    identification_id += 1
-
-            spectrum_identifications += spectrum_ident_dict.values()
-
-            spec_id += 1
-
-            if spec_id % 1000 == 0:
-                self.logger.info('writing 1000 entries (1000 spectra and their idents) to DB')
-                try:
-                    self.db.write_spectra(spectra, self.cur, self.con)
-                    spectra = []
-                    self.db.write_spectrum_identifications(spectrum_identifications, self.cur,
-                                                           self.con)
-                    spectrum_identifications = []
-                    self.con.commit()
-                except Exception as e:
-                    raise e
-
-        # end main loop
-        self.logger.info('main loop - done Time: {} sec'.format(
-            round(time() - main_loop_start_time, 2)))
-
-        # once loop is done write remaining data to DB
-        db_wrap_up_start_time = time()
-        self.logger.info('write remaining entries to DB - start')
-
-        self.db.write_spectra(spectra, self.cur, self.con)
-        self.db.write_spectrum_identifications(spectrum_identifications, self.cur, self.con)
-        self.con.commit()
-
-        self.logger.info('write remaining entries to DB - start - done.  Time: {} sec'.format(
-            round(time() - db_wrap_up_start_time, 2)))
-
-        self.ident_count = identification_id
-
-        # warnings
-        if len(fragment_parsing_error_scans) > 0:
-            if len(fragment_parsing_error_scans) > 50:
-                id_string = '; '.join(fragment_parsing_error_scans[:50]) + ' ...'
-            else:
-                id_string = '; '.join(fragment_parsing_error_scans)
-
-            self.warnings.append({
-                "type": "IonParsing",
-                "message": "mzidentML file does not specify fragment ions.",
-                'id': id_string
-            })
-
-    def upload_info(self):
-        self.upload_info_read = True
-        upload_info_start_time = time()
-        self.logger.info('parse upload info - start')
-
-        peak_list_file_names = json.dumps(self.get_all_peak_list_file_names(), cls=NumpyEncoder)
-
-        spectra_formats = []
-        for spectra_data_id in self.mzid_reader._offset_index["SpectraData"].keys():
-            sp_datum = self.mzid_reader.get_by_id(spectra_data_id, tag_id='SpectraData',
-                                                  detailed=True)
-            spectra_formats.append(sp_datum)
-        spectra_formats = json.dumps(spectra_formats, cls=NumpyEncoder)
-
-        # AnalysisSoftwareList - optional element
-        # see https://groups.google.com/forum/#!topic/pyteomics/Mw4eUHmicyU
-        self.mzid_reader.schema_info['lists'].add("AnalysisSoftware")
-        try:
-            analysis_software = json.dumps(self.mzid_reader.iterfind('AnalysisSoftwareList').next()['AnalysisSoftware'])
-        except StopIteration:
-            analysis_software = '{}'
-        except Exception as e:
-            raise MzIdParseException(type(e).__name__, e.args)
-        self.mzid_reader.reset()
-
-        # Provider - optional element
-        try:
-            provider = json.dumps(self.mzid_reader.iterfind('Provider').next())
-        except StopIteration:
-            provider = '{}'
-        except Exception as e:
-            raise MzIdParseException(type(e).__name__, e.args)
-        self.mzid_reader.reset()
-
-        # AuditCollection - optional element
-        audits = '{}'
-        try:
-            audits = json.dumps(self.mzid_reader.iterfind('AuditCollection').next())
-        except StopIteration:
-            audits = '{}'
-        except Exception as e:
-            raise MzIdParseException(type(e).__name__, e.args)
-        self.mzid_reader.reset()
-
-        # AnalysisSampleCollection - optional element
-        try:
-            samples = json.dumps(self.mzid_reader.iterfind('AnalysisSampleCollection').next()['Sample'])
-        except StopIteration:
-            samples = '{}'
-        except Exception as e:
-            raise MzIdParseException(type(e).__name__, e.args)
-        self.mzid_reader.reset()
-
-        # AnalysisCollection - required element, StopIteration exception shouldn't happen
-        try:
-            analyses = json.dumps(self.mzid_reader.iterfind('AnalysisCollection').next()['SpectrumIdentification'])
-        except StopIteration:
-            analyses = '{}'  # could legitimately throw error here instead, its required
-        except Exception as e:
-            raise MzIdParseException(type(e).__name__, e.args)
-        self.mzid_reader.reset()
-
-        # AnalysisProtocolCollection - required element
-        try:
-            protocol_collection = self.mzid_reader.iterfind('AnalysisProtocolCollection').next()
-            protocols = json.dumps(protocol_collection['SpectrumIdentificationProtocol'],
-                                   cls=NumpyEncoder)
-        except StopIteration:
-            protocols = '{}'  # could legitimately throw error here instead, its required
-        except Exception as e:
-            raise MzIdParseException(type(e).__name__, e.args)
-        self.mzid_reader.reset()
-
-        # BibliographicReference - optional element
-        bibRefs = []
-        for bib in self.mzid_reader.iterfind('BibliographicReference'):
-            bibRefs.append(bib)
-        bibRefs = json.dumps(bibRefs)
-        self.mzid_reader.reset()
-
-        self.db.write_mzid_info(peak_list_file_names,
-                                spectra_formats,
-                                analysis_software,
-                                provider,
-                                audits,
-                                samples,
-                                analyses,
-                                protocols,
-                                bibRefs,
-                                self.upload_id, self.cur, self.con)
-
-        self.logger.info('getting upload info - done  Time: {} sec'.format(
-            round(time() - upload_info_start_time, 2)))
-
-    def fill_in_missing_scores(self):
-        pass
-
-    def other_info(self):
-        ident_file_size = os.path.getsize(self.mzid_path)
-        self.db.write_other_info(self.upload_id, self.contains_crosslinks, self.ident_count,
-                                 ident_file_size, self.warnings, self.cur, self.con)
-
 
 class xiSPEC_MzIdParser(MzIdParser):
 
+    def write_new_upload(self):
+        """Overrides base class function - not needed for xiSPEC."""
+        pass
+
     def upload_info(self):
+        """Overrides base class function - not needed for xiSPEC."""
         pass
 
     def parse_db_sequences(self):
+        """Overrides base class function - not needed for xiSPEC."""
         pass
 
     def fill_in_missing_scores(self):
         # Fill missing scores with
         score_fill_start_time = time()
         self.logger.info('fill in missing scores - start')
-        self.db.fill_in_missing_scores(self.cur, self.con)
+        self.writer.fill_in_missing_scores()
         self.logger.info('fill in missing scores - done. Time: {}'.format(
             round(time() - score_fill_start_time, 2)))
 
-    def other_info(self):
+    def write_other_info(self):
+        """Overrides base class function - not needed for xiSPEC."""
         pass

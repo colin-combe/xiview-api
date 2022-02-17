@@ -55,11 +55,9 @@ class Spectrum:
         int_array = np.asarray(int_array, dtype=np.float64)
         # make sure that the m/z values are sorted asc
         sorted_indices = np.argsort(mz_array)
-        # convert to list because psycopg2 can't handle numpy arrays
-        self.mz_values = mz_array[sorted_indices].tolist()
-        self.int_values = int_array[sorted_indices].tolist()
+        self.mz_values = mz_array[sorted_indices]
+        self.int_values = int_array[sorted_indices]
         self._precursor_mass = None
-
 
     # @property
     # def precursor_charge(self):
@@ -159,20 +157,6 @@ class PeakListWrapper:
 
         else:
             raise Exception(f"unsupported file extension for: {zip_file}")
-
-    @staticmethod
-    def get_ion_types_mzml(scan):
-        frag_methods = {
-            'beam-type collision-induced dissociation': ["b", "y"],
-            'collision-induced dissociation': ["b", "y"],
-            'electron transfer dissociation': ["c", "z"],
-        }
-        # get fragMethod and translate that to Ion Types
-        ion_types = []
-        for key in scan.keys():
-            if key in frag_methods.keys():
-                ion_types += frag_methods[key]
-        return ion_types
 
 
 class SpectraReader(ABC):
@@ -274,7 +258,7 @@ class MGFReader(SpectraReader):
 
         else:
             raise SpectrumIdFormatError(
-                    "Combination of spectrumIdFormat and FileFormat not supported.")
+                    f"{self.spectrum_id_format_accession} not supported for MGF")
 
         return self._convert_spectrum(spec_id, spec)
 
@@ -373,7 +357,7 @@ class MZMLReader(SpectraReader):
 
         else:
             raise SpectrumIdFormatError(
-                "Combination of spectrumIdFormat and FileFormat not supported.")
+                    f"{self.spectrum_id_format_accession} not supported for mzML!")
 
         return self._convert_spectrum(spec_id, spec)
 
@@ -525,7 +509,7 @@ class MS2Reader(SpectraReader):
 
         else:
             raise SpectrumIdFormatError(
-                "Combination of spectrumIdFormat and FileFormat not supported.")
+                    f"{self.spectrum_id_format_accession} not supported for MS2")
         return self._convert_spectrum(spec_id, spec)
 
     def load(self, source, file_name=None, source_path=None):
@@ -545,7 +529,7 @@ class MS2Reader(SpectraReader):
 
         :return (int) Number of spectra in the file.
         """
-        raise NotImplemented()
+        raise NotImplemented('Count spectra currently not implemented for MS2.')
         # if issubclass(type(self._source), io.TextIOBase):
         #     text = self._source.read()
         #     result = len(list(re.findall('BEGIN IONS', text)))
@@ -558,6 +542,7 @@ class MS2Reader(SpectraReader):
         # return result
 
     def _convert_spectrum(self, scan_index, spec):
+        # ToDo:
         precursor = {
             'mz': spec['params']['pepmass'][0],
             'charge': spec['params']['charge'][0],

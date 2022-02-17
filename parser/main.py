@@ -9,6 +9,9 @@ from time import time
 import re
 import getopt
 
+from parser.database.update_sqlite import db_name
+from parser.writer import Writer
+
 
 dev = True
 use_ftp, use_postgreSQL, user_id = False, False, False
@@ -45,10 +48,10 @@ if identifications_file is False or identifier is False:
     dev = True
     print ("dev test mode...")
 
-if use_postgreSQL:
-    from parser.database import PostgreSQL as db
-else:
-    from parser.database import SQLite as db
+# if use_postgreSQL:
+#     from parser.database import PostgreSQL as db
+# else:
+#     from parser.database import SQLite as db
 
 if use_ftp:
     import ftplib
@@ -117,12 +120,12 @@ try:
         identifications_file = "/home/lars/Xi/xiSPEC_ms_parser/tests/fixtures/ecoli_dsso_mzml.mzid"
         peakList_file = "/home/lars/Xi/xiSPEC_ms_parser/tests/fixtures/peaklist/peaklist_mzml.zip"
 
-        database = 'test.db'
+        sqlite_db = 'test.db'
         upload_folder = "/".join(identifications_file.split("/")[:-1]) + "/"
 
     else:
 
-        database = "dbs/tmp/%s.db" % identifier
+        sqlite_db = "dbs/tmp/%s.db" % identifier
         upload_folder = "../uploads/" + identifier
 
         if use_ftp:
@@ -229,23 +232,28 @@ try:
         identifications_fileType = 'mzid'
 
         if use_postgreSQL:
+            import credentials as db
+            # ToDo: user_id needs to be uuid
+            conn_str = f'postgresql://{db.username}:{db.password}@{db.hostname}:{db.port}/{db.database}'
+            writer = Writer(conn_str, user_id)
             id_parser = MzIdParser.MzIdParser(identifications_file, upload_folder, peak_list_folder,
-                                              db, logger, user_id=user_id)
+                                              writer, logger)
         else:
+            conn_str = f'sqlite:///{sqlite_db}'
+            writer = Writer(conn_str)
             id_parser = MzIdParser.xiSPEC_MzIdParser(identifications_file, upload_folder,
-                                                     peak_list_folder, db, logger, db_name=database)
-        id_parser.initialise_mzid_reader()
+                                                     peak_list_folder, writer, logger)
     elif identifications_fileName.endswith('.csv'):
         logger.info('parsing csv start')
         identifications_fileType = 'csv'
         if use_postgreSQL:
             if peakList_file:
-                id_parser = FullCsvParser(identifications_file, upload_folder, peak_list_folder, db,
-                                          logger, user_id=user_id)
+                id_parser = FullCsvParser(identifications_file, upload_folder, peak_list_folder,
+                                          writer, logger)
                 id_parser.check_required_columns()
             else:
                 id_parser = NoPeakListsCsvParser(identifications_file, upload_folder,
-                                                 peak_list_folder, db, logger, user_id=user_id)
+                                                 peak_list_folder, writer, logger)
                 try:
                     id_parser.check_required_columns()
 
@@ -256,7 +264,7 @@ try:
 
         else:
             id_parser = xiSPEC_CsvParser(identifications_file, upload_folder, peak_list_folder, db,
-                                         logger, db_name=database)
+                                         logger, db_name=sqlite_db)
             id_parser.check_required_columns()
 
     else:
