@@ -37,7 +37,7 @@ class LinksOnlyCsvParser(AbstractCsvParser):
 
         cross_linker_pair_count = 0
 
-        for identification_id, id_item in self.csv_reader.iterrows():  # identification_id, id_item = id_df.iterrows().next()
+        for identification_id, id_item in self._reader.iterrows():  # identification_id, id_item = id_df.iterrows().next()
 
             # 1 based row number
             row_number = identification_id + 1

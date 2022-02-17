@@ -51,7 +51,6 @@ class AbstractCsvParser:
         """
 
         self.csv_path = csv_path
-        self.upload_id = 0
         self.peak_list_readers = {}  # peak list readers indexed by spectraData_ref
 
         self.temp_dir = temp_dir
@@ -78,6 +77,7 @@ class AbstractCsvParser:
         self.random_id = 0
 
         self.warnings = []
+        self.write_new_upload()
 
         # connect to DB
         # try:
@@ -92,22 +92,22 @@ class AbstractCsvParser:
         self.logger.info('reading csv - start')
         self.start_time = time()
         # schema: https://raw.githubusercontent.com/HUPO-PSI/mzIdentML/master/schema/mzIdentML1.2.0.xsd
-        self.csv_reader = pd.read_csv(self.csv_path)
+        self._reader = pd.read_csv(self.csv_path)
 
         # check for duplicate columns
-        col_list = self.csv_reader.columns.tolist()
+        col_list = self._reader.columns.tolist()
         duplicate_cols = set([x for x in col_list if col_list.count(x) > 1])
         if len(duplicate_cols) > 0:
             raise CsvParseException("duplicate column(s): %s" % '; '.join(duplicate_cols))
 
-        self.csv_reader.columns = [x.lower().replace(" ", "") for x in self.csv_reader.columns]
-        self.meta_columns = [col for col in self.csv_reader.columns if col.startswith('meta')][:3]
+        self._reader.columns = [x.lower().replace(" ", "") for x in self._reader.columns]
+        self.meta_columns = [col for col in self._reader.columns if col.startswith('meta')][:3]
 
         # remove unused columns
-        for col in self.csv_reader.columns:
+        for col in self._reader.columns:
             if col not in self.required_cols + self.optional_cols + self.meta_columns:
                 try:
-                    del self.csv_reader[col]
+                    del self._reader[col]
                 except KeyError:
                     pass
 
@@ -118,23 +118,23 @@ class AbstractCsvParser:
 
         # create missing non-required cols and fill with NaN (will then be fill with default values)
         for optional_col in self.optional_cols:
-            if optional_col not in self.csv_reader.columns:
-                self.csv_reader[optional_col] = np.nan
+            if optional_col not in self._reader.columns:
+                self._reader[optional_col] = np.nan
 
-        self.csv_reader.fillna(value=self.default_values, inplace=True)
+        self._reader.fillna(value=self.default_values, inplace=True)
 
         # self.csv_reader.fillna('Null', inplace=True)
 
     def check_required_columns(self):
         for required_col in self.required_cols:
-            if required_col not in self.csv_reader.columns:
+            if required_col not in self._reader.columns:
                 raise CsvParseException("Required csv column %s missing" % required_col)
         return True
 
     def get_missing_required_columns(self):
         missing_cols = []
         for required_col in self.required_cols:
-            if required_col not in self.csv_reader.columns:
+            if required_col not in self._reader.columns:
                 missing_cols.append(required_col)
         return missing_cols
 
@@ -143,7 +143,7 @@ class AbstractCsvParser:
         """
         :return: list of all used peak list file names
         """
-        return self.csv_reader.peaklistfilename.unique()
+        return self._reader.peaklistfilename.unique()
 
     def get_sequenceDB_file_names(self):
         fasta_files = []
@@ -161,7 +161,7 @@ class AbstractCsvParser:
         """
 
         peak_list_readers = {}
-        for peak_list_file_name in self.csv_reader.peaklistfilename.unique():
+        for peak_list_file_name in self._reader.peaklistfilename.unique():
 
             # ToDo: what about .ms2?
             if peak_list_file_name.lower().endswith('.mgf'):
@@ -213,8 +213,9 @@ class AbstractCsvParser:
         meta_col_names = [col.replace("meta_", "") for col in self.meta_columns]
         while len(meta_col_names) < 3:
             meta_col_names.append(-1)
-        meta_data = [self.upload_id] + meta_col_names + [self.contains_crosslinks]
-        self.db.write_meta_data(meta_data, self.cur, self.con)
+        meta_data = [self.writer.upload_id] + meta_col_names + [self.contains_crosslinks]
+        # ToDo: need to create MetaData
+        # self.writer.write_data('MetaData', meta_data)
 
         self.logger.info('all done! Total time: ' + str(round(time() - start_time, 2)) + " sec")
 
@@ -254,6 +255,15 @@ class AbstractCsvParser:
         # self.random_id = self.db.get_random_id(self.upload_id, self.cur, self.con)
 
         #self.writer.write_mzid_info(spectra_formats, provider, audits, samples, bib_refs)
+
+    def write_new_upload(self):
+        """Write new upload."""
+        upload_data = {
+                'id': self.writer.upload_id,
+                'user_id': self.writer.user_id,
+                'identification_file_name': os.path.basename(self.csv_path),
+        }
+        self.writer.write_data('Upload', upload_data)
 
 # class NumpyEncoder(json.JSONEncoder):
 #     def default(self, obj):

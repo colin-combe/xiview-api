@@ -63,7 +63,7 @@ class MzIdParser:
         # schema:
         # https://raw.githubusercontent.com/HUPO-PSI/mzIdentML/master/schema/mzIdentML1.2.0.xsd
         try:
-            self.mzid_reader = mzid.MzIdentML(self.mzid_path, retrieve_refs=False)
+            self._reader = mzid.MzIdentML(self.mzid_path, retrieve_refs=False)
         except Exception as e:
             raise MzIdParseException(type(e).__name__, e.args)
 
@@ -151,8 +151,8 @@ class MzIdParser:
             value: associated peak_list_reader
         """
         peak_list_readers = {}
-        for spectra_data_id in self.mzid_reader._offset_index["SpectraData"].keys():
-            sp_datum = self.mzid_reader.get_by_id(spectra_data_id, tag_id='SpectraData')
+        for spectra_data_id in self._reader._offset_index["SpectraData"].keys():
+            sp_datum = self._reader.get_by_id(spectra_data_id, tag_id='SpectraData')
 
             self.check_spectra_data_validity(sp_datum)
 
@@ -190,9 +190,9 @@ class MzIdParser:
         sid_protocols = []
         search_modifications = []
         enzymes = []
-        for sid_protocol_id in self.mzid_reader._offset_index[
+        for sid_protocol_id in self._reader._offset_index[
             'SpectrumIdentificationProtocol'].keys():
-            sid_protocol = self.mzid_reader.get_by_id(sid_protocol_id, detailed=True)
+            sid_protocol = self._reader.get_by_id(sid_protocol_id, detailed=True)
 
             # FragmentTolerance
             try:
@@ -224,7 +224,7 @@ class MzIdParser:
                 frag_tol_unit = 'ppm'
 
             try:
-                analysis_software = json.dumps(self.mzid_reader.get_by_id(
+                analysis_software = json.dumps(self._reader.get_by_id(
                     sid_protocol['analysisSoftware_ref']))
             except KeyError:
                 analysis_software = '{}'
@@ -366,7 +366,7 @@ class MzIdParser:
 
             sid_protocols.append(data)
 
-        self.mzid_reader.reset()
+        self._reader.reset()
         self.logger.info('parsing AnalysisProtocolCollection - done. Time: {} sec'.format(
             round(time() - start_time, 2)))
 
@@ -387,8 +387,8 @@ class MzIdParser:
         start_time = time()
 
         db_sequences = []
-        for db_id in self.mzid_reader._offset_index["DBSequence"].keys():
-            db_sequence = self.mzid_reader.get_by_id(db_id, tag_id='DBSequence')
+        for db_id in self._reader._offset_index["DBSequence"].keys():
+            db_sequence = self._reader.get_by_id(db_id, tag_id='DBSequence')
             db_sequence_accessions = self.get_accessions(db_sequence)
             db_sequence_data = {
                 'id': db_id,
@@ -435,8 +435,8 @@ class MzIdParser:
 
         peptide_index = 0
         peptides = []
-        for pep_id in self.mzid_reader._offset_index["Peptide"].keys():
-            peptide = self.mzid_reader.get_by_id(pep_id, tag_id='Peptide')
+        for pep_id in self._reader._offset_index["Peptide"].keys():
+            peptide = self._reader.get_by_id(pep_id, tag_id='Peptide')
 
             link_site1 = -1  # ToDo: None?
             crosslinker_modmass = 0
@@ -514,6 +514,7 @@ class MzIdParser:
 
             peptide_data = {
                 'id': peptide['id'],
+                'upload_id': self.writer.upload_id,
                 'base_sequence': peptide['PeptideSequence'],
                 'modification_accessions': mod_accessions,
                 'modification_positions': mod_pos,
@@ -521,7 +522,6 @@ class MzIdParser:
                 'link_site1': link_site1,
                 # 'link_site2': link_site2,  # ToDo: loop link support
                 'crosslinker_modmass': crosslinker_modmass,
-                'upload_id': self.writer.upload_id,
                 'crosslinker_pair_id': str(crosslinker_pair_id),
                 'crosslinker_accession': crosslinker_accession
             }
@@ -553,9 +553,9 @@ class MzIdParser:
         self.logger.info('parse peptide evidences - start')
 
         pep_evidences = []
-        for pep_ev_id in self.mzid_reader._offset_index["PeptideEvidence"].keys():
-            peptide_evidence = self.mzid_reader.get_by_id(pep_ev_id, tag_id='PeptideEvidence',
-                                                          retrieve_refs=False)
+        for pep_ev_id in self._reader._offset_index["PeptideEvidence"].keys():
+            peptide_evidence = self._reader.get_by_id(pep_ev_id, tag_id='PeptideEvidence',
+                                                      retrieve_refs=False)
 
             pep_start = -1
             if "start" in peptide_evidence:
@@ -591,7 +591,7 @@ class MzIdParser:
         except Exception as e:
             raise e
 
-        self.mzid_reader.reset()
+        self._reader.reset()
 
         self.logger.info('parse peptide evidences - done. Time: {} sec'.format(
             round(time() - start_time, 2)))
@@ -604,7 +604,7 @@ class MzIdParser:
         spec_count = 0
         spectra = []
         spectrum_identifications = []
-        for sid_result in self.mzid_reader:
+        for sid_result in self._reader:
             if self.peak_list_dir:
                 peak_list_reader = self.peak_list_readers[sid_result['spectraData_ref']]
 
@@ -712,46 +712,46 @@ class MzIdParser:
         self.logger.info('parse upload info - start')
 
         spectra_formats = []
-        for spectra_data_id in self.mzid_reader._offset_index["SpectraData"].keys():
-            sp_datum = self.mzid_reader.get_by_id(spectra_data_id, tag_id='SpectraData',
-                                                  detailed=True)
+        for spectra_data_id in self._reader._offset_index["SpectraData"].keys():
+            sp_datum = self._reader.get_by_id(spectra_data_id, tag_id='SpectraData',
+                                              detailed=True)
             spectra_formats.append(sp_datum)
         spectra_formats = json.dumps(spectra_formats, cls=NumpyEncoder)
 
         # Provider - optional element
         try:
-            provider = json.dumps(self.mzid_reader.iterfind('Provider').next())
+            provider = json.dumps(self._reader.iterfind('Provider').next())
         except StopIteration:
             provider = '{}'
         except Exception as e:
             raise MzIdParseException(type(e).__name__, e.args)
-        self.mzid_reader.reset()
+        self._reader.reset()
 
         # AuditCollection - optional element
         try:
-            audits = json.dumps(self.mzid_reader.iterfind('AuditCollection').next())
+            audits = json.dumps(self._reader.iterfind('AuditCollection').next())
         except StopIteration:
             audits = '{}'
         except Exception as e:
             raise MzIdParseException(type(e).__name__, e.args)
-        self.mzid_reader.reset()
+        self._reader.reset()
 
         # AnalysisSampleCollection - optional element
         try:
             samples = json.dumps(
-                self.mzid_reader.iterfind('AnalysisSampleCollection').next()['Sample'])
+                self._reader.iterfind('AnalysisSampleCollection').next()['Sample'])
         except StopIteration:
             samples = '{}'
         except Exception as e:
             raise MzIdParseException(type(e).__name__, e.args)
-        self.mzid_reader.reset()
+        self._reader.reset()
 
         # BibliographicReference - optional element
         bib_refs = []
-        for bib in self.mzid_reader.iterfind('BibliographicReference'):
+        for bib in self._reader.iterfind('BibliographicReference'):
             bib_refs.append(bib)
         bib_refs = json.dumps(bib_refs)
-        self.mzid_reader.reset()
+        self._reader.reset()
 
         self.writer.write_mzid_info(spectra_formats, provider, audits, samples, bib_refs)
 
