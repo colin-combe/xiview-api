@@ -1,4 +1,4 @@
-from .AbstractCsvParser import AbstractCsvParser
+from .AbstractCsvParser import AbstractCsvParser  # is this needed when they're in same dir? - cc
 from .AbstractCsvParser import CsvParseException
 
 from time import time
@@ -486,11 +486,11 @@ class FullCsvParser(AbstractCsvParser):
         self.logger.info('write spectra to DB - start')
         try:
 
-            self.db.write_peptide_evidences(peptide_evidences, self.cur, self.con)
-            self.db.write_peptides(peptides, self.cur, self.con)
-            self.db.write_spectra(spectra, self.cur, self.con)
-            self.db.write_spectrum_identifications(spectrum_identifications, self.cur, self.con)
-            self.db.write_db_sequences(db_sequences, self.cur, self.con)
+            # self.writer.write_data("PeptideEvidence", peptide_evidences)
+            self.writer.write_data("ModifiedPeptide", peptides)
+            self.writer.write_data("Spectrum", spectra)
+            self.writer.write_data("SpectrumIdentifications", spectrum_identifications)
+            self.writer.write_data("DBSequences", db_sequences)
             self.con.commit()
         except Exception as e:
             raise e

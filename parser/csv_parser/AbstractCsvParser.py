@@ -41,7 +41,7 @@ class AbstractCsvParser:
         'calcmz': -1
     }
 
-    def __init__(self, csv_path, temp_dir, peak_list_dir, db, logger, db_name='', user_id=0):
+    def __init__(self, csv_path, temp_dir, peak_list_dir, writer, logger):  # db, logger, db_name='', user_id=0):
         """
 
         :param csv_path: path to csv file
@@ -61,9 +61,9 @@ class AbstractCsvParser:
         if peak_list_dir and not peak_list_dir.endswith('/'):
             self.peak_list_dir += '/'
 
-        self.user_id = user_id
-
-        self.db = db
+        # self.user_id = user_id
+        #
+        self.writer = writer
         self.logger = logger
 
         # self.spectra_data_protocol_map = {}
@@ -80,14 +80,14 @@ class AbstractCsvParser:
         self.warnings = []
 
         # connect to DB
-        try:
-            self.con = db.connect(db_name)
-            self.cur = self.con.cursor()
-
-        except db.DBException as e:
-            self.logger.error(e)
-            print(e)
-            sys.exit(1)
+        # try:
+        #     self.con = db.connect(db_name)
+        #     self.cur = self.con.cursor()
+        #
+        # except db.DBException as e:
+        #     self.logger.error(e)
+        #     print(e)
+        #     sys.exit(1)
 
         self.logger.info('reading csv - start')
         self.start_time = time()
@@ -246,12 +246,14 @@ class AbstractCsvParser:
 
     def upload_info(self):
         self.logger.info('new csv upload')
-        # ident_file_size = os.path.getsize(self.csv_path)
-        # peak_list_file_names = json.dumps(self.get_peak_list_file_names(), cls=NumpyEncoder)
-        self.upload_id = self.db.new_upload([self.user_id, os.path.basename(self.csv_path), "-"],
-                                            self.cur, self.con,
-                                            )
-        self.random_id = self.db.get_random_id(self.upload_id, self.cur, self.con)
+        # # ident_file_size = os.path.getsize(self.csv_path)
+        # # peak_list_file_names = json.dumps(self.get_peak_list_file_names(), cls=NumpyEncoder)
+        # self.upload_id = self.db.new_upload([self.user_id, os.path.basename(self.csv_path), "-"],
+        #                                     self.cur, self.con,
+        #                                     )
+        # self.random_id = self.db.get_random_id(self.upload_id, self.cur, self.con)
+
+        #self.writer.write_mzid_info(spectra_formats, provider, audits, samples, bib_refs)
 
 # class NumpyEncoder(json.JSONEncoder):
 #     def default(self, obj):
