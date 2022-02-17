@@ -277,6 +277,7 @@ class MzIdParser:
                     # ToDo: be more strict with the allowed accessions?
                     match = re.match('(?:MOD|UNIMOD|MS|XLMOD):[0-9]+', acc)
                     if match:
+                        # not cross-link donor
                         if match.group() != 'MS:1002509':
                             mod_accession = acc
                         # crosslink
