@@ -95,7 +95,7 @@ def compare_modification(results):
     assert results[0].specificity_rules == []  # parsed from child <SpecificityRules>
     assert not results[0].fixed_mod  # fixedMod from <SearchModification>
     assert results[0].accession == 'MS:1001460'  # accession from <SearchModification> cvParam
-    assert results[0].crosslinker_id == '0.0'  # value from cl donor  / acceptor cv term (is a string)
+    assert results[0].crosslinker_id == '0.0'  # value from cl donor / acceptor cv term (is a string)
 
     assert results[1].id == 1  # id from incrementing count
     assert results[1].mod_name == 'cross-link acceptor'  # name from <SearchModification> cvParam / mod mass in brackets if unknown
