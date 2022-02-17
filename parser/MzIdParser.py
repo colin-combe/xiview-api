@@ -280,7 +280,7 @@ class MzIdParser:
                         # not cross-link donor
                         if match.group() != 'MS:1002509':
                             mod_accession = acc
-                        # crosslink
+                        # if cross-link acceptor/donor get the value of the cvParam as crosslink_id
                         if match.group() == 'MS:1002509' or match.group() == 'MS:1002510':
                             crosslinker_id = mod[list(mod)[i]]
                         # name
