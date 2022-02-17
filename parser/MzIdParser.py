@@ -479,6 +479,8 @@ class MzIdParser:
                             crosslinker_modmass = mod['monoisotopicMassDelta'] # should be zero but i guess include anyway? - CC
 
                     else:  # save the modification info if it's not crosslink related
+                        # Commented out block that tried to match modifications on peptides to SearchModifications
+                        # ToDo: Might want to revisit this in the future
                         # if mod['name'].accession == 'MS:1001460':  # unknown modification
                         #     # loop over search modifications and try to match by mass and residues
                         #     m_ids = []
