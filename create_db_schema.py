@@ -57,17 +57,18 @@ def create_schema(connection_str):
     )
 
     Table(
-        "Modification",
+        "SearchModification",
         base.metadata,
         Column("id", BIGINT, primary_key=True, nullable=False),
         Column("upload_id", GUID, ForeignKey("Upload.id"), primary_key=True, nullable=False),
-        Column("protocol_id", Text, nullable=False),
+        Column("protocol_id", Text, primary_key=True, nullable=False),
         Column("mod_name", Text, nullable=False),
         Column("mass", FLOAT, nullable=False),
         Column("residues", Text, nullable=False),
         Column("specificity_rules", JSON, nullable=False),
         Column("fixed_mod", BOOLEAN, nullable=False),
         Column("accession", Text, nullable=True),
+        Column("crosslinker_id", Text, nullable=True),
         ForeignKeyConstraint(
             ("protocol_id", "upload_id"),
             ("SpectrumIdentificationProtocol.id", "SpectrumIdentificationProtocol.upload_id"),
@@ -123,13 +124,15 @@ def create_schema(connection_str):
         Column("upload_id", GUID, ForeignKey("Upload.id"), index=True, primary_key=True,
                nullable=False),
         Column("base_sequence", Text, nullable=False),
-        Column("modification_ids", JSON, nullable=False),
+        Column("modification_accessions", JSON, nullable=False),
+        Column("modification_masses", JSON, nullable=False),
         Column("modification_positions", JSON, nullable=False),
         # following columns are not in xi2 db, but come out of the mzid on the <Peptide>s
         Column("link_site1", Integer, nullable=True),
         Column("link_site2", Integer, nullable=True),  # only used for storing loop links
         Column("crosslinker_modmass", FLOAT, nullable=True),
-        Column("crosslinker_pair_id", Text, nullable=True),
+        Column("crosslinker_pair_id", Text, nullable=True), # yes, its a string
+        Column("crosslinker_accession", Text, nullable=True),
         quote=False
     )
 

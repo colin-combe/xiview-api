@@ -62,7 +62,7 @@ def compare_modified_peptide(results):
     # id from <Peptide> id
     assert results[0].id == '29_KVLDSKPSVLALNIQR_30_KFDAKMVGK_1_5_p1'
     assert results[0].base_sequence == 'KFDAKMVGK'  # value of <PeptideSequence>
-    assert results[0].modification_ids == []
+    assert results[0].modification_accessions == []
     assert results[0].modification_positions == []
     # location of <Modification> with cross-link acceptor/receiver cvParam
     assert results[0].link_site1 == 5
@@ -74,7 +74,7 @@ def compare_modified_peptide(results):
     # id from <Peptide> id
     assert results[1].id == '29_KVLDSKPSVLALNIQR_30_KFDAKMVGK_1_5_p0'
     assert results[1].base_sequence == 'KVLDSKPSVLALNIQR'  # value of <PeptideSequence>
-    assert results[1].modification_ids == []
+    assert results[1].modification_accessions == []
     assert results[1].modification_positions == []
     # location of <Modification> with cross-link acceptor/receiver cvParam
     assert results[1].link_site1 == 1
@@ -86,71 +86,134 @@ def compare_modified_peptide(results):
 
 
 def compare_modification(results):
-    assert len(results) == 8
+    assert len(results) == 14
 
     assert results[0].id == 0  # id from incrementing count
-    assert results[0].mod_name == 'Oxidation'  # name from <SearchModification> cvParam
-    assert results[0].mass == 15.99491  # massDelta from <SearchModification>
-    assert results[0].residues == 'M'  # residues from <SearchModification>
+    assert results[0].mod_name == '(158.00)'  # name from <SearchModification> cvParam / mod mass in brackets if unknown
+    assert results[0].mass == 158.00377  # massDelta from <SearchModification>
+    assert results[0].residues == 'STYK'  # residues from <SearchModification>
     assert results[0].specificity_rules == []  # parsed from child <SpecificityRules>
     assert not results[0].fixed_mod  # fixedMod from <SearchModification>
-    assert results[0].accession == 'UNIMOD:35'  # accession from <SearchModification> cvParam
+    assert results[0].accession == 'MS:1001460'  # accession from <SearchModification> cvParam
+    assert results[0].crosslinker_id == '0.0'  # value from cl donor / acceptor cv term (is a string)
 
     assert results[1].id == 1  # id from incrementing count
-    assert results[1].mod_name == '(175.03)'  # unknown modification -> name from mass
-    assert results[1].mass == 175.03032  # massDelta from <SearchModification>
-    assert results[1].residues == 'K'  # residues from <SearchModification>
+    assert results[1].mod_name == 'cross-link acceptor'  # name from <SearchModification> cvParam / mod mass in brackets if unknown
+    assert results[1].mass == 0  # massDelta from <SearchModification>
+    assert results[1].residues == 'STYK'  # residues from <SearchModification>
     assert results[1].specificity_rules == []  # parsed from child <SpecificityRules>
-    assert not results[1].fixed_mod  # fixedMod from <SearchModification>
-    assert results[1].accession == 'MS:1001460'  # accession from <SearchModification> cvParam
+    assert results[1].fixed_mod  # fixedMod from <SearchModification> (is mistake in xml file)
+    assert results[1].accession == 'MS:1002510'  # accession from <SearchModification> cvParam
+    assert results[1].crosslinker_id == '0.0'  # value from cl donor  / acceptor cv term (is a string)
 
     assert results[2].id == 2  # id from incrementing count
-    assert results[2].mod_name == '(176.01)'  # unknown modification -> name from mass
-    assert results[2].mass == 176.0143295  # massDelta from <SearchModification>
-    assert results[2].residues == 'K'  # residues from <SearchModification>
-    assert results[2].specificity_rules == []  # parsed from child <SpecificityRules>
-    assert not results[2].fixed_mod  # fixedMod from <SearchModification>
+    assert results[2].mod_name == '(158.00)'  # name from <SearchModification> cvParam / mod mass in brackets if unknown
+    assert results[2].mass == 158.00377  # massDelta from <SearchModification>
+    assert results[2].residues == '.'  # residues from <SearchModification>
+    assert results[2].specificity_rules == ["MS:1002057"]  # parsed from child <SpecificityRules>
+    assert results[2].fixed_mod  # fixedMod from <SearchModification>
     assert results[2].accession == 'MS:1001460'  # accession from <SearchModification> cvParam
+    assert results[2].crosslinker_id == '0.0'  # value from cl donor  / acceptor cv term (is a string)
 
     assert results[3].id == 3  # id from incrementing count
-    assert results[3].mod_name == '(175.03)'  # unknown modification -> name from mass
-    assert results[3].mass == 175.03032  # massDelta from <SearchModification>
+    assert results[3].mod_name == 'cross-link acceptor'  # name from <SearchModification> cvParam / mod mass in brackets if unknown
+    assert results[3].mass == 158.00377  # massDelta from <SearchModification> (mistake in xml?)
     assert results[3].residues == '.'  # residues from <SearchModification>
-    assert results[3].specificity_rules == ['MS:1002057']  # parsed from child <SpecificityRules>
-    assert not results[3].fixed_mod  # fixedMod from <SearchModification>
-    assert results[3].accession == 'MS:1001460'  # accession from <SearchModification> cvParam
+    assert results[3].specificity_rules == ["MS:1002057"]  # parsed from child <SpecificityRules>
+    assert results[3].fixed_mod  # fixedMod from <SearchModification>
+    assert results[3].accession == 'MS:1002510'  # accession from <SearchModification> cvParam
+    assert results[3].crosslinker_id == '0.0'  # value from cl donor  / acceptor cv term (is a string)
 
     assert results[4].id == 4  # id from incrementing count
-    assert results[4].mod_name == '(176.01)'  # unknown modification -> name from mass
-    assert results[4].mass == 176.0143295  # massDelta from <SearchModification>
+    assert results[4].mod_name == '(0.00)'  # name from <SearchModification> cvParam / mod mass in brackets if unknown
+    assert results[4].mass == 0  # massDelta from <SearchModification>
     assert results[4].residues == '.'  # residues from <SearchModification>
-    assert results[4].specificity_rules == ['MS:1002057']  # parsed from child <SpecificityRules>
+    assert results[4].specificity_rules == []  # parsed from child <SpecificityRules>
     assert not results[4].fixed_mod  # fixedMod from <SearchModification>
     assert results[4].accession == 'MS:1001460'  # accession from <SearchModification> cvParam
+    assert results[4].crosslinker_id == '1.0'  # value from cl donor  / acceptor cv term (is a string)
 
     assert results[5].id == 5  # id from incrementing count
-    assert results[5].mod_name == 'Deamidated'  # name from <SearchModification> cvParam
-    assert results[5].mass == 0.984016  # massDelta from <SearchModification>
-    assert results[5].residues == 'NQ'  # residues from <SearchModification>
+    assert results[5].mod_name == 'cross-link acceptor'  # name from <SearchModification> cvParam / mod mass in brackets if unknown
+    assert results[5].mass == 0  # massDelta from <SearchModification>
+    assert results[5].residues == '.'  # residues from <SearchModification>
     assert results[5].specificity_rules == []  # parsed from child <SpecificityRules>
-    assert not results[5].fixed_mod  # fixedMod from <SearchModification>
-    assert results[5].accession == 'UNIMOD:7'  # accession from <SearchModification> cvParam
+    assert results[5].fixed_mod  # fixedMod from <SearchModification>
+    assert results[5].accession == 'MS:1002510'  # accession from <SearchModification> cvParam
+    assert results[5].crosslinker_id == '1.0'  # value from cl donor  / acceptor cv term (is a string)
+
 
     assert results[6].id == 6  # id from incrementing count
-    assert results[6].mod_name == 'Methyl'  # name from <SearchModification> cvParam
-    assert results[6].mass == 14.01565  # massDelta from <SearchModification>
-    assert results[6].residues == 'DE'  # residues from <SearchModification>
+    assert results[6].mod_name == 'Oxidation'  # name from <SearchModification> cvParam
+    assert results[6].mass == 15.99491  # massDelta from <SearchModification>
+    assert results[6].residues == 'M'  # residues from <SearchModification>
     assert results[6].specificity_rules == []  # parsed from child <SpecificityRules>
     assert not results[6].fixed_mod  # fixedMod from <SearchModification>
-    assert results[6].accession == 'UNIMOD:34'  # accession from <SearchModification> cvParam
+    assert results[6].accession == 'UNIMOD:35'  # accession from <SearchModification> cvParam
+    assert results[6].crosslinker_id is None
 
     assert results[7].id == 7  # id from incrementing count
-    assert results[7].mod_name == 'Carbamidomethyl'  # name from <SearchModification> cvParam
-    assert results[7].mass == 57.021465  # massDelta from <SearchModification>
-    assert results[7].residues == 'C'  # residues from <SearchModification>
+    assert results[7].mod_name == '(175.03)'  # unknown modification -> name from mass
+    assert results[7].mass == 175.03032  # massDelta from <SearchModification>
+    assert results[7].residues == 'K'  # residues from <SearchModification>
     assert results[7].specificity_rules == []  # parsed from child <SpecificityRules>
-    assert results[7].fixed_mod  # fixedMod from <SearchModification>
-    assert results[7].accession == 'UNIMOD:4'  # accession from <SearchModification> cvParam
+    assert not results[7].fixed_mod  # fixedMod from <SearchModification>
+    assert results[7].accession == 'MS:1001460'  # accession from <SearchModification> cvParam
+    assert results[7].crosslinker_id is None
+
+    assert results[8].id == 8  # id from incrementing count
+    assert results[8].mod_name == '(176.01)'  # unknown modification -> name from mass
+    assert results[8].mass == 176.0143295  # massDelta from <SearchModification>
+    assert results[8].residues == 'K'  # residues from <SearchModification>
+    assert results[8].specificity_rules == []  # parsed from child <SpecificityRules>
+    assert not results[8].fixed_mod  # fixedMod from <SearchModification>
+    assert results[8].accession == 'MS:1001460'  # accession from <SearchModification> cvParam
+    assert results[8].crosslinker_id is None
+
+    assert results[9].id == 9  # id from incrementing count
+    assert results[9].mod_name == '(175.03)'  # unknown modification -> name from mass
+    assert results[9].mass == 175.03032  # massDelta from <SearchModification>
+    assert results[9].residues == '.'  # residues from <SearchModification>
+    assert results[9].specificity_rules == ['MS:1002057']  # parsed from child <SpecificityRules>
+    assert not results[9].fixed_mod  # fixedMod from <SearchModification>
+    assert results[9].accession == 'MS:1001460'  # accession from <SearchModification> cvParam
+    assert results[9].crosslinker_id is None
+
+    assert results[10].id == 10  # id from incrementing count
+    assert results[10].mod_name == '(176.01)'  # unknown modification -> name from mass
+    assert results[10].mass == 176.0143295  # massDelta from <SearchModification>
+    assert results[10].residues == '.'  # residues from <SearchModification>
+    assert results[10].specificity_rules == ['MS:1002057']  # parsed from child <SpecificityRules>
+    assert not results[10].fixed_mod  # fixedMod from <SearchModification>
+    assert results[10].accession == 'MS:1001460'  # accession from <SearchModification> cvParam
+    assert results[10].crosslinker_id is None
+
+    assert results[11].id == 11  # id from incrementing count
+    assert results[11].mod_name == 'Deamidated'  # name from <SearchModification> cvParam
+    assert results[11].mass == 0.984016  # massDelta from <SearchModification>
+    assert results[11].residues == 'NQ'  # residues from <SearchModification>
+    assert results[11].specificity_rules == []  # parsed from child <SpecificityRules>
+    assert not results[11].fixed_mod  # fixedMod from <SearchModification>
+    assert results[11].accession == 'UNIMOD:7'  # accession from <SearchModification> cvParam
+    assert results[11].crosslinker_id is None
+
+    assert results[12].id == 12  # id from incrementing count
+    assert results[12].mod_name == 'Methyl'  # name from <SearchModification> cvParam
+    assert results[12].mass == 14.01565  # massDelta from <SearchModification>
+    assert results[12].residues == 'DE'  # residues from <SearchModification>
+    assert results[12].specificity_rules == []  # parsed from child <SpecificityRules>
+    assert not results[12].fixed_mod  # fixedMod from <SearchModification>
+    assert results[12].accession == 'UNIMOD:34'  # accession from <SearchModification> cvParam
+    assert results[12].crosslinker_id is None
+
+    assert results[13].id == 13  # id from incrementing count
+    assert results[13].mod_name == 'Carbamidomethyl'  # name from <SearchModification> cvParam
+    assert results[13].mass == 57.021465  # massDelta from <SearchModification>
+    assert results[13].residues == 'C'  # residues from <SearchModification>
+    assert results[13].specificity_rules == []  # parsed from child <SpecificityRules>
+    assert results[13].fixed_mod  # fixedMod from <SearchModification>
+    assert results[13].accession == 'UNIMOD:4'  # accession from <SearchModification> cvParam
+    assert results[13].crosslinker_id is None
 
 
 def compare_enzyme(results):
@@ -235,8 +298,8 @@ def test_psql_mgf_mzid_parser(tmpdir, use_database, engine):
         rs = conn.execute(stmt)
         assert len(rs.fetchall()) == 0
 
-        # Modification - parsed from <SearchModification>s
-        stmt = Table("Modification", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
+        # SearchModification - parsed from <SearchModification>s
+        stmt = Table("SearchModification", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
                      quote=False).select()
         rs = conn.execute(stmt)
         compare_modification(rs.fetchall())
@@ -364,7 +427,7 @@ def test_psql_mzml_mzid_parser(tmpdir, use_database, engine):
         assert len(rs.fetchall()) == 0
 
         # Modification - parsed from <SearchModification>s
-        stmt = Table("Modification", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
+        stmt = Table("SearchModification", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
                      quote=False).select()
         rs = conn.execute(stmt)
         compare_modification(rs.fetchall())
@@ -517,7 +580,7 @@ def test_sqlite_mgf_xispec_mzid_parser(tmpdir):
         assert len(rs.fetchall()) == 0
 
         # Modification - parsed from <SearchModification>s
-        stmt = Table("Modification", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
+        stmt = Table("SearchModification", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
                      quote=False).select()
         rs = conn.execute(stmt)
         compare_modification(rs.fetchall())
@@ -591,7 +654,7 @@ def test_sqlite_mzml_xispec_mzid_parser(tmpdir):
         assert len(rs.fetchall()) == 0
 
         # Modification - parsed from <SearchModification>s
-        stmt = Table("Modification", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
+        stmt = Table("SearchModification", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
                      quote=False).select()
         rs = conn.execute(stmt)
         compare_modification(rs.fetchall())
