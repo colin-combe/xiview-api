@@ -628,14 +628,14 @@ class MzIdParser:
                 # get suitable id # ToDo: use accession instead of cvParam string?
                 if 'cross-link spectrum identification item' in spec_id_item.keys():
                     self.contains_crosslinks = True
-                    cross_link_id = spec_id_item['cross-link spectrum identification item']
+                    crosslink_id = spec_id_item['cross-link spectrum identification item']
                 else:  # assuming linear
-                    cross_link_id = None
+                    crosslink_id = None
 
                 # check if seen it before
-                if cross_link_id in spectrum_ident_dict.keys():
+                if crosslink_id in spectrum_ident_dict.keys():
                     # do crosslink specific stuff
-                    ident_data = spectrum_ident_dict.get(cross_link_id)
+                    ident_data = spectrum_ident_dict.get(crosslink_id)
                     ident_data['pep2_id'] = spec_id_item['peptide_ref']
                 else:
                     # do stuff common to linears and crosslinks
@@ -675,8 +675,8 @@ class MzIdParser:
                         'calc_mz': calculated_mass_to_charge,
                     }
 
-                    if cross_link_id:
-                        spectrum_ident_dict[cross_link_id] = ident_data
+                    if crosslink_id:
+                        spectrum_ident_dict[crosslink_id] = ident_data
 
             spectrum_identifications += spectrum_ident_dict.values()
             spec_count += 1
