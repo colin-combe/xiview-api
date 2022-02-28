@@ -1,6 +1,5 @@
 from .AbstractCsvParser import AbstractCsvParser  # is this needed when they're in same dir? - cc
 from .AbstractCsvParser import CsvParseException
-
 from time import time
 import re
 import json
@@ -38,7 +37,7 @@ class FullCsvParser(AbstractCsvParser):
 
     def main_loop(self):
         main_loop_start_time = time()
-        self.logger.info('main loop - start')
+        self.logger.info('main loop FullCsvParser - start')
 
         peptide_evidences = []
         spectrum_identifications = []
@@ -53,7 +52,7 @@ class FullCsvParser(AbstractCsvParser):
         # pep sequence including cross-link site and cross-link mass is unique identifier
         seen_peptides = []
 
-        cross_linker_pair_count = 0
+        crosslinker_pair_count = 0
 
         # # ID VALIDITY CHECK - unique ids
         # if len(self.csv_reader['id'].unique()) < len(self.csv_reader):
@@ -101,10 +100,10 @@ class FullCsvParser(AbstractCsvParser):
             pepseq1 = id_item['pepseq1']
             # pepSeq - 2
             if id_item['pepseq2'] == '':
-                cross_linked_id_item = False
+                crosslinked_id_item = False
             else:
                 self.contains_crosslinks = True
-                cross_linked_id_item = True
+                crosslinked_id_item = True
                 invalid_char_match = re.match(invalid_char_pattern_pepseq, id_item['pepseq2'])
                 if invalid_char_match:
                     invalid_chars = "; ".join(invalid_char_match.groups())
@@ -131,7 +130,7 @@ class FullCsvParser(AbstractCsvParser):
 
             # CrossLinkerModMass
             try:
-                cross_link_mod_mass = float(id_item['crosslinkermodmass'])
+                crosslink_mod_mass = float(id_item['crosslinkermodmass'])
             except ValueError:
                 raise CsvParseException(
                     'Invalid CrossLinkerModMass: %s for row: %s' % (id_item['crosslinkermodmass'], row_number))
@@ -320,11 +319,10 @@ class FullCsvParser(AbstractCsvParser):
             else:
                 spectrum_id = seen_spectra.index(unique_spec_identifier)
 
-            #
             # PEPTIDES
-            if cross_linked_id_item:
-                crosslinker_pair_id = cross_linker_pair_count
-                cross_linker_pair_count += 1
+            if crosslinked_id_item:
+                crosslinker_pair_id = crosslinker_pair_count
+                crosslinker_pair_count += 1
             else:
                 crosslinker_pair_id = -1  # linear ToDo: -1 or None?
 
@@ -343,7 +341,7 @@ class FullCsvParser(AbstractCsvParser):
                     'modification_positions': [],  # mod_pos,
                     'modification_masses': [],  # mod_masses,
                     'link_site1': linkpos1,
-                    'crosslinker_modmass': cross_link_mod_mass,
+                    'crosslinker_modmass': crosslink_mod_mass,
                     'crosslinker_pair_id': str(crosslinker_pair_id),
                 }
 
@@ -351,7 +349,7 @@ class FullCsvParser(AbstractCsvParser):
             else:
                 pep1_id = seen_peptides.index(unique_pep_identifier1)
 
-            if cross_linked_id_item:
+            if crosslinked_id_item:
                 # peptide - 2
                 unique_pep_identifier2 = "%s-%s" % (pepseq2, crosslinker_pair_id)
 
@@ -380,7 +378,6 @@ class FullCsvParser(AbstractCsvParser):
             # PEPTIDE EVIDENCES
             # peptide evidence - 1
             for i in range(len(protein_list1)):
-
                 pep_evidence1 = {
                     'upload_id': self.writer.upload_id,
                     'peptide_ref': pep1_id,
@@ -391,7 +388,7 @@ class FullCsvParser(AbstractCsvParser):
 
                 peptide_evidences.append(pep_evidence1)
 
-            if cross_linked_id_item and pep1_id != pep2_id:
+            if crosslinked_id_item and pep1_id != pep2_id:
                 # peptide evidence - 2
 
                 if pep2_id is None:
@@ -413,18 +410,18 @@ class FullCsvParser(AbstractCsvParser):
             #
             scores = json.dumps({'score': score})
 
-            try:
-                meta1 = id_item[self.meta_columns[0]]
-            except IndexError:
-                meta1 = ""
-            try:
-                meta2 = id_item[self.meta_columns[1]]
-            except IndexError:
-                meta2 = ""
-            try:
-                meta3 = id_item[self.meta_columns[2]]
-            except IndexError:
-                meta3 = ""
+            # try:
+            #     meta1 = id_item[self.meta_columns[0]]
+            # except IndexError:
+            #     meta1 = ""
+            # try:
+            #     meta2 = id_item[self.meta_columns[1]]
+            # except IndexError:
+            #     meta2 = ""
+            # try:
+            #     meta3 = id_item[self.meta_columns[2]]
+            # except IndexError:
+            #     meta3 = ""
 
             spectrum_identification = {
                 'id': identification_id,
@@ -439,9 +436,9 @@ class FullCsvParser(AbstractCsvParser):
                 'scores': scores,
                 'exp_mz': exp_mz,
                 'calc_mz': calc_mz,
-                 # meta1,
-                 # meta2,
-                 # meta3
+                # meta1,
+                # meta2,
+                # meta3
             }
 
             spectrum_identifications.append(spectrum_identification)
@@ -504,7 +501,8 @@ class FullCsvParser(AbstractCsvParser):
             self.writer.write_data("DBSequence", db_sequences)
             self.writer.write_data("ModifiedPeptide", peptides)
             self.writer.write_data("PeptideEvidence", peptide_evidences)
-            self.writer.write_data("Spectrum", spectra)
+            if self.peak_list_dir:
+                self.writer.write_data("Spectrum", spectra)
             self.writer.write_data("SpectrumIdentification", spectrum_identifications)
         except Exception as e:
             raise e
