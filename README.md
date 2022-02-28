@@ -4,9 +4,9 @@ Back-end parser for xiSPEC mass spectrometry visualization tool.
 
 
 ### Requirements:
-python2.7
+python3.10
 
-virtualenv
+pipenv
 
 sqlite3
 
