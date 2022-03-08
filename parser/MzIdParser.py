@@ -670,7 +670,7 @@ class MzIdParser:
                         'charge_state': int(spec_id_item['chargeState']),
                         'pass_threshold': spec_id_item['passThreshold'],
                         'rank': int(rank),
-                        'scores': json.dumps(scores),
+                        'scores': scores,
                         'exp_mz': spec_id_item['experimentalMassToCharge'],
                         'calc_mz': calculated_mass_to_charge,
                     }
