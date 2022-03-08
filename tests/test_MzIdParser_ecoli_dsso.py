@@ -346,7 +346,7 @@ def test_psql_mgf_mzid_parser(tmpdir, use_database, engine):
         assert results[0].pass_threshold  # passThreshold from <SpectrumIdentificationItem>
         assert results[0].rank == 1  # rank from <SpectrumIdentificationItem>
         # scores parsed from score related cvParams in <SpectrumIdentificationItem>
-        assert results[0].scores == '{"xi:score": 33.814201}'
+        assert results[0].scores == {'xi:score': 33.814201}
         # experimentalMassToCharge from <SpectrumIdentificationItem>
         assert results[0].exp_mz == 945.677359
         # calculatedMassToCharge from <SpectrumIdentificationItem>
@@ -494,7 +494,7 @@ def test_psql_mzml_mzid_parser(tmpdir, use_database, engine):
         assert results[0].pass_threshold  # passThreshold from <SpectrumIdentificationItem>
         assert results[0].rank == 1  # rank from <SpectrumIdentificationItem>
         # scores parsed from score related cvParams in <SpectrumIdentificationItem>
-        assert results[0].scores == '{"xi:score": 33.814201}'
+        assert results[0].scores == {"xi:score": 33.814201}
         # experimentalMassToCharge from <SpectrumIdentificationItem>
         assert results[0].exp_mz == 945.677359
         # calculatedMassToCharge from <SpectrumIdentificationItem>
