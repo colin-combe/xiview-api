@@ -1,6 +1,5 @@
 import os
 from parser.writer import Table
-from parser.database import PostgreSQL, SQLite
 import logging
 from parser.peaklistReader.PeakListWrapper import PeakListWrapper
 from .db_pytest_fixtures import *
