@@ -220,14 +220,6 @@ class LinksOnlyCsvParser(AbstractCsvParser):
                         'pep_start': int(float(abs_pos_list2[i])),
                         'is_decoy': is_decoy_list2[i],
                     }
-                    # pep_evidence2 = [
-                    #     pep2_id,  # peptide_ref
-                    #     protein_list2[i],  # dbsequence_ref - ToDo: might change to numerical id
-                    #     accession,  # protein_accession
-                    #     int(float(abs_pos_list2[i])),  # was pep_start, now absolute position of link
-                    #     is_decoy_list2[i],  # is_decoy
-                    #     self.upload_id  # upload_id
-                    # ]
 
                     peptide_evidences.append(pep_evidence2)
 
