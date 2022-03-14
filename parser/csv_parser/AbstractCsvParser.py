@@ -60,8 +60,6 @@ class AbstractCsvParser:
         if peak_list_dir and not peak_list_dir.endswith('/'):
             self.peak_list_dir += '/'
 
-        # self.user_id = user_id
-        #
         self.writer = writer
         self.logger = logger
 
