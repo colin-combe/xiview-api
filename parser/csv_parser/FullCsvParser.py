@@ -1,5 +1,4 @@
-from .AbstractCsvParser import AbstractCsvParser  # is this needed when they're in same dir? - cc
-from .AbstractCsvParser import CsvParseException
+from .AbstractCsvParser import AbstractCsvParser, CsvParseException
 from time import time
 import re
 import json
