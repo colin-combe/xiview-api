@@ -80,14 +80,6 @@ class AbstractCsvParser:
         self.write_new_upload()
 
         # connect to DB
-        # try:
-        #     self.con = db.connect(db_name)
-        #     self.cur = self.con.cursor()
-        #
-        # except db.DBException as e:
-        #     self.logger.error(e)
-        #     print(e)
-        #     sys.exit(1)
 
         self.logger.info('reading csv - start')
         self.start_time = time()
