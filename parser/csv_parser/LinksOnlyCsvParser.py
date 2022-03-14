@@ -158,14 +158,6 @@ class LinksOnlyCsvParser(AbstractCsvParser):
                         # 'crosslinker_modmass': crosslink_mod_mass,
                         'crosslinker_pair_id': str(crosslinker_pair_id),
                     }
-                    # peptide1 = [
-                    #     pep1_id,  # id,
-                    #     "",  # seq_mods,
-                    #     1,  # link_site,
-                    #     None,  # crosslinker_modmass, declare peptide 1 as cl donor: full mass
-                    #     self.upload_id,  # upload_id,
-                    #     crosslinker_pair_id  # crosslinker_pair_id
-                    # ]
                     peptides.append(peptide1)
                 else:
                     pep1_id = seen_peptides.index(unique_pep_identifier1)
