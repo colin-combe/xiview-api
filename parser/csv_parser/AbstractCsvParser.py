@@ -41,7 +41,7 @@ class AbstractCsvParser:
         'calcmz': -1
     }
 
-    def __init__(self, csv_path, temp_dir, peak_list_dir, db, logger, db_name='', user_id=0):
+    def __init__(self, csv_path, temp_dir, peak_list_dir, writer, logger):
         """
 
         :param csv_path: path to csv file
@@ -51,7 +51,6 @@ class AbstractCsvParser:
         """
 
         self.csv_path = csv_path
-        self.upload_id = 0
         self.peak_list_readers = {}  # peak list readers indexed by spectraData_ref
 
         self.temp_dir = temp_dir
@@ -61,9 +60,7 @@ class AbstractCsvParser:
         if peak_list_dir and not peak_list_dir.endswith('/'):
             self.peak_list_dir += '/'
 
-        self.user_id = user_id
-
-        self.db = db
+        self.writer = writer
         self.logger = logger
 
         # self.spectra_data_protocol_map = {}
@@ -78,16 +75,9 @@ class AbstractCsvParser:
         self.random_id = 0
 
         self.warnings = []
+        self.write_new_upload()
 
         # connect to DB
-        try:
-            self.con = db.connect(db_name)
-            self.cur = self.con.cursor()
-
-        except db.DBException as e:
-            self.logger.error(e)
-            print(e)
-            sys.exit(1)
 
         self.logger.info('reading csv - start')
         self.start_time = time()
@@ -213,8 +203,9 @@ class AbstractCsvParser:
         meta_col_names = [col.replace("meta_", "") for col in self.meta_columns]
         while len(meta_col_names) < 3:
             meta_col_names.append(-1)
-        meta_data = [self.upload_id] + meta_col_names + [self.contains_crosslinks]
-        self.db.write_meta_data(meta_data, self.cur, self.con)
+        meta_data = [self.writer.upload_id] + meta_col_names + [self.contains_crosslinks]
+        # ToDo: need to create MetaData
+        # self.writer.write_data('MetaData', meta_data)
 
         self.logger.info('all done! Total time: ' + str(round(time() - start_time, 2)) + " sec")
 
@@ -246,12 +237,23 @@ class AbstractCsvParser:
 
     def upload_info(self):
         self.logger.info('new csv upload')
-        # ident_file_size = os.path.getsize(self.csv_path)
-        # peak_list_file_names = json.dumps(self.get_peak_list_file_names(), cls=NumpyEncoder)
-        self.upload_id = self.db.new_upload([self.user_id, os.path.basename(self.csv_path), "-"],
-                                            self.cur, self.con,
-                                            )
-        self.random_id = self.db.get_random_id(self.upload_id, self.cur, self.con)
+        # # ident_file_size = os.path.getsize(self.csv_path)
+        # # peak_list_file_names = json.dumps(self.get_peak_list_file_names(), cls=NumpyEncoder)
+        # self.upload_id = self.db.new_upload([self.user_id, os.path.basename(self.csv_path), "-"],
+        #                                     self.cur, self.con,
+        #                                     )
+        # self.random_id = self.db.get_random_id(self.upload_id, self.cur, self.con)
+
+        #self.writer.write_mzid_info(spectra_formats, provider, audits, samples, bib_refs)
+
+    def write_new_upload(self):
+        """Write new upload."""
+        upload_data = {
+                'id': self.writer.upload_id,
+                'user_id': self.writer.user_id,
+                'identification_file_name': os.path.basename(self.csv_path),
+        }
+        self.writer.write_data('Upload', upload_data)
 
 # class NumpyEncoder(json.JSONEncoder):
 #     def default(self, obj):

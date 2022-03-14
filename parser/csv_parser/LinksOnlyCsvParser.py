@@ -35,7 +35,7 @@ class LinksOnlyCsvParser(AbstractCsvParser):
         # pep sequence including cross-link site and cross-link mass is unique identifier
         seen_peptides = []
 
-        cross_linker_pair_count = 0
+        crosslinker_pair_count = 0
 
         for identification_id, id_item in self.csv_reader.iterrows():  # identification_id, id_item = id_df.iterrows().next()
 
@@ -46,10 +46,10 @@ class LinksOnlyCsvParser(AbstractCsvParser):
             # VALIDITY CHECKS & TYPE CONVERSIONS - ToDo: move type checks/conversions to col level in parse()?
             #
             if id_item['protein2'] == '':
-                cross_linked_id_item = False
+                crosslinked_id_item = False
             else:
                 self.contains_crosslinks = True
-                cross_linked_id_item = True
+                crosslinked_id_item = True
 
             # score
             try:
@@ -130,12 +130,11 @@ class LinksOnlyCsvParser(AbstractCsvParser):
             #
             # -----Start actual parsing------
             #
-
-            if cross_linked_id_item:
-                cross_linker_pair_id = cross_linker_pair_count
-                cross_linker_pair_count += 1
+            if crosslinked_id_item:
+                crosslinker_pair_id = crosslinker_pair_count
+                crosslinker_pair_count += 1
             else:
-                cross_linker_pair_id = -1  # linear ToDo: -1 or None?
+                crosslinker_pair_id = -1  # linear ToDo: -1 or None?
 
             #
             # PEPTIDE EVIDENCES
@@ -143,39 +142,44 @@ class LinksOnlyCsvParser(AbstractCsvParser):
             for i in range(len(protein_list1)):
 
                 # peptide - 1
-                unique_pep_identifier1 = "%s-%s" % (1, cross_linker_pair_id)
+                unique_pep_identifier1 = "%s-%s" % (1, crosslinker_pair_id)
 
                 if unique_pep_identifier1 not in seen_peptides:
                     seen_peptides.append(unique_pep_identifier1)
                     pep1_id = len(seen_peptides) - 1
-
-                    peptide1 = [
-                        pep1_id,  # id,
-                        "",  # seq_mods,
-                        1,  # link_site,
-                        None,  # crosslinker_modmass, declare peptide 1 as cl donor: full mass
-                        self.upload_id,  # upload_id,
-                        cross_linker_pair_id  # crosslinker_pair_id
-                    ]
+                    peptide1 = {
+                        'id': pep1_id,
+                        'upload_id': self.writer.upload_id,
+                        'base_sequence': "",
+                        'modification_accessions': [],  # mod_accessions,
+                        'modification_positions': [],  # mod_pos,
+                        'modification_masses': [],  # mod_masses,
+                        'link_site1': 1,
+                        # 'crosslinker_modmass': crosslink_mod_mass,
+                        'crosslinker_pair_id': str(crosslinker_pair_id),
+                    }
                     peptides.append(peptide1)
                 else:
                     pep1_id = seen_peptides.index(unique_pep_identifier1)
 
-                if cross_linked_id_item:
+                if crosslinked_id_item:
                     # peptide - 2
-                    unique_pep_identifier2 = "%s-%s" % (2, cross_linker_pair_id)
+                    unique_pep_identifier2 = "%s-%s" % (2, crosslinker_pair_id)
 
                     if unique_pep_identifier2 not in seen_peptides:
                         seen_peptides.append(unique_pep_identifier2)
                         pep2_id = len(seen_peptides) - 1
-                        peptide2 = [
-                            pep2_id,  # id,
-                            "",  # seq_mods,
-                            1,  # link_site,
-                            None,  # crosslinker_modmass, declare peptide 2 as cl acceptor: 0 mass
-                            self.upload_id,  # upload_id,
-                            cross_linker_pair_id  # crosslinker_pair_id
-                        ]
+                        peptide2 = {
+                            'id': pep2_id,
+                            'upload_id': self.writer.upload_id,
+                            'base_sequence': "",
+                            'modification_accessions': [],  # mod_accessions,
+                            'modification_positions': [],  # mod_pos,
+                            'modification_masses': [],  # mod_masses,
+                            'link_site1': 1,
+                            'crosslinker_modmass': 0,
+                            'crosslinker_pair_id': str(crosslinker_pair_id),
+                        }
                         peptides.append(peptide2)
                     else:
                         pep2_id = seen_peptides.index(unique_pep_identifier2)
@@ -186,19 +190,17 @@ class LinksOnlyCsvParser(AbstractCsvParser):
                 accession = protein_list1[i]
                 if m:
                     accession = m.groups()[0]
-
-                pep_evidence1 = [
-                    pep1_id,                # peptide_ref
-                    protein_list1[i],       # dbsequence_ref - ToDo: might change to numerical id
-                    accession,              # protein_accession
-                    int(float(abs_pos_list1[i])),       # was pep start, now absolute position of link
-                    is_decoy_list1[i],      # is_decoy
-                    self.upload_id          # upload_id
-                ]
+                pep_evidence1 = {
+                    'upload_id': self.writer.upload_id,
+                    'peptide_ref': pep1_id,
+                    'dbsequence_ref': protein_list1[i],
+                    'pep_start': int(float(abs_pos_list1[i])),
+                    'is_decoy': is_decoy_list1[i],
+                }
 
                 peptide_evidences.append(pep_evidence1)
 
-            if cross_linked_id_item and pep1_id != pep2_id:
+            if crosslinked_id_item and pep1_id != pep2_id:
                 # peptide evidence - 2
 
                 if pep2_id is None:
@@ -211,71 +213,106 @@ class LinksOnlyCsvParser(AbstractCsvParser):
                     if m:
                         accession = m.groups()[0]
 
-                    pep_evidence2 = [
-                        pep2_id,                # peptide_ref
-                        protein_list2[i],       # dbsequence_ref - ToDo: might change to numerical id
-                        accession,              # protein_accession
-                        int(float(abs_pos_list2[i])),       # was pep_start, now absolute position of link
-                        is_decoy_list2[i],      # is_decoy
-                        self.upload_id          # upload_id
-                    ]
+                    pep_evidence2 = {
+                        'upload_id': self.writer.upload_id,
+                        'peptide_ref': pep2_id,
+                        'dbsequence_ref': protein_list2[i],
+                        'pep_start': int(float(abs_pos_list2[i])),
+                        'is_decoy': is_decoy_list2[i],
+                    }
 
                     peptide_evidences.append(pep_evidence2)
 
             #
             # SPECTRUM IDENTIFICATIONS
-            # ToDo: experimental_mass_to_charge, calculated_mass_to_charge
+            #
             scores = json.dumps({'score': score})
 
-            try:
-                meta1 = id_item[self.meta_columns[0]]
-            except IndexError:
-                meta1 = ""
-            try:
-                meta2 = id_item[self.meta_columns[1]]
-            except IndexError:
-                meta2 = ""
-            try:
-                meta3 = id_item[self.meta_columns[2]]
-            except IndexError:
-                meta3 = ""
+            # try:
+            #     meta1 = id_item[self.meta_columns[0]]
+            # except IndexError:
+            #     meta1 = ""
+            # try:
+            #     meta2 = id_item[self.meta_columns[1]]
+            # except IndexError:
+            #     meta2 = ""
+            # try:
+            #     meta3 = id_item[self.meta_columns[2]]
+            # except IndexError:
+            #     meta3 = ""
 
-            spectrum_identification = [
-                identification_id,          # 'id',
-                self.upload_id,             # 'upload_id',
-                None,                # 'spectrum_id',
-                pep1_id,                    # 'pep1_id',
-                pep2_id,                    # 'pep2_id',
-                None,                     # 'charge_state',
-                1,                       # 'rank',
-                True,                   # 'pass_threshold',
-                None,                  # 'ions',
-                scores,                     # 'scores',
-                None,                     # 'experimental_mass_to_charge',
-                None,                    # 'calculated_mass_to_charge'
-                meta1,
-                meta2,
-                meta3
-            ]
+            spectrum_identification = {
+                'id': identification_id,
+                'upload_id': self.writer.upload_id,
+                # 'spectrum_id': spectrum_id,
+                # 'spectra_data_ref': peak_list_file_name,
+                'pep1_id': pep1_id,
+                'pep2_id': pep2_id,
+                # 'charge_state': int(charge),
+                'pass_threshold': True,
+                'rank': 1,
+                'scores': scores,
+                # 'exp_mz': exp_mz,
+                # 'calc_mz': calc_mz,
+                 # meta1,
+                 # meta2,
+                 # meta3
+            }
+
             spectrum_identifications.append(spectrum_identification)
 
         # DBSEQUENCES
         # if self.fasta:
         db_sequences = []
-        for prot in proteins:
+        for prot_id in proteins:
             try:
-                # data = [prot] + self.fasta[prot] + [self.upload_id]
-                temp = self.fasta[prot]
-                data = [prot, temp[0], temp[1], temp[2], temp[3], self.upload_id]  # surely there's a better way
-            except Exception as ke:
+                db_seq = {
+                    'id': prot_id,
+                    'upload_id': self.writer.upload_id,
+                    'accession': self.fasta[prot_id][0],
+                    'name': self.fasta[prot_id][1],
+                    'description': self.fasta[prot_id][2],
+                    'sequence': self.fasta[prot_id][3],
+                }
+            except KeyError:
                 sp_regex = re.compile('(.*)\|(.*)\|(.*)')
-                matches = sp_regex.search(prot)
+                matches = sp_regex.search(prot_id)
                 if matches is not None:
-                    data = [matches.group(), matches.group(2), matches.group(3), "", None, self.upload_id]
+                    db_seq = {
+                        'id': matches.group(),
+                        'upload_id': self.writer.upload_id,
+                        'accession': matches.group(2),
+                        'name': matches.group(3),
+                        'description': "",
+                        'sequence': None,
+                    }
                 else:
-                    data = [prot, prot, prot, "", None, self.upload_id]
+                    db_seq = {
+                        'id': prot_id,
+                        'upload_id': self.writer.upload_id,
+                        'accession': prot_id,
+                        'name': prot_id,
+                        'description': "",
+                        'sequence': None,
+                    }
 
-            db_sequences.append(data)
+            db_sequences.append(db_seq)
+
+
+        # for prot in proteins:
+        #     try:
+        #         # data = [prot] + self.fasta[prot] + [self.upload_id]
+        #         temp = self.fasta[prot]
+        #         data = [prot, temp[0], temp[1], temp[2], temp[3], self.writer.upload_id]  # surely there's a better way
+        #     except Exception as ke:
+        #         sp_regex = re.compile('(.*)\|(.*)\|(.*)')
+        #         matches = sp_regex.search(prot)
+        #         if matches is not None:
+        #             data = [matches.group(), matches.group(2), matches.group(3), "", None, self.writer.upload_id]
+        #         else:
+        #             data = [prot, prot, prot, "", None, self.writer.upload_id]
+        #
+        #     db_sequences.append(data)
 
         # end main loop
         self.logger.info('main loop - done. Time: ' + str(round(time() - main_loop_start_time, 2)) + " sec")
@@ -284,13 +321,10 @@ class LinksOnlyCsvParser(AbstractCsvParser):
         db_wrap_up_start_time = time()
         self.logger.info('write spectra to DB - start')
         try:
-
-            self.db.write_peptide_evidences(peptide_evidences, self.cur, self.con)
-            self.db.write_peptides(peptides, self.cur, self.con)
-            # self.db.write_spectra(spectra, self.cur, self.con)
-            self.db.write_spectrum_identifications(spectrum_identifications, self.cur, self.con)
-            self.db.write_db_sequences(db_sequences, self.cur, self.con)
-            self.con.commit()
+            self.writer.write_data("DBSequence", db_sequences)
+            self.writer.write_data("ModifiedPeptide", peptides)
+            self.writer.write_data("PeptideEvidence", peptide_evidences)
+            self.writer.write_data("SpectrumIdentification", spectrum_identifications)
         except Exception as e:
             raise e
 

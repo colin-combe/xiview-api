@@ -514,6 +514,7 @@ class MzIdParser:
 
             peptide_data = {
                 'id': peptide['id'],
+                'upload_id': self.writer.upload_id,
                 'base_sequence': peptide['PeptideSequence'],
                 'modification_accessions': mod_accessions,
                 'modification_positions': mod_pos,
@@ -521,7 +522,6 @@ class MzIdParser:
                 'link_site1': link_site1,
                 # 'link_site2': link_site2,  # ToDo: loop link support
                 'crosslinker_modmass': crosslinker_modmass,
-                'upload_id': self.writer.upload_id,
                 'crosslinker_pair_id': str(crosslinker_pair_id),
                 'crosslinker_accession': crosslinker_accession
             }
@@ -628,14 +628,14 @@ class MzIdParser:
                 # get suitable id # ToDo: use accession instead of cvParam string?
                 if 'cross-link spectrum identification item' in spec_id_item.keys():
                     self.contains_crosslinks = True
-                    cross_link_id = spec_id_item['cross-link spectrum identification item']
+                    crosslink_id = spec_id_item['cross-link spectrum identification item']
                 else:  # assuming linear
-                    cross_link_id = None
+                    crosslink_id = None
 
                 # check if seen it before
-                if cross_link_id in spectrum_ident_dict.keys():
+                if crosslink_id in spectrum_ident_dict.keys():
                     # do crosslink specific stuff
-                    ident_data = spectrum_ident_dict.get(cross_link_id)
+                    ident_data = spectrum_ident_dict.get(crosslink_id)
                     ident_data['pep2_id'] = spec_id_item['peptide_ref']
                 else:
                     # do stuff common to linears and crosslinks
@@ -670,13 +670,13 @@ class MzIdParser:
                         'charge_state': int(spec_id_item['chargeState']),
                         'pass_threshold': spec_id_item['passThreshold'],
                         'rank': int(rank),
-                        'scores': json.dumps(scores),
+                        'scores': scores,
                         'exp_mz': spec_id_item['experimentalMassToCharge'],
                         'calc_mz': calculated_mass_to_charge,
                     }
 
-                    if cross_link_id:
-                        spectrum_ident_dict[cross_link_id] = ident_data
+                    if crosslink_id:
+                        spectrum_ident_dict[crosslink_id] = ident_data
 
             spectrum_identifications += spectrum_ident_dict.values()
             spec_count += 1
