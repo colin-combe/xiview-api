@@ -41,7 +41,7 @@ class AbstractCsvParser:
         'calcmz': -1
     }
 
-    def __init__(self, csv_path, temp_dir, peak_list_dir, writer, logger):  # db, logger, db_name='', user_id=0):
+    def __init__(self, csv_path, temp_dir, peak_list_dir, writer, logger):
         """
 
         :param csv_path: path to csv file
