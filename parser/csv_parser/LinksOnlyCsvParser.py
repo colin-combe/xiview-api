@@ -259,23 +259,6 @@ class LinksOnlyCsvParser(AbstractCsvParser):
                  # meta3
             }
 
-            # spectrum_identification = [
-            #     identification_id,  # 'id',
-            #     self.upload_id,  # 'upload_id',
-            #     None,  # 'spectrum_id',
-            #     pep1_id,  # 'pep1_id',
-            #     pep2_id,  # 'pep2_id',
-            #     None,  # 'charge_state',
-            #     1,  # 'rank',
-            #     True,  # 'pass_threshold',
-            #     None,  # 'ions',
-            #     scores,  # 'scores',
-            #     None,  # 'experimental_mass_to_charge',
-            #     None,  # 'calculated_mass_to_charge'
-            #     # meta1,
-            #     # meta2,
-            #     # meta3
-            # ]
             spectrum_identifications.append(spectrum_identification)
 
         # DBSEQUENCES
