@@ -511,6 +511,8 @@ class MzIdParser:
                         mod_pos.append(mod_location)
                         mod_accessions.append(mod['name'].accession)
                         mod_masses.append(mod.get('monoisotopicMassDelta', None))
+                        # display warning if only avgMassDelta and monoisotopicMassDelta is missing
+                        # error if peaklists uploaded, warning if not?
 
             peptide_data = {
                 'id': peptide['id'],
