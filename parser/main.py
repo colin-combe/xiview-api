@@ -4,16 +4,17 @@ import os
 import shutil
 import logging
 import ntpath
+import traceback
 from zipfile import BadZipfile
 from time import time
 import re
 import getopt
 
-from parser.database.update_sqlite import db_name
+from parser import FullCsvParser, NoPeakListsCsvParser, xiSPEC_CsvParser, LinksOnlyCsvParser, CsvParseException
+from parser.MzIdParser import MzIdParser
 from parser.writer import Writer
 
-
-dev = True
+dev = False
 use_ftp, use_postgreSQL, user_id = False, False, False
 identifications_file, peakList_file, identifier = False, False, False
 
@@ -27,6 +28,7 @@ except getopt.GetoptError:
 for o, a in opts:
     if o in ("-f", "--ftp"):
         import ftplib
+
         use_ftp = True
 
     if o == "-i":
@@ -41,12 +43,12 @@ for o, a in opts:
     if o == '--postgresql':
         use_postgreSQL = True
 
-    if o == '-u':   # user_id
+    if o == '-u':  # user_id
         user_id = a
 
 if identifications_file is False or identifier is False:
     dev = True
-    print ("dev test mode...")
+    print("dev test mode...")
 
 # if use_postgreSQL:
 #     from parser.database import PostgreSQL as db
@@ -64,16 +66,6 @@ try:
         os.chdir(dname)
     except NameError:
         dname = ''
-
-    # import local files
-    import MzIdParser
-    # import CsvParser
-    from csv_parser.AbstractCsvParser import CsvParseException
-    from csv_parser.xiSPEC_CsvParser import xiSPEC_CsvParser
-    from csv_parser.FullCsvParser import FullCsvParser
-    from csv_parser.NoPeakListsCsvParser import NoPeakListsCsvParser
-    from csv_parser.LinksOnlyCsvParser import LinksOnlyCsvParser
-    from parser.peaklistReader import PeakListWrapper
 
     # logging
     logFile = dname + "/log/%s_%s.log" % (identifier, int(time()))
@@ -94,8 +86,8 @@ try:
     logger = logging.getLogger(__name__)
 
 
-except Exception as e:
-    print (e)
+except Exception as ex:
+    traceback.print_exception(type(ex), ex, ex.__traceback__)
     sys.exit(1)
 
 logger.info('argv:' + " ".join(sys.argv))
@@ -108,7 +100,6 @@ returnJSON = {
     "log": logFile.split('/')[-1]
 }
 
-
 # paths and file names
 try:
     unimodPath = 'obo/unimod.obo'
@@ -117,8 +108,8 @@ try:
         # development test files
         # identifications_file = "/home/col/Downloads/test_HSA_XiVersion1.7.754.RC1.mzid"
         # identifications_file = "/home/col/mzid_tests/SIM-XL_example.mzid"
-        identifications_file = "/home/lars/Xi/xiSPEC_ms_parser/tests/fixtures/ecoli_dsso_mzml.mzid"
-        peakList_file = "/home/lars/Xi/xiSPEC_ms_parser/tests/fixtures/peaklist/peaklist_mzml.zip"
+        # identifications_file = "/home/lars/Xi/xiSPEC_ms_parser/tests/fixtures/ecoli_dsso_mzml.mzid"
+        # peakList_file = "/home/lars/Xi/xiSPEC_ms_parser/tests/fixtures/peaklist/peaklist_mzml.zip"
 
         sqlite_db = 'test.db'
         upload_folder = "/".join(identifications_file.split("/")[:-1]) + "/"
@@ -188,11 +179,11 @@ try:
                 sys.exit(1)
 
 
-except Exception as e:
-    logger.error(e.args[0])
-    print(e)
+except Exception as ex:
+    traceback.print_exception(type(ex), ex, ex.__traceback__)
+    logger.error(ex.args[0])
+    print(ex)
     sys.exit(1)
-
 
 # parsing
 startTime = time()
@@ -233,11 +224,12 @@ try:
 
         if use_postgreSQL:
             import credentials as db
+
             # ToDo: user_id needs to be uuid
             conn_str = f'postgresql://{db.username}:{db.password}@{db.hostname}:{db.port}/{db.database}'
-            writer = Writer(conn_str, user_id)
-            id_parser = MzIdParser.MzIdParser(identifications_file, upload_folder, peak_list_folder,
-                                              writer, logger)
+            writer = Writer(conn_str, user_id, upload_id=329)
+            id_parser = MzIdParser(identifications_file, upload_folder, peak_list_folder,
+                                   writer, logger)
         else:
             conn_str = f'sqlite:///{sqlite_db}'
             writer = Writer(conn_str)
@@ -281,8 +273,8 @@ try:
 
     id_parser.parse()
 
-    returnJSON['identifier'] = str(id_parser.upload_id) + "-" + str(id_parser.random_id)
-    returnJSON['modifications'] = id_parser.unknown_mods
+    returnJSON['identifier'] = str(writer.upload_id) + "-" + "RANDOM"  # str(id_parser.random_id)
+    returnJSON['modifications'] = []  # id_parser.unknown_mods # todo
     returnJSON['warnings'] = id_parser.warnings
 
     # delete uploaded files after they have been parsed
@@ -294,7 +286,6 @@ except Exception as e:
     # print(e)
     logger.exception(e)
     returnJSON['errors'].append({"type": "Error", "message": e.args[0]})
-
 
 if len(returnJSON["errors"]) > 0 or len(returnJSON["warnings"]) > 0:
     returnJSON['response'] = "{} warning(s) and {} error(s) occurred!".format(
