@@ -445,7 +445,8 @@ class MzIdParser:
 
             mod_pos = []
             mod_accessions = []
-            mod_masses = []
+            mod_avg_masses = []
+            mod_monoiso_masses = []
             if 'Modification' in peptide.keys():
                 # parse modifications and crosslink info
                 for mod in peptide['Modification']:
@@ -510,17 +511,20 @@ class MzIdParser:
 
                         mod_pos.append(mod_location)
                         mod_accessions.append(mod['name'].accession)
-                        mod_masses.append(mod.get('monoisotopicMassDelta', None))
-                        # display warning if only avgMassDelta and monoisotopicMassDelta is missing
+                        mod_avg_masses.append(mod.get('avgMassDelta', None))
+                        mod_monoiso_masses.append(mod.get('monoisotopicMassDelta', None))
+
+            # display warning if only avgMassDelta and monoisotopicMassDelta is missing
                         # error if peaklists uploaded, warning if not?
 
             peptide_data = {
                 'id': peptide['id'],
                 'upload_id': self.writer.upload_id,
                 'base_sequence': peptide['PeptideSequence'],
-                'modification_accessions': mod_accessions,
-                'modification_positions': mod_pos,
-                'modification_masses': mod_masses,
+                'mod_accessions': mod_accessions,
+                'mod_positions': mod_pos,
+                'mod_avg_mass_deltas': mod_avg_masses,
+                'mod_monoiso_mass_deltas': mod_monoiso_masses,
                 'link_site1': link_site1,
                 # 'link_site2': link_site2,  # ToDo: loop link support
                 'crosslinker_modmass': crosslinker_modmass,

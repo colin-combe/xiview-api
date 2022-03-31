@@ -62,8 +62,8 @@ def compare_modified_peptide(results):
     # id from <Peptide> id
     assert results[0].id == '29_KVLDSKPSVLALNIQR_30_KFDAKMVGK_1_5_p1'
     assert results[0].base_sequence == 'KFDAKMVGK'  # value of <PeptideSequence>
-    assert results[0].modification_accessions == []
-    assert results[0].modification_positions == []
+    assert results[0].mod_accessions == []
+    assert results[0].mod_positions == []
     # location of <Modification> with cross-link acceptor/receiver cvParam
     assert results[0].link_site1 == 5
     # monoisotopicMassDelta of <Modification> with cross-link acceptor/receiver cvParam
@@ -74,8 +74,8 @@ def compare_modified_peptide(results):
     # id from <Peptide> id
     assert results[1].id == '29_KVLDSKPSVLALNIQR_30_KFDAKMVGK_1_5_p0'
     assert results[1].base_sequence == 'KVLDSKPSVLALNIQR'  # value of <PeptideSequence>
-    assert results[1].modification_accessions == []
-    assert results[1].modification_positions == []
+    assert results[1].mod_accessions == []
+    assert results[1].mod_positions == []
     # location of <Modification> with cross-link acceptor/receiver cvParam
     assert results[1].link_site1 == 1
     # monoisotopicMassDelta of <Modification> with cross-link acceptor/receiver cvParam
