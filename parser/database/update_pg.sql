@@ -18,19 +18,12 @@ CREATE TABLE spectrumidentificationprotocol (
 	analysis_software json NULL
 );
 
--- no, rename existing modification table
-CREATE TABLE searchmodification (
-	id bigint NOT NULL,
-	upload_id bigint NOT NULL,
-	protocol_id text NOT NULL,
-	mod_name text NOT NULL,
-	mass float8 NOT NULL,
-	residues text NOT NULL,
-	specificity_rules json NOT NULL,
-	fixed_mod boolean NOT NULL,
-	accession text NULL,
-	crosslinker_id text NULL
-);
+ALTER TABLE public.modifications RENAME TO searchmodification;
+ALTER TABLE public.modifications ADD protocol_id text NOT NULL;
+ALTER TABLE public.modifications ADD specificity_rules json NOT NULL;
+ALTER TABLE public.modifications ADD fixed_mod bool NOT NULL;
+ALTER TABLE public.modifications ADD crosslinker_id text NULL;
+
 
 CREATE TABLE enzyme (
 	id text NOT NULL,
@@ -72,3 +65,13 @@ ALTER TABLE public.layouts RENAME TO layout;
 ALTER TABLE public.layout RENAME COLUMN search_id TO upload_id;
 
 ALTER TABLE public.spectra RENAME TO spectrum;
+
+ALTER TABLE public.upload DROP COLUMN peak_list_file_names;
+ALTER TABLE public.upload DROP COLUMN analysis_software;
+ALTER TABLE public.upload DROP COLUMN analyses;
+ALTER TABLE public.upload DROP COLUMN protocol;
+ALTER TABLE public.upload DROP COLUMN default_pdb;
+ALTER TABLE public.upload DROP COLUMN origin;
+ALTER TABLE public.upload DROP COLUMN ident_count;
+ALTER TABLE public.upload DROP COLUMN ident_file_size;
+ALTER TABLE public.upload DROP COLUMN zipped_peak_list_file_size;
