@@ -5,8 +5,6 @@ alter table useraccount drop column hidden;
 drop table user_in_group;
 --add index to useraccount
 
-**remove uploads where deleted = true
-
 ALTER TABLE IF EXISTS uploads RENAME TO upload;
 ALTER TABLE upload rename COLUMN filename TO identification_file_name;
 
