@@ -1,4 +1,5 @@
 from pyteomics import mzid
+from pyteomics.auxiliary import cvquery
 import re
 import ntpath
 import json
@@ -255,17 +256,16 @@ class MzIdParser:
             mod_index = 0
             for mod in sid_protocol['ModificationParams']['SearchModification']:
                 accessions = self.get_accessions(mod)
-
                 # parse specificity rule accessions
                 specificity_rules = mod.get('SpecificityRules', [])
                 spec_rule_accessions = []
                 for spec_rule in specificity_rules:
-                    spec_rule_accession = self.get_accessions(spec_rule)
+                    spec_rule_accession = cvquery(spec_rule)
                     if len(spec_rule_accession) != 1:
                         raise MzIdParseException(
                             f'Error when parsing SpecificityRules from SearchModification:\n'
                             f'{json.dumps(mod)}')
-                    spec_rule_accessions.append(spec_rule_accession[0])
+                    spec_rule_accessions.append(list(spec_rule_accession.keys())[0])
 
                 # other modifications
                 # name
