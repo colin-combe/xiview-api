@@ -451,7 +451,6 @@ class MzIdParser:
             if 'Modification' in peptide.keys():
                 # parse modifications and crosslink info
                 for mod in peptide['Modification']:
-                    # accessions = self.get_accessions(mod)
                     # mod_location is 0-based for assigning modifications to correct amino acid
                     # mod['location'] is 1-based with 0 = n-terminal and len(pep)+1 = C-terminal
                     if mod['location'] == 0:
@@ -464,11 +463,7 @@ class MzIdParser:
                     # parse crosslinker info
                     # ToDo: crosslinker mod mass should go into Crosslinker Table together with
                     #   specificity info. Mapping to this table would work same as for modifications
-                    # if 'MS:1002509' in accessions or 'MS:1002510' in accessions:
-                        # use mod['location'] for link-site (1-based in database in line with
-                        # mzIdentML specifications)
-                        # link_site1 = mod['location']
-                        # cross-link donor
+                    # cross-link donor
                     crosslinker_pair_id = cvquery(mod, 'MS:1002509')
                     if crosslinker_pair_id is not None:
                         link_site1 = mod['location']
