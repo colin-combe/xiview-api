@@ -783,17 +783,6 @@ class MzIdParser:
         """Write remaining information into Upload table."""
         self.writer.write_other_info(self.contains_crosslinks, self.warnings)
 
-    @staticmethod
-    def get_accessions(element):
-        """Get the cvParam accessions for the given element."""
-        accessions = []
-        for el in element.keys():
-            if hasattr(el, 'accession'):
-                accessions.append(el.accession)
-            else:
-                accessions.append('')
-        return accessions
-
     def get_cv_params(self, element, super_cls_accession=None):
         """
         Get the cvParams of an element.
@@ -802,10 +791,10 @@ class MzIdParser:
         :param super_cls_accession: (str) accession number of the superclass
         :return: filtered dictionary of cvParams
         """
-        accessions = self.get_accessions(element)
+        accessions = cvquery(element)
 
         if super_cls_accession is None:
-            filtered_idx = [i for i, a in enumerate(accessions) if a != '']
+            filtered_idx = list(accessions.keys())
         else:
             children = []
             if type(super_cls_accession) != list:
