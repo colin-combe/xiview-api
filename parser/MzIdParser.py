@@ -392,7 +392,6 @@ class MzIdParser:
         db_sequences = []
         for db_id in self.mzid_reader._offset_index["DBSequence"].keys():
             db_sequence = self.mzid_reader.get_by_id(db_id, tag_id='DBSequence')
-            db_sequence_accessions = self.get_accessions(db_sequence)
             db_sequence_data = {
                 'id': db_id,
                 'accession': db_sequence["accession"],
@@ -408,8 +407,7 @@ class MzIdParser:
             # description
             try:
                 # get the key by checking for the protein description accession number
-                desc_key = list(db_sequence.keys())[db_sequence_accessions.index('MS:1001088')]
-                db_sequence_data['description'] = db_sequence[desc_key]
+                db_sequence_data['description'] = cvquery(db_sequence, 'MS:1001088')
             except ValueError:
                 db_sequence_data['description'] = None
 
