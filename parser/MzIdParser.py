@@ -236,6 +236,8 @@ class MzIdParser:
             ions = self.get_cv_params(add_sp, 'MS:1002473')
             ions = [i.accession for i in ions]
 
+            # losing some addtional search params?
+
             # fall back to using b and y ions
             if len(ions) == 0:
                 ions = ['MS:1001118', 'MS:1001262']
@@ -507,8 +509,10 @@ class MzIdParser:
                         #             f'Modification not found in <SearchModification>s: '
                         #             f'{json.dumps(mod)}')
 
+                        cvs = cvquery(mod)
+
                         mod_pos.append(mod_location)
-                        mod_accessions.append(mod['name'].accession)
+                        mod_accessions.append(cvs) # loses some info, e.g. unit of fragment loss
                         mod_avg_masses.append(mod.get('avgMassDelta', None))
                         mod_monoiso_masses.append(mod.get('monoisotopicMassDelta', None))
 
