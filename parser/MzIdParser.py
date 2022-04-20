@@ -1,4 +1,4 @@
-from pyteomics import mzid
+from pyteomics import mzid  #https://pyteomics.readthedocs.io/en/latest/data.html#controlled-vocabularies
 from pyteomics.auxiliary import cvquery
 import re
 import ntpath
@@ -255,10 +255,9 @@ class MzIdParser:
             # Modifications
             mod_index = 0
             for mod in sid_protocol['ModificationParams']['SearchModification']:
-                accessions = self.get_accessions(mod)
                 # parse specificity rule accessions
-                specificity_rules = mod.get('SpecificityRules', [])
-                spec_rule_accessions = []
+                specificity_rules = mod.get('SpecificityRules', [])  # second param is default value
+                spec_rule_accessions = []  # there may be many
                 for spec_rule in specificity_rules:
                     spec_rule_accession = cvquery(spec_rule)
                     if len(spec_rule_accession) != 1:
@@ -267,6 +266,7 @@ class MzIdParser:
                             f'{json.dumps(mod)}')
                     spec_rule_accessions.append(list(spec_rule_accession.keys())[0])
 
+                accessions = cvquery(mod)
                 # other modifications
                 # name
                 mod_name = None
@@ -280,9 +280,6 @@ class MzIdParser:
                         # not cross-link donor
                         if match.group() != 'MS:1002509':
                             mod_accession = acc
-                        # if cross-link acceptor/donor get the value of the cvParam as crosslink_id
-                        if match.group() == 'MS:1002509' or match.group() == 'MS:1002510':
-                            crosslinker_id = mod[list(mod)[i]]
                         # name
                         # unknown modification
                         if match.group() == 'MS:1001460':
@@ -290,15 +287,21 @@ class MzIdParser:
                         # others
                         elif match.group() != 'MS:1002509':
                             # name is the key in mod dict corresponding to the matched accession.
-                            mod_name = list(mod.keys())[i]
+                            mod_name = accessions[acc]  # list(mod.keys())[i]
+
+                crosslinker_id = cvquery(mod, "MS:1002509")
+                if crosslinker_id is None:
+                    crosslinker_id = cvquery(mod, "MS:1002510")
+                    if crosslinker_id is not None:
+                        mod_name = 'cross-link acceptor'
 
                 if mod_name is None or mod_accession is None:
                     raise MzIdParseException(
                         f'Error parsing <SearchModification>s! '
                         f'Could not parse name/accession of modification:\n{json.dumps(mod)}')
 
-                if crosslinker_id:
-                    crosslinker_id = str(crosslinker_id)  # it's a string but don't want to convert null to word 'None'
+                if crosslinker_id:  # it's a string but don't want to convert null to word 'None'
+                    crosslinker_id = str(crosslinker_id)
 
                 search_modifications.append({
                     'id': mod_index,
