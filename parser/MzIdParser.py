@@ -1,4 +1,4 @@
-from pyteomics import mzid  #https://pyteomics.readthedocs.io/en/latest/data.html#controlled-vocabularies
+from pyteomics import mzid  # https://pyteomics.readthedocs.io/en/latest/data.html#controlled-vocabularies
 from pyteomics.auxiliary import cvquery
 import re
 import ntpath
@@ -191,8 +191,7 @@ class MzIdParser:
         sid_protocols = []
         search_modifications = []
         enzymes = []
-        for sid_protocol_id in self.mzid_reader._offset_index[
-            'SpectrumIdentificationProtocol'].keys():
+        for sid_protocol_id in self.mzid_reader._offset_index['SpectrumIdentificationProtocol'].keys():
             sid_protocol = self.mzid_reader.get_by_id(sid_protocol_id, detailed=True)
 
             # FragmentTolerance
@@ -273,7 +272,6 @@ class MzIdParser:
                 # name
                 mod_name = None
                 mod_accession = None
-                crosslinker_id = None
                 # find the matching accession for the name cvParam.
                 for i, acc in enumerate(accessions):
                     # ToDo: be more strict with the allowed accessions?
@@ -434,8 +432,6 @@ class MzIdParser:
         start_time = time()
         self.logger.info('parse peptides - start')
 
-        search_mod_accessions = [m['accession'] for m in self.search_modifications]
-
         peptide_index = 0
         peptides = []
         for pep_id in self.mzid_reader._offset_index["Peptide"].keys():
@@ -476,10 +472,10 @@ class MzIdParser:
                         crosslinker_pair_id = cvquery(mod, 'MS:1002510')
                         if crosslinker_pair_id is not None:
                             link_site1 = mod['location']
-                            crosslinker_modmass = mod['monoisotopicMassDelta'] # should be zero but i guess include anyway? - CC
+                            crosslinker_modmass = mod['monoisotopicMassDelta']  # should be zero but include anyway
 
                     if crosslinker_pair_id is None:
-                    # else:  # save the modification info if it's not crosslink related
+                        # else:  # save the modification info if it's not crosslink related
                         # Commented out block that tried to match modifications on peptides to SearchModifications
                         # ToDo: Might want to revisit this in the future
                         # if mod['name'].accession == 'MS:1001460':  # unknown modification
@@ -512,12 +508,12 @@ class MzIdParser:
                         cvs = cvquery(mod)
 
                         mod_pos.append(mod_location)
-                        mod_accessions.append(cvs) # loses some info, e.g. unit of fragment loss
+                        mod_accessions.append(cvs)  # loses some info, e.g. unit of fragment loss
                         mod_avg_masses.append(mod.get('avgMassDelta', None))
                         mod_monoiso_masses.append(mod.get('monoisotopicMassDelta', None))
 
             # display warning if only avgMassDelta and monoisotopicMassDelta is missing
-                        # error if peaklists uploaded, warning if not?
+            # error if peaklists uploaded, warning if not?
 
             peptide_data = {
                 'id': peptide['id'],
@@ -772,9 +768,9 @@ class MzIdParser:
     def write_new_upload(self):
         """Write new upload."""
         upload_data = {
-                'id': self.writer.upload_id,
-                'user_id': self.writer.user_id,
-                'identification_file_name': os.path.basename(self.mzid_path),
+            'id': self.writer.upload_id,
+            'user_id': self.writer.user_id,
+            'identification_file_name': os.path.basename(self.mzid_path),
         }
         self.writer.write_data('Upload', upload_data)
 
