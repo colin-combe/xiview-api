@@ -124,9 +124,10 @@ def create_schema(connection_str):
         Column("upload_id", GUID, ForeignKey("Upload.id"), index=True, primary_key=True,
                nullable=False),
         Column("base_sequence", Text, nullable=False),
-        Column("modification_accessions", JSON, nullable=False),
-        Column("modification_masses", JSON, nullable=False),
-        Column("modification_positions", JSON, nullable=False),
+        Column("mod_accessions", JSON, nullable=False),
+        Column("mod_avg_mass_deltas", JSON, nullable=True),
+        Column("mod_monoiso_mass_deltas", JSON, nullable=True),
+        Column("mod_positions", JSON, nullable=False),
         # following columns are not in xi2 db, but come out of the mzid on the <Peptide>s
         Column("link_site1", Integer, nullable=True),
         Column("link_site2", Integer, nullable=True),  # only used for storing loop links

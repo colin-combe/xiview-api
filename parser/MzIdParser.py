@@ -1,4 +1,5 @@
-from pyteomics import mzid
+from pyteomics import mzid  # https://pyteomics.readthedocs.io/en/latest/data.html#controlled-vocabularies
+from pyteomics.auxiliary import cvquery
 import re
 import ntpath
 import json
@@ -190,8 +191,7 @@ class MzIdParser:
         sid_protocols = []
         search_modifications = []
         enzymes = []
-        for sid_protocol_id in self.mzid_reader._offset_index[
-            'SpectrumIdentificationProtocol'].keys():
+        for sid_protocol_id in self.mzid_reader._offset_index['SpectrumIdentificationProtocol'].keys():
             sid_protocol = self.mzid_reader.get_by_id(sid_protocol_id, detailed=True)
 
             # FragmentTolerance
@@ -235,6 +235,8 @@ class MzIdParser:
             ions = self.get_cv_params(add_sp, 'MS:1002473')
             ions = [i.accession for i in ions]
 
+            # losing some addtional search params?
+
             # fall back to using b and y ions
             if len(ions) == 0:
                 ions = ['MS:1001118', 'MS:1001262']
@@ -254,24 +256,22 @@ class MzIdParser:
             # Modifications
             mod_index = 0
             for mod in sid_protocol['ModificationParams']['SearchModification']:
-                accessions = self.get_accessions(mod)
-
                 # parse specificity rule accessions
-                specificity_rules = mod.get('SpecificityRules', [])
-                spec_rule_accessions = []
+                specificity_rules = mod.get('SpecificityRules', [])  # second param is default value
+                spec_rule_accessions = []  # there may be many
                 for spec_rule in specificity_rules:
-                    spec_rule_accession = self.get_accessions(spec_rule)
+                    spec_rule_accession = cvquery(spec_rule)
                     if len(spec_rule_accession) != 1:
                         raise MzIdParseException(
                             f'Error when parsing SpecificityRules from SearchModification:\n'
                             f'{json.dumps(mod)}')
-                    spec_rule_accessions.append(spec_rule_accession[0])
+                    spec_rule_accessions.append(list(spec_rule_accession.keys())[0])
 
+                accessions = cvquery(mod)
                 # other modifications
                 # name
                 mod_name = None
                 mod_accession = None
-                crosslinker_id = None
                 # find the matching accession for the name cvParam.
                 for i, acc in enumerate(accessions):
                     # ToDo: be more strict with the allowed accessions?
@@ -280,9 +280,6 @@ class MzIdParser:
                         # not cross-link donor
                         if match.group() != 'MS:1002509':
                             mod_accession = acc
-                        # if cross-link acceptor/donor get the value of the cvParam as crosslink_id
-                        if match.group() == 'MS:1002509' or match.group() == 'MS:1002510':
-                            crosslinker_id = mod[list(mod)[i]]
                         # name
                         # unknown modification
                         if match.group() == 'MS:1001460':
@@ -290,15 +287,21 @@ class MzIdParser:
                         # others
                         elif match.group() != 'MS:1002509':
                             # name is the key in mod dict corresponding to the matched accession.
-                            mod_name = list(mod.keys())[i]
+                            mod_name = accessions[acc]  # list(mod.keys())[i]
+
+                crosslinker_id = cvquery(mod, "MS:1002509")
+                if crosslinker_id is None:
+                    crosslinker_id = cvquery(mod, "MS:1002510")
+                    if crosslinker_id is not None:
+                        mod_name = 'cross-link acceptor'
 
                 if mod_name is None or mod_accession is None:
                     raise MzIdParseException(
                         f'Error parsing <SearchModification>s! '
                         f'Could not parse name/accession of modification:\n{json.dumps(mod)}')
 
-                if crosslinker_id:
-                    crosslinker_id = str(crosslinker_id)  # it's a string but don't want to convert null to word 'None'
+                if crosslinker_id:  # it's a string but don't want to convert null to word 'None'
+                    crosslinker_id = str(crosslinker_id)
 
                 search_modifications.append({
                     'id': mod_index,
@@ -389,7 +392,6 @@ class MzIdParser:
         db_sequences = []
         for db_id in self.mzid_reader._offset_index["DBSequence"].keys():
             db_sequence = self.mzid_reader.get_by_id(db_id, tag_id='DBSequence')
-            db_sequence_accessions = self.get_accessions(db_sequence)
             db_sequence_data = {
                 'id': db_id,
                 'accession': db_sequence["accession"],
@@ -405,8 +407,7 @@ class MzIdParser:
             # description
             try:
                 # get the key by checking for the protein description accession number
-                desc_key = list(db_sequence.keys())[db_sequence_accessions.index('MS:1001088')]
-                db_sequence_data['description'] = db_sequence[desc_key]
+                db_sequence_data['description'] = cvquery(db_sequence, 'MS:1001088')
             except ValueError:
                 db_sequence_data['description'] = None
 
@@ -431,8 +432,6 @@ class MzIdParser:
         start_time = time()
         self.logger.info('parse peptides - start')
 
-        search_mod_accessions = [m['accession'] for m in self.search_modifications]
-
         peptide_index = 0
         peptides = []
         for pep_id in self.mzid_reader._offset_index["Peptide"].keys():
@@ -445,11 +444,11 @@ class MzIdParser:
 
             mod_pos = []
             mod_accessions = []
-            mod_masses = []
+            mod_avg_masses = []
+            mod_monoiso_masses = []
             if 'Modification' in peptide.keys():
                 # parse modifications and crosslink info
                 for mod in peptide['Modification']:
-                    accessions = self.get_accessions(mod)
                     # mod_location is 0-based for assigning modifications to correct amino acid
                     # mod['location'] is 1-based with 0 = n-terminal and len(pep)+1 = C-terminal
                     if mod['location'] == 0:
@@ -462,23 +461,21 @@ class MzIdParser:
                     # parse crosslinker info
                     # ToDo: crosslinker mod mass should go into Crosslinker Table together with
                     #   specificity info. Mapping to this table would work same as for modifications
-                    if 'MS:1002509' in accessions or 'MS:1002510' in accessions:
-                        # use mod['location'] for link-site (1-based in database in line with
-                        # mzIdentML specifications)
+                    # cross-link donor
+                    crosslinker_pair_id = cvquery(mod, 'MS:1002509')
+                    if crosslinker_pair_id is not None:
                         link_site1 = mod['location']
-                        # cross-link donor
-                        if 'MS:1002509' in accessions:
-                            key = list(mod.keys())[accessions.index('MS:1002509')]
-                            crosslinker_pair_id = mod[key]
-                            crosslinker_modmass = mod['monoisotopicMassDelta']
-                            crosslinker_accession = mod['name'].accession
-                        # cross-link acceptor/receiver
-                        if 'MS:1002510' in accessions:
-                            key = list(mod.keys())[accessions.index('MS:1002510')]
-                            crosslinker_pair_id = mod[key]
-                            crosslinker_modmass = mod['monoisotopicMassDelta'] # should be zero but i guess include anyway? - CC
+                        crosslinker_modmass = mod['monoisotopicMassDelta']
+                        crosslinker_accession = mod['name'].accession
+                    # cross-link acceptor/
+                    if crosslinker_pair_id is None:
+                        crosslinker_pair_id = cvquery(mod, 'MS:1002510')
+                        if crosslinker_pair_id is not None:
+                            link_site1 = mod['location']
+                            crosslinker_modmass = mod['monoisotopicMassDelta']  # should be zero but include anyway
 
-                    else:  # save the modification info if it's not crosslink related
+                    if crosslinker_pair_id is None:
+                        # else:  # save the modification info if it's not crosslink related
                         # Commented out block that tried to match modifications on peptides to SearchModifications
                         # ToDo: Might want to revisit this in the future
                         # if mod['name'].accession == 'MS:1001460':  # unknown modification
@@ -508,17 +505,24 @@ class MzIdParser:
                         #             f'Modification not found in <SearchModification>s: '
                         #             f'{json.dumps(mod)}')
 
+                        cvs = cvquery(mod)
+
                         mod_pos.append(mod_location)
-                        mod_accessions.append(mod['name'].accession)
-                        mod_masses.append(mod.get('monoisotopicMassDelta', None))
+                        mod_accessions.append(cvs)  # loses some info, e.g. unit of fragment loss
+                        mod_avg_masses.append(mod.get('avgMassDelta', None))
+                        mod_monoiso_masses.append(mod.get('monoisotopicMassDelta', None))
+
+            # display warning if only avgMassDelta and monoisotopicMassDelta is missing
+            # error if peaklists uploaded, warning if not?
 
             peptide_data = {
                 'id': peptide['id'],
                 'upload_id': self.writer.upload_id,
                 'base_sequence': peptide['PeptideSequence'],
-                'modification_accessions': mod_accessions,
-                'modification_positions': mod_pos,
-                'modification_masses': mod_masses,
+                'mod_accessions': mod_accessions,
+                'mod_positions': mod_pos,
+                'mod_avg_mass_deltas': mod_avg_masses,
+                'mod_monoiso_mass_deltas': mod_monoiso_masses,
                 'link_site1': link_site1,
                 # 'link_site2': link_site2,  # ToDo: loop link support
                 'crosslinker_modmass': crosslinker_modmass,
@@ -764,26 +768,15 @@ class MzIdParser:
     def write_new_upload(self):
         """Write new upload."""
         upload_data = {
-                'id': self.writer.upload_id,
-                'user_id': self.writer.user_id,
-                'identification_file_name': os.path.basename(self.mzid_path),
+            'id': self.writer.upload_id,
+            'user_id': self.writer.user_id,
+            'identification_file_name': os.path.basename(self.mzid_path),
         }
         self.writer.write_data('Upload', upload_data)
 
     def write_other_info(self):
         """Write remaining information into Upload table."""
         self.writer.write_other_info(self.contains_crosslinks, self.warnings)
-
-    @staticmethod
-    def get_accessions(element):
-        """Get the cvParam accessions for the given element."""
-        accessions = []
-        for el in element.keys():
-            if hasattr(el, 'accession'):
-                accessions.append(el.accession)
-            else:
-                accessions.append('')
-        return accessions
 
     def get_cv_params(self, element, super_cls_accession=None):
         """
@@ -793,10 +786,10 @@ class MzIdParser:
         :param super_cls_accession: (str) accession number of the superclass
         :return: filtered dictionary of cvParams
         """
-        accessions = self.get_accessions(element)
+        accessions = cvquery(element)
 
         if super_cls_accession is None:
-            filtered_idx = [i for i, a in enumerate(accessions) if a != '']
+            filtered_idx = list(accessions.keys())
         else:
             children = []
             if type(super_cls_accession) != list:
