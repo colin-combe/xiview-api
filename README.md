@@ -1,14 +1,13 @@
 # xiSPEC_ms_parser
 
-Back-end parser for xiSPEC mass spectrometry visualization tool.
-
+Parser for mzIdentML for 1.2.0 files extracting crosslink information. Results are written to a relational database (PostgreSQL or SQLite).
 
 ### Requirements:
 python3.10
 
 pipenv
 
-sqlite3
+sqlite3 or postgresql
 
 ### Installation
 
