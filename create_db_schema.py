@@ -13,7 +13,6 @@ from sqlalchemy.types import (
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine
 from sqlalchemy_utils import database_exists, drop_database, create_database
-from credentials import *
 from sqlalchemy.sql import func
 
 
@@ -241,6 +240,12 @@ def create_schema(connection_str):
 
 
 if __name__ == "__main__":
+    try:
+        from credentials import *
+    except ModuleNotFoundError:
+        raise ModuleNotFoundError(
+            'Database credentials missing! '
+            'Change credentials_template.py and save as credentials.py')
     conn_str = f"postgresql://{username}:{password}@{hostname}/{database}"
     create_db(conn_str)
     create_schema(conn_str)
