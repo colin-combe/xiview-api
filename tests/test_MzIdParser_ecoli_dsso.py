@@ -2,15 +2,13 @@
 ToDo: add test that writes multiple mzids into the db and check that results are written in
     properly.
 """
-
-
 import numpy as np
 from numpy.testing import assert_array_equal
 from parser.writer import Table
 import os
 import logging
 from sqlalchemy import text
-from pyteomics import mgf, mzml
+from pyteomics import mgf
 from .db_pytest_fixtures import *
 from .parse_mzid import parse_mzid_into_postgresql, parse_mzid_into_sqlite_xispec
 
@@ -79,7 +77,7 @@ def compare_modified_peptide(results):
     # location of <Modification> with cross-link acceptor/receiver cvParam
     assert results[1].link_site1 == 1
     # monoisotopicMassDelta of <Modification> with cross-link acceptor/receiver cvParam
-    assert results[1].crosslinker_modmass == 158.0037644600003
+    assert results[1].crosslinker_modmass == pytest.approx(158.0037644600003, abs=1e-12)
     # value of cross-link acceptor/receiver cvParam
     assert results[1].crosslinker_pair_id == '1.0'
     # ToDo: check more rows?
@@ -350,7 +348,7 @@ def test_psql_mgf_mzid_parser(tmpdir, use_database, engine):
         # experimentalMassToCharge from <SpectrumIdentificationItem>
         assert results[0].exp_mz == 945.677359
         # calculatedMassToCharge from <SpectrumIdentificationItem>
-        assert results[0].calc_mz == 945.6784858667701
+        assert results[0].calc_mz == pytest.approx(945.6784858667701, abs=1e-12)
         # Meta columns are only parsed from csv docs
         assert results[0].meta1 == ''
         assert results[0].meta2 == ''
@@ -498,7 +496,7 @@ def test_psql_mzml_mzid_parser(tmpdir, use_database, engine):
         # experimentalMassToCharge from <SpectrumIdentificationItem>
         assert results[0].exp_mz == 945.677359
         # calculatedMassToCharge from <SpectrumIdentificationItem>
-        assert results[0].calc_mz == 945.6784858667701
+        assert results[0].calc_mz == pytest.approx(945.6784858667701, abs=1e-12)
         # Meta columns are only parsed from csv docs
         assert results[0].meta1 == ''
         assert results[0].meta2 == ''
