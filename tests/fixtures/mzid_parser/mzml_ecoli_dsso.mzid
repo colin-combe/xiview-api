@@ -432,6 +432,8 @@ Gustav-Meyer-Allee 25
       <cvParam cvRef="PSI-MS" accession="MS:1001211" name="parent mass type mono"></cvParam>
       <cvParam cvRef="PSI-MS" accession="MS:1002494" name="cross-linking search"></cvParam>
       <cvParam cvRef="PSI-MS" accession="MS:1001256" name="fragment mass type mono"></cvParam>
+      <cvParam cvRef="PSI-MS" accession="MS:1001118" name="param: b ion"></cvParam>
+      <cvParam cvRef="PSI-MS" accession="MS:1001262" name="param: y ion"></cvParam>
     </AdditionalSearchParams>
     <ModificationParams>
       <SearchModification fixedMod="false" massDelta="158.00377" residues="S T Y K">

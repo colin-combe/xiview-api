@@ -232,24 +232,22 @@ class MzIdParser:
             # Fragmentation ions
             add_sp = sid_protocol.get('AdditionalSearchParams', {})
             # get cvParams that are children of 'ion series considered in search' (MS:1002473)
-            ions = self.get_cv_params(add_sp, 'MS:1002473')
-            ions = [i.accession for i in ions]
-
-            # losing some addtional search params?
+            # ions = self.get_cv_params(add_sp, 'MS:1002473')
+            # ions = [i.accession for i in ions]
 
             # fall back to using b and y ions
-            if len(ions) == 0:
-                ions = ['MS:1001118', 'MS:1001262']
-                self.warnings.append(
-                    'mzidentML file does not specify any fragment ions (child terms of MS_1002473) '
-                    'within <AdditionalSearchParams>. Falling back to b and y ions.')
+            # if len(ions) == 0:
+            #     ions = ['MS:1001118', 'MS:1001262']
+            #     self.warnings.append(
+            #         'mzidentML file does not specify any fragment ions (child terms of MS_1002473) '
+            #         'within <AdditionalSearchParams>. Falling back to b and y ions.')
 
             data = {
                 'id': sid_protocol['id'],
                 'upload_id': self.writer.upload_id,
                 # ToDo: split into multiple cols
                 'frag_tol': f'{frag_tol_value} {frag_tol_unit}',
-                'ions': ions,
+                'search_params': cvquery(add_sp),
                 'analysis_software': analysis_software
             }
 
