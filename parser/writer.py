@@ -17,7 +17,7 @@ def Table(name, *args, **kw):
 class Writer:
     """Class for writing results to a relational database."""
 
-    def __init__(self, connection_str, user_id=None, upload_id=None):
+    def __init__(self, connection_str, user_id=None):
         """
         Initialises the database connection and the writer in general.
 
@@ -29,10 +29,10 @@ class Writer:
         # It has lazy initialisation.
         self.engine = create_engine(connection_str)
         self.meta = MetaData()
-        if upload_id:
-            self.upload_id = upload_id
-        else:
-            self.upload_id = str(uuid4())
+        # if upload_id:
+        #     self.upload_id = upload_id
+        # else:
+        self.upload_id = str(uuid4())
         # if user_id is not None and not isinstance(user_id, UUID):
         #     raise Exception('user_id must be a uuid!')
         self.user_id = str(user_id)

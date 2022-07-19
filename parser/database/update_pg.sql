@@ -12,7 +12,7 @@ CREATE TABLE spectrumidentificationprotocol (
 	id text NOT NULL,
 	upload_id bigint NOT NULL,
 	frag_tol text NOT NULL,
-	ions json NULL,
+	search_params json NULL,
 	analysis_software json NULL
 );
 
