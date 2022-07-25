@@ -80,6 +80,30 @@ def compare_modified_peptide(results):
     assert results[1].crosslinker_modmass == pytest.approx(158.0037644600003, abs=1e-12)
     # value of cross-link acceptor/receiver cvParam
     assert results[1].crosslinker_pair_id == '1.0'
+
+    # id from <Peptide> id
+    assert results[2].id == '19_LLAEHNLDmetASAIKGTGVGGR_20_HLAKAPAK_13_4_p1'
+    assert results[2].base_sequence == 'HLAKAPAK'  # value of <PeptideSequence>
+    assert results[2].mod_accessions == []
+    assert results[2].mod_positions == []
+    # location of <Modification> with cross-link acceptor/receiver cvParam
+    assert results[2].link_site1 == 4
+    # monoisotopicMassDelta of <Modification> with cross-link acceptor/receiver cvParam
+    assert results[2].crosslinker_modmass == 0
+    # value of cross-link acceptor/receiver cvParam
+    assert results[2].crosslinker_pair_id == '2.0'
+
+    # id from <Peptide> id
+    assert results[3].id == '19_LLAEHNLDmetASAIKGTGVGGR_20_HLAKAPAK_13_4_p0'
+    assert results[3].base_sequence == 'LLAEHNLDASAIKGTGVGGR'  # value of <PeptideSequence>
+    assert results[3].mod_accessions == [{'UNIMOD:34': 'Methyl'}]
+    assert results[3].mod_positions == [8]
+    # location of <Modification> with cross-link acceptor/receiver cvParam
+    assert results[3].link_site1 == 13
+    # monoisotopicMassDelta of <Modification> with cross-link acceptor/receiver cvParam
+    assert results[3].crosslinker_modmass == 158.00376446000053
+    # value of cross-link acceptor/receiver cvParam
+    assert results[3].crosslinker_pair_id == '2.0'
     # ToDo: check more rows?
 
 
