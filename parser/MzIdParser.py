@@ -449,14 +449,6 @@ class MzIdParser:
             if 'Modification' in peptide.keys():
                 # parse modifications and crosslink info
                 for mod in peptide['Modification']:
-                    # mod_location is 0-based for assigning modifications to correct amino acid
-                    # mod['location'] is 1-based with 0 = n-terminal and len(pep)+1 = C-terminal
-                    if mod['location'] == 0:
-                        mod_location = 0
-                    elif mod['location'] == len(peptide['PeptideSequence']) + 1:
-                        mod_location = mod['location'] - 2
-                    else:
-                        mod_location = mod['location'] - 1
 
                     # parse crosslinker info
                     # ToDo: crosslinker mod mass should go into Crosslinker Table together with
@@ -507,7 +499,7 @@ class MzIdParser:
 
                         cvs = cvquery(mod)
 
-                        mod_pos.append(mod_location)
+                        mod_pos.append(mod['location'])
                         mod_accessions.append(cvs)  # loses some info, e.g. unit of fragment loss
                         mod_avg_masses.append(mod.get('avgMassDelta', None))
                         mod_monoiso_masses.append(mod.get('monoisotopicMassDelta', None))
