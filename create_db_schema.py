@@ -126,7 +126,7 @@ def create_schema(connection_str):
         Column("mod_accessions", JSON, nullable=False),
         Column("mod_avg_mass_deltas", JSON, nullable=True),
         Column("mod_monoiso_mass_deltas", JSON, nullable=True),
-        Column("mod_positions", JSON, nullable=False),
+        Column("mod_positions", JSON, nullable=False),  # 1-based with 0 = n-terminal and len(pep)+1 = C-terminal
         # following columns are not in xi2 db, but come out of the mzid on the <Peptide>s
         Column("link_site1", Integer, nullable=True),
         Column("link_site2", Integer, nullable=True),  # only used for storing loop links
