@@ -101,7 +101,7 @@ def compare_modified_peptide(results):
     # location of <Modification> with cross-link acceptor/receiver cvParam
     assert results[3].link_site1 == 13
     # monoisotopicMassDelta of <Modification> with cross-link acceptor/receiver cvParam
-    assert results[3].crosslinker_modmass == 158.00376446000053
+    assert results[3].crosslinker_modmass == pytest.approx(158.0037644600003, abs=1e-12)
     # value of cross-link acceptor/receiver cvParam
     assert results[3].crosslinker_pair_id == '2.0'
     # ToDo: check more rows?
