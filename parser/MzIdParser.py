@@ -500,7 +500,7 @@ class MzIdParser:
                         cvs = cvquery(mod)
 
                         mod_pos.append(mod['location'])
-                        mod_accessions.append(cvs)  # loses some info, e.g. unit of fragment loss
+                        mod_accessions.append(cvs)  # unit of fragment loss is always daltons
                         mod_avg_masses.append(mod.get('avgMassDelta', None))
                         mod_monoiso_masses.append(mod.get('monoisotopicMassDelta', None))
 
