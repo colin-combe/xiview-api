@@ -101,7 +101,7 @@ def create_schema(connection_str):
         base.metadata,
         Column("upload_id", GUID, ForeignKey("Upload.id"), index=True, primary_key=True,
                nullable=False),
-        Column("peptide_ref", Text, primary_key=True, nullable=False),
+        Column("peptide_ref", Text, primary_key=True, nullable=False, index=True),
         Column("dbsequence_ref", Text, primary_key=True, nullable=False),
         Column("pep_start", Integer, primary_key=True, nullable=False),
         Column("is_decoy", BOOLEAN, nullable=True),
