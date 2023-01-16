@@ -196,7 +196,7 @@ def create_schema(connection_str):
         Column("upload_id", GUID, ForeignKey("Upload.id"), index=True, primary_key=True,
                nullable=False),
         Column("frag_tol", Text, nullable=False),
-        Column("ions", JSON, nullable=True),
+        Column("search_params", JSON, nullable=True),
         Column("analysis_software", JSON, nullable=True),
         quote=False
     )

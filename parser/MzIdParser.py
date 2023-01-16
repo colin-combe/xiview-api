@@ -10,7 +10,7 @@ import gzip
 import os
 from .NumpyEncoder import NumpyEncoder
 import obonet
-
+# from sqlalchemy import Table as SATable
 
 class MzIdParseException(Exception):
     pass
@@ -229,27 +229,14 @@ class MzIdParser:
             except KeyError:
                 analysis_software = '{}'
 
-            # Fragmentation ions
+            # Additional search parameters
             add_sp = sid_protocol.get('AdditionalSearchParams', {})
-            # get cvParams that are children of 'ion series considered in search' (MS:1002473)
-            ions = self.get_cv_params(add_sp, 'MS:1002473')
-            ions = [i.accession for i in ions]
-
-            # losing some addtional search params?
-
-            # fall back to using b and y ions
-            if len(ions) == 0:
-                ions = ['MS:1001118', 'MS:1001262']
-                self.warnings.append(
-                    'mzidentML file does not specify any fragment ions (child terms of MS_1002473) '
-                    'within <AdditionalSearchParams>. Falling back to b and y ions.')
-
             data = {
                 'id': sid_protocol['id'],
                 'upload_id': self.writer.upload_id,
                 # ToDo: split into multiple cols
                 'frag_tol': f'{frag_tol_value} {frag_tol_unit}',
-                'ions': ions,
+                'search_params': cvquery(add_sp),
                 'analysis_software': analysis_software
             }
 
@@ -765,6 +752,12 @@ class MzIdParser:
             'identification_file_name': os.path.basename(self.mzid_path),
         }
         self.writer.write_data('Upload', upload_data)
+        # table = SATable('upload', self.writer.meta, autoload_with=self.writer.engine, quote=False)
+        # with self.writer.engine.connect() as conn:
+        #     statement = table.insert().values(upload_data).returning(table.columns[0])  #  RETURNING id AS upload_id
+        #     result = conn.execute(statement)
+        #     self.writer.upload_id = result.fetchall()[0][0]
+        #     conn.close()
 
     def write_other_info(self):
         """Write remaining information into Upload table."""

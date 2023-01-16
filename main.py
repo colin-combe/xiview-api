@@ -13,6 +13,7 @@ import getopt
 from parser import FullCsvParser, NoPeakListsCsvParser, xiSPEC_CsvParser, LinksOnlyCsvParser, CsvParseException
 from parser.MzIdParser import MzIdParser
 from parser.writer import Writer
+from parser.peaklistReader.PeakListWrapper import PeakListWrapper
 
 dev = False
 use_ftp, use_postgreSQL, user_id = False, False, False
@@ -227,7 +228,7 @@ try:
 
             # ToDo: user_id needs to be uuid
             conn_str = f'postgresql://{db.username}:{db.password}@{db.hostname}:{db.port}/{db.database}'
-            writer = Writer(conn_str, user_id, upload_id=329)
+            writer = Writer(conn_str, user_id)
             id_parser = MzIdParser(identifications_file, upload_folder, peak_list_folder,
                                    writer, logger)
         else:

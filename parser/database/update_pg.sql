@@ -12,7 +12,7 @@ CREATE TABLE spectrumidentificationprotocol (
 	id text NOT NULL,
 	upload_id bigint NOT NULL,
 	frag_tol text NOT NULL,
-	ions json NULL,
+	search_params json NULL,
 	analysis_software json NULL
 );
 
@@ -73,3 +73,5 @@ ALTER TABLE public.upload DROP COLUMN origin;
 ALTER TABLE public.upload DROP COLUMN ident_count;
 ALTER TABLE public.upload DROP COLUMN ident_file_size;
 ALTER TABLE public.upload DROP COLUMN zipped_peak_list_file_size;
+
+ALTER TABLE public.spectrumidentificationprotocol RENAME COLUMN ions TO search_params;
