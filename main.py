@@ -22,7 +22,7 @@ identifications_file, peakList_file, identifier = False, False, False
 try:
     opts, args = getopt.getopt(sys.argv[1:], "fi:p:s:u:", ["ftp", "postgresql"])
 except getopt.GetoptError:
-    print('parser.py (-f) -i <identifications file> -p <peak list file> -s <session identifier>'
+    print('main.py (-f) -i <identifications file> -p <peak list file> -s <session identifier>'
           ' (-u <user_id>)')
     sys.exit(2)
 

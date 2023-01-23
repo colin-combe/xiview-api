@@ -160,7 +160,7 @@ def create_schema(connection_str):
                nullable=False),
         Column("spectrum_id", Text, nullable=True),
         Column("spectra_data_ref", Text, nullable=True),
-        Column("crosslink_identification_id", Integer, nullable=True),
+        Column("multiple_spectra_identification_id", Integer, nullable=True),
         Column("pep1_id", Text, nullable=False),
         Column("pep2_id", Text, nullable=True),
         Column("charge_state", Integer, nullable=True),
@@ -205,7 +205,8 @@ def create_schema(connection_str):
         "Upload",
         base.metadata,
         Column("id", GUID, primary_key=True, nullable=False),
-        Column("user_id", GUID, ForeignKey("UserAccount.id"), nullable=False),
+        Column("user_id", GUID, ForeignKey("UserAccount.id"), nullable=True),
+        Column("px_accession", Text, nullable=True),
         Column("identification_file_name", Text, nullable=False),
         Column("provider", JSON, nullable=True),
         Column("audits", JSON, nullable=True),
@@ -217,7 +218,7 @@ def create_schema(connection_str):
         Column("upload_error", Text, nullable=True),  # nullable=False
         Column("error_type", Text, nullable=True),  # nullable=False
         Column("upload_warnings", JSON, nullable=True),  # nullable=False
-        Column("deleted", BOOLEAN, server_default='false', nullable=False),
+        Column("identification_file_name_clean", Text, nullable=True),
         quote=False
     )
 
