@@ -147,7 +147,7 @@ if __name__ == "__main__":
             id_parser = MzIdParser(os.path.join(local_dir, file), local_dir, local_dir, writer, logger)
             try:
                 id_parser.parse()
-                print(id_parser.warnings + "\n")
+                # print(id_parser.warnings + "\n")
             except Exception as e:
                 logger.exception(e)
                 raise e
