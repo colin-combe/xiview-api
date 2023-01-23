@@ -7,6 +7,8 @@ import time
 import ftplib
 from urllib.parse import urlparse
 import logging
+import gc
+import shutil
 
 from parser.MzIdParser import MzIdParser
 from parser.writer import Writer
@@ -153,7 +155,7 @@ if __name__ == "__main__":
                 raise e
                 System.exit(1)
             mzid_parser = None
-            # gc.collect()
+            gc.collect()
         else:
             continue
 
