@@ -27,7 +27,7 @@ jobs:
       uses: VaultVulp/action-pipenv@v2.0.1
       with:
         # pipenv command and its argument to be executed
-        command: pipenv install
+        command: install
     - name: Setup PostgreSQL
       uses: Harmon758/postgresql-action@v1.0.0
       with:
