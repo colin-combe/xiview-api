@@ -153,7 +153,7 @@ if __name__ == "__main__":
                 raise e
                 System.exit(1)
             mzid_parser = None
-            gc.collect()
+            # gc.collect()
         else:
             continue
 
