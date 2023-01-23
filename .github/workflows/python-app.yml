@@ -22,7 +22,7 @@ jobs:
     - name: Install Python, pipenv and Pipfile packages
       uses: palewire/install-python-pipenv-pipfile@v2
       with:
-        python-version: 3.10
+        python-version: "3.10"
     - name: Pipenv for Github Actions
       uses: VaultVulp/action-pipenv@v2.0.1
       with:
