@@ -44,3 +44,17 @@ Change owner of log directory to www-data:
 Change owner of dbs directory (and sub directories) to www-data:
 
 ```sudo chown -R www-data:www-data dbs```
+
+
+### Run tests
+
+make sure we have the right db user available
+```
+psql -p 5432 -c "create role ximzid_unittests with password 'ximzid_unittests';"
+psql -p 5432 -c 'alter role ximzid_unittests with login;'
+psql -p 5432 -c 'alter role ximzid_unittests with createdb;'
+psql -p 5432 -c 'GRANT pg_signal_backend TO ximzid_unittests;'
+```
+run the tests
+
+```pipenv run pytest```
