@@ -15,11 +15,11 @@ sqlite3 or postgresql
 
 Clone git repository into your web-server directory (e.g. /var/www/html):
 
-```git clone https://github.com/Rappsilber-Laboratory/xiSPEC_ms_parser.git```
+```git clone https://github.com/Rappsilber-Laboratory/xi-mzidentml-converter.git```
 
 cd into the repository:
 
-```cd xiSPEC_ms_parser```
+```cd xi-mzidentml-converter```
 
 Checkout python3 branch:
 
