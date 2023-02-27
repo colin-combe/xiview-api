@@ -1,4 +1,5 @@
 # xi-mzidentml-converter
+![python-app](https://github.com/Rappsilber-Laboratory/xi-mzidentml-converter/actions/workflows/python-app.yml/badge.svg)
 [![Codeship Status for Rappsilber-Laboratory/xiSPEC_ms_parser](https://app.codeship.com/projects/9efffa03-5f03-4cc6-b2b3-0a9eddbe0678/status?branch=python3)](https://app.codeship.com/projects/451392)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
