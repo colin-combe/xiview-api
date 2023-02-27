@@ -5,9 +5,9 @@ name: pytest
 
 on:
   push:
-    branches: [ "python3" ]
+    branches: [ "python3", "pride" ]
   pull_request:
-    branches: [ "python3" ]
+    branches: [ "python3", "pride" ]
 
 permissions:
   contents: read
