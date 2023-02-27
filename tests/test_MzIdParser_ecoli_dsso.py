@@ -422,7 +422,6 @@ def test_psql_mgf_mzid_parser(tmpdir, use_database, engine):
         assert results[0].upload_error is None
         assert results[0].error_type is None
         assert results[0].upload_warnings == []
-        # assert not results[0].deleted
 
     engine.dispose()
 
@@ -573,7 +572,6 @@ def test_psql_mzml_mzid_parser(tmpdir, use_database, engine):
         # assert results[0].upload_warnings == [
         #     'mzidentML file does not specify any fragment ions (child terms of MS_1002473) within '
         #     '<AdditionalSearchParams>. Falling back to b and y ions.']
-        # assert not results[0].deleted
 
     engine.dispose()
 
