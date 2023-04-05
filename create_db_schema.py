@@ -206,7 +206,7 @@ def create_schema(connection_str):
         base.metadata,
         Column("id", GUID, primary_key=True, nullable=False),
         Column("user_id", GUID, ForeignKey("UserAccount.id"), nullable=True),
-        Column("px_accession", Text, nullable=True),
+        Column("project_id", Text, nullable=True),
         Column("identification_file_name", Text, nullable=False),
         Column("provider", JSON, nullable=True),
         Column("audits", JSON, nullable=True),

@@ -435,7 +435,7 @@ class MzIdParser:
         for pep_id in self.mzid_reader._offset_index["Peptide"].keys():
             peptide = self.mzid_reader.get_by_id(pep_id, tag_id='Peptide')
 
-            link_site1 = -1  # ToDo: None?
+            link_site1 = None
             crosslinker_modmass = 0
             crosslinker_pair_id = None
             crosslinker_accession = None
@@ -762,7 +762,7 @@ class MzIdParser:
             'id': self.writer.upload_id,
             'user_id': self.writer.user_id,
             'identification_file_name': filename,
-            'px_accession': self.writer.pxid,
+            'project_id': self.writer.pxid,
             'identification_file_name_clean': re.sub(r'[^0-9a-zA-Z-]+', '-', filename)
         }
         self.writer.write_data('Upload', upload_data)
