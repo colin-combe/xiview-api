@@ -4,7 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-lxml = ">=4.1.1"
+lxml = ">=4.9.1"
 numpy = ">=1.14.3"
 pandas = ">=0.21.0"
 pymzml = ">=0.7.8"
@@ -13,7 +13,7 @@ requests = ">=2.20.1"
 urllib3 = ">=1.24.2"
 pytest = "*"
 psycopg2-binary = "*"
-sqlalchemy = "*"
+sqlalchemy = "==1.4.*"
 sqlalchemy-utils = "*"
 obonet = "*"
 
