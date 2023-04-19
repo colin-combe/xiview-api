@@ -1,12 +1,4 @@
-ALTER TABLE IF EXISTS users RENAME TO useraccount;
-alter table useraccount drop column max_aas;
-alter table useraccount drop column max_spectra;
-alter table useraccount drop column hidden;
-drop table user_in_group;
---add index to useraccount
-
-ALTER TABLE IF EXISTS uploads RENAME TO upload;
-ALTER TABLE upload rename COLUMN filename TO identification_file_name;
+--add index to useraccount?
 
 CREATE TABLE spectrumidentificationprotocol (
 	id text NOT NULL,
