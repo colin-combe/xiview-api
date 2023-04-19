@@ -445,7 +445,9 @@ class MzIdParser:
                     if crosslinker_pair_id is not None:
                         link_site1 = mod['location']
                         crosslinker_modmass = mod['monoisotopicMassDelta']
-                        crosslinker_accession = mod['name'].accession
+                        # if mod has key 'name'
+                        if 'name' in mod:
+                            crosslinker_accession = mod['name'].accession
                     # cross-link acceptor/
                     if crosslinker_pair_id is None:
                         crosslinker_pair_id = cvquery(mod, 'MS:1002510')
