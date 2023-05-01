@@ -164,7 +164,6 @@ def compare_modification(results):
     assert results[5].accession == 'MS:1002510'  # accession from <SearchModification> cvParam
     assert results[5].crosslinker_id == '1.0'  # value from cl donor  / acceptor cv term (is a string)
 
-
     assert results[6].id == 6  # id from incrementing count
     assert results[6].mod_name == 'Oxidation'  # name from <SearchModification> cvParam
     assert results[6].mass == 15.99491  # massDelta from <SearchModification>
@@ -261,9 +260,7 @@ def compare_spectrum_identification_protocol(results):
 
     assert results[0].search_params == {'MS:1001211': 'parent mass type mono', 'MS:1002494': 'cross-linking search', 'MS:1001256': 'fragment mass type mono', 'MS:1001118': 'param: b ion', 'MS:1001262': 'param: y ion'}
 
-    assert results[0].analysis_software == (  # referenced <AnalysisSoftware> json
-        '{"version": "2.1.5.2", "id": "xiFDR_id", "name": "XiFDR", "SoftwareName": '
-        '{"xiFDR": ""}}')
+    assert results[0].analysis_software['id'] == "xiFDR_id"
 
 
 def compare_spectrum_mgf(conn, peak_list_folder):

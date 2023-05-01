@@ -12,6 +12,7 @@ from .NumpyEncoder import NumpyEncoder
 import obonet
 # from sqlalchemy import Table as SATable
 
+
 class MzIdParseException(Exception):
     pass
 
@@ -224,10 +225,11 @@ class MzIdParser:
                 frag_tol_unit = 'ppm'
 
             try:
-                analysis_software = json.dumps(self.mzid_reader.get_by_id(
-                    sid_protocol['analysisSoftware_ref']))
+                analysis_software = self.mzid_reader.get_by_id(sid_protocol['analysisSoftware_ref'])
             except KeyError:
-                analysis_software = '{}'
+                analysis_software = None
+                self.warnings.append(
+                    f'No analysis software given for SpectrumIdentificationProtocol {sid_protocol}.')
 
             # Additional search parameters
             add_sp = sid_protocol.get('AdditionalSearchParams', {})
@@ -445,9 +447,13 @@ class MzIdParser:
                     if crosslinker_pair_id is not None:
                         link_site1 = mod['location']
                         crosslinker_modmass = mod['monoisotopicMassDelta']
-                        # if mod has key 'name'
+                        # if mod has key 'name' - it should as consequence of having 'suitably sourced CV param'
                         if 'name' in mod:
                             crosslinker_accession = mod['name'].accession
+                        else:
+                            crosslinker_accession = None
+                            # self.warnings.append(
+                            #     f'No accession for crosslinker {crosslinker_pair_id} for peptide {pep_id}')
                     # cross-link acceptor/
                     if crosslinker_pair_id is None:
                         crosslinker_pair_id = cvquery(mod, 'MS:1002510')
@@ -456,45 +462,14 @@ class MzIdParser:
                             crosslinker_modmass = mod['monoisotopicMassDelta']  # should be zero but include anyway
 
                     if crosslinker_pair_id is None:
-                        # else:  # save the modification info if it's not crosslink related
-                        # Commented out block that tried to match modifications on peptides to SearchModifications
-                        # ToDo: Might want to revisit this in the future
-                        # if mod['name'].accession == 'MS:1001460':  # unknown modification
-                        #     # loop over search modifications and try to match by mass and residues
-                        #     m_ids = []
-                        #     # monoisotopicMassDelta is optional ToDo: what if not present?
-                        #     mod_mass = mod.get('monoisotopicMassDelta', None)
-                        #     # residues is optional, so fall back to getting the modified amino acid
-                        #     mod_residues = mod.get('residues',
-                        #                            [peptide['PeptideSequence'][mod_location]])
-                        #     for i, sm in enumerate(self.search_modifications):
-                        #         # this doesn't seem super reliable coz of rounding errors in mod masses - cc
-                        #         if sm['accession'] == 'MS:1001460' and sm['mass'] == mod_mass and \
-                        #                 all([m in sm['residues'] for m in mod_residues]):
-                        #             m_ids.append(i)
-                        #     if len(m_ids) != 1:
-                        #         raise MzIdParseException(
-                        #             f'Could not map unknown modification to <SearchModifications>:'
-                        #             f'\n{json.dumps(mod)}')
-                        #     else:
-                        #         mod_ids.append(m_ids[0])
-                        # else:  # not unknown modification accession
-                        #     try:
-                        #         mod_ids.append(search_mod_accessions.index(mod['name'].accession))
-                        #     except ValueError:
-                        #         MzIdParseException(
-                        #             f'Modification not found in <SearchModification>s: '
-                        #             f'{json.dumps(mod)}')
-
                         cvs = cvquery(mod)
-
                         mod_pos.append(mod['location'])
                         mod_accessions.append(cvs)  # unit of fragment loss is always daltons
                         mod_avg_masses.append(mod.get('avgMassDelta', None))
                         mod_monoiso_masses.append(mod.get('monoisotopicMassDelta', None))
 
-            # display warning if only avgMassDelta and monoisotopicMassDelta is missing
-            # error if peaklists uploaded, warning if not?
+                        # display warning if only avgMassDelta and monoisotopicMassDelta is missing
+                        # error if peaklists uploaded, warning if not?
 
             peptide_data = {
                 'id': peptide['id'],
