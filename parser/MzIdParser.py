@@ -10,7 +10,6 @@ import gzip
 import os
 from .NumpyEncoder import NumpyEncoder
 import obonet
-# from sqlalchemy import Table as SATable
 
 
 class MzIdParseException(Exception):
@@ -47,10 +46,6 @@ class MzIdParser:
         self.ms_obo = obonet.read_obo(
             'https://raw.githubusercontent.com/HUPO-PSI/psi-ms-CV/master/psi-ms.obo')
 
-        # ToDo:
-        # From mzidentML schema 1.2.0:
-        # <SpectrumIdentificationProtocol> must contain the CV term 'cross-linking search'
-        # (MS:1002494)
         self.contains_crosslinks = False
 
         self.warnings = []
@@ -72,36 +67,6 @@ class MzIdParser:
         self.logger.info('reading mzid - done. Time: {} sec'.format(round(time() - start_time, 2)))
 
         self.upload_info()  # overridden (empty function) in xiSPEC subclass
-
-    # used by TestLoop when downloading files from PRIDE
-    # def get_supported_peak_list_file_names(self):
-    #     """
-    #     :return: list of all supported peak list file names
-    #     """
-    #     peak_list_file_names = []
-    #     for spectra_data_id in self.mzid_reader._offset_index["SpectraData"].keys():
-    #         sp_datum = self.mzid_reader.get_by_id(spectra_data_id, tag_id='SpectraData',
-    #                                               detailed=True)
-    #         ff_acc = sp_datum['FileFormat']['accession']
-    #         if any([ff_acc == 'MS:1001062',  # MGF
-    #                 ff_acc == 'MS:1000584',  # mzML
-    #                 ff_acc == 'MS:1001466',  # ms2
-    #                 ]):
-    #             peak_list_file_names.append(ntpath.basename(sp_datum['location']))
-    #
-    #     return peak_list_file_names
-
-    # # used by TestLoop when downloading files from PRIDE
-    # def get_all_peak_list_file_names(self):
-    #     """
-    #     :return: list of all peak list file names
-    #     """
-    #     peak_list_file_names = []
-    #     for spectra_data_id in self.mzid_reader._offset_index["SpectraData"].keys():
-    #         sp_datum = self.mzid_reader.get_by_id(spectra_data_id, tag_id='SpectraData')
-    #         peak_list_file_names.append(ntpath.basename(sp_datum['location']))
-    #
-    #     return peak_list_file_names
 
     def parse(self):
         """Parse the file."""
@@ -367,11 +332,6 @@ class MzIdParser:
         self.writer.write_data('Enzyme', enzymes)
         self.search_modifications = search_modifications
 
-    # def check_all_spectra_data_validity(self):
-    #     for spectra_data_id in self.mzid_reader._offset_index["SpectraData"].keys():
-    #         sp_datum = self.mzid_reader.get_by_id(spectra_data_id, tag_id='SpectraData')
-    #         self.check_spectra_data_validity(sp_datum)
-    #
 
     def parse_db_sequences(self):
         """Parse and write the DBSequences."""

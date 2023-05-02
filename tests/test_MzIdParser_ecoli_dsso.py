@@ -120,7 +120,7 @@ def compare_modification(results):
     assert results[0].crosslinker_id == '0.0'  # value from cl donor / acceptor cv term (is a string)
 
     assert results[1].id == 1  # id from incrementing count
-    assert results[1].mod_name == 'cross-link acceptor'  # name from <SearchModification> cvParam / mod mass in brackets if unknown
+    assert results[1].mod_name == 'cross-link acceptor'  # name from <SearchModification> cvParam
     assert results[1].mass == 0  # massDelta from <SearchModification>
     assert results[1].residues == 'STYK'  # residues from <SearchModification>
     assert results[1].specificity_rules == []  # parsed from child <SpecificityRules>
@@ -138,7 +138,7 @@ def compare_modification(results):
     assert results[2].crosslinker_id == '0.0'  # value from cl donor  / acceptor cv term (is a string)
 
     assert results[3].id == 3  # id from incrementing count
-    assert results[3].mod_name == 'cross-link acceptor'  # name from <SearchModification> cvParam / mod mass in brackets if unknown
+    assert results[3].mod_name == 'cross-link acceptor'  # name from <SearchModification> cvParam
     assert results[3].mass == 158.00377  # massDelta from <SearchModification> (mistake in xml?)
     assert results[3].residues == '.'  # residues from <SearchModification>
     assert results[3].specificity_rules == ["MS:1002057"]  # parsed from child <SpecificityRules>
@@ -156,7 +156,7 @@ def compare_modification(results):
     assert results[4].crosslinker_id == '1.0'  # value from cl donor  / acceptor cv term (is a string)
 
     assert results[5].id == 5  # id from incrementing count
-    assert results[5].mod_name == 'cross-link acceptor'  # name from <SearchModification> cvParam / mod mass in brackets if unknown
+    assert results[5].mod_name == 'cross-link acceptor'  # name from <SearchModification> cvParam
     assert results[5].mass == 0  # massDelta from <SearchModification>
     assert results[5].residues == '.'  # residues from <SearchModification>
     assert results[5].specificity_rules == []  # parsed from child <SpecificityRules>
@@ -258,7 +258,9 @@ def compare_spectrum_identification_protocol(results):
     assert results[0].frag_tol == '5.0 ppm'
     # cvParams from <AdditionalSearchParams> 'ion series considered in search' (MS:1002473)
 
-    assert results[0].search_params == {'MS:1001211': 'parent mass type mono', 'MS:1002494': 'cross-linking search', 'MS:1001256': 'fragment mass type mono', 'MS:1001118': 'param: b ion', 'MS:1001262': 'param: y ion'}
+    assert results[0].search_params == {'MS:1001211': 'parent mass type mono', 'MS:1002494': 'cross-linking search',
+                                        'MS:1001256': 'fragment mass type mono', 'MS:1001118': 'param: b ion',
+                                        'MS:1001262': 'param: y ion'}
 
     assert results[0].analysis_software['id'] == "xiFDR_id"
 

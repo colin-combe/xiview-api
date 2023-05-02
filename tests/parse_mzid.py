@@ -5,7 +5,7 @@ from uuid import uuid4
 from .db_pytest_fixtures import *
 
 
-def parse_mzid_into_postgresql(mzid_file, peaklist, tmpdir, logger, use_database, engine):  # remove 'use_database'? - cc
+def parse_mzid_into_postgresql(mzid_file, peaklist, tmpdir, logger, use_database, engine):  # remove 'use_database'? -cc
     # create temp user for user_id
     user_id = uuid4()
     with engine.connect() as conn:

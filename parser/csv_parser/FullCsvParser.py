@@ -59,7 +59,7 @@ class FullCsvParser(AbstractCsvParser):
         #     duplicate_ids = [str(i) for i in duplicate_ids]
         #     raise CsvParseException('Duplicate ids found: %s' % "; ".join(duplicate_ids))
 
-        for identification_id, id_item in self.csv_reader.iterrows():  # identification_id, id_item = id_df.iterrows().next()
+        for identification_id, id_item in self.csv_reader.iterrows():
 
             # 1 based row number
             row_number = identification_id + 1

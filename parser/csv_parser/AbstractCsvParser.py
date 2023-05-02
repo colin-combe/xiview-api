@@ -244,7 +244,7 @@ class AbstractCsvParser:
         #                                     )
         # self.random_id = self.db.get_random_id(self.upload_id, self.cur, self.con)
 
-        #self.writer.write_mzid_info(spectra_formats, provider, audits, samples, bib_refs)
+        # self.writer.write_mzid_info(spectra_formats, provider, audits, samples, bib_refs)
 
     def write_new_upload(self):
         """Write new upload."""

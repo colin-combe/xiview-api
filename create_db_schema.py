@@ -131,7 +131,7 @@ def create_schema(connection_str):
         Column("link_site1", Integer, nullable=True),
         Column("link_site2", Integer, nullable=True),  # only used for storing loop links
         Column("crosslinker_modmass", FLOAT, nullable=True),
-        Column("crosslinker_pair_id", Text, nullable=True), # yes, its a string
+        Column("crosslinker_pair_id", Text, nullable=True),  # yes, its a string
         Column("crosslinker_accession", Text, nullable=True),
         quote=False
     )

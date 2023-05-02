@@ -1,4 +1,4 @@
-from parser import FullCsvParser, NoPeakListsCsvParser, LinksOnlyCsvParser, xiSPEC_CsvParser
+from parser import FullCsvParser, NoPeakListsCsvParser, LinksOnlyCsvParser
 from parser.writer import Writer
 from sqlalchemy import text
 from uuid import uuid4
@@ -90,6 +90,7 @@ def parse_no_peak_lists_csv_into_sqllite(mzid_file, peaklist, tmpdir, logger, us
     id_parser.check_required_columns()
     id_parser.parse()
     return id_parser
+
 
 def parse_links_only_csv_into_sqllite(mzid_file, peaklist, tmpdir, logger, use_database, engine):
     # create writer
