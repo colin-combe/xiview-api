@@ -264,6 +264,23 @@ def compare_spectrum_identification_protocol(results):
 
     assert results[0].analysis_software['id'] == "xiFDR_id"
 
+def compare_analysis_collection_mgf(results):
+    assert len(results) == 2
+    assert results[0].spectrum_identification_list_ref == 'SII_LIST_1_1_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mgf'
+    assert results[0].spectrum_identification_protocol_ref == 'SearchProtocol_1_0'
+    assert results[0].spectra_data_ref == 'SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mgf'
+    assert results[1].spectrum_identification_list_ref == 'SII_LIST_1_1_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mgf'
+    assert results[1].spectrum_identification_protocol_ref == 'SearchProtocol_1_0'
+    assert results[1].spectra_data_ref == 'SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mgf'
+
+def compare_analysis_collection_mzml(results):
+    assert len(results) == 2
+    assert results[0].spectrum_identification_list_ref == 'SII_LIST_1_1_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mzML'
+    assert results[0].spectrum_identification_protocol_ref == 'SearchProtocol_1_0'
+    assert results[0].spectra_data_ref == 'SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mzML'
+    assert results[1].spectrum_identification_list_ref == 'SII_LIST_1_1_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML'
+    assert results[1].spectrum_identification_protocol_ref == 'SearchProtocol_1_0'
+    assert results[1].spectra_data_ref == 'SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML'
 
 def compare_spectrum_mgf(conn, peak_list_folder):
     peaklists = [
@@ -385,6 +402,12 @@ def test_psql_mgf_mzid_parser(tmpdir, use_database, engine):
                      autoload_with=id_parser.writer.engine, quote=False).select()
         rs = conn.execute(stmt)
         compare_spectrum_identification_protocol(rs.fetchall())
+
+        # AnalysisCollection
+        stmt = Table("AnalysisCollection", id_parser.writer.meta,
+                        autoload_with=id_parser.writer.engine, quote=False).select()
+        rs = conn.execute(stmt)
+        compare_analysis_collection_mgf(rs.fetchall())
 
         # Upload
         stmt = Table("Upload", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
@@ -533,6 +556,12 @@ def test_psql_mzml_mzid_parser(tmpdir, use_database, engine):
         rs = conn.execute(stmt)
         compare_spectrum_identification_protocol(rs.fetchall())
 
+        # AnalysisCollection
+        stmt = Table("AnalysisCollection", id_parser.writer.meta,
+                        autoload_with=id_parser.writer.engine, quote=False).select()
+        rs = conn.execute(stmt)
+        compare_analysis_collection_mzml(rs.fetchall())
+
         # Upload
         stmt = Table("Upload", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
                      quote=False).select()
@@ -639,6 +668,13 @@ def test_sqlite_mgf_xispec_mzid_parser(tmpdir):
         rs = conn.execute(stmt)
         compare_spectrum_identification_protocol(rs.fetchall())
 
+
+        # AnalysisCollection
+        stmt = Table("AnalysisCollection", id_parser.writer.meta,
+                        autoload_with=id_parser.writer.engine, quote=False).select()
+        rs = conn.execute(stmt)
+        compare_analysis_collection_mgf(rs.fetchall())
+
         # Upload - not written for xiSPEC
         stmt = Table("Upload", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
                      quote=False).select()
@@ -715,6 +751,12 @@ def test_sqlite_mzml_xispec_mzid_parser(tmpdir):
                      autoload_with=id_parser.writer.engine, quote=False).select()
         rs = conn.execute(stmt)
         compare_spectrum_identification_protocol(rs.fetchall())
+
+        # AnalysisCollection
+        stmt = Table("AnalysisCollection", id_parser.writer.meta,
+                        autoload_with=id_parser.writer.engine, quote=False).select()
+        rs = conn.execute(stmt)
+        compare_analysis_collection_mzml(rs.fetchall())
 
         # Upload - not written for xiSPEC
         stmt = Table("Upload", id_parser.writer.meta, autoload_with=id_parser.writer.engine,

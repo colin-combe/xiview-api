@@ -76,6 +76,7 @@ class MzIdParser:
             self.init_peak_list_readers()
 
         self.parse_analysis_protocol_collection()
+        self.parse_analysis_collection()
         self.parse_db_sequences()  # overridden (empty function) in xiSPEC subclass
         self.parse_peptides()
         self.parse_peptide_evidences()
@@ -332,6 +333,29 @@ class MzIdParser:
         self.writer.write_data('Enzyme', enzymes)
         self.search_modifications = search_modifications
 
+    def parse_analysis_collection(self):
+        """
+        Parse the AnalysisCollection element of the mzIdentML file.
+        """
+        self.logger.info('parsing AnalysisCollection - start')
+        start_time = time()
+        spectrum_identification = []
+        for si_key in self.mzid_reader._offset_index['SpectrumIdentification'].keys():
+            si = self.mzid_reader.get_by_id(si_key, detailed=True)
+            for input_spectra in si['InputSpectra']:
+                si_data = {
+                    'upload_id': self.writer.upload_id,
+                    'spectrum_identification_protocol_ref': si['spectrumIdentificationProtocol_ref'],
+                    'spectrum_identification_list_ref': si['spectrumIdentificationList_ref'],
+                    'spectra_data_ref': input_spectra['spectraData_ref'],
+                }
+            spectrum_identification.append(si_data)
+
+        self.mzid_reader.reset()
+        self.logger.info('parsing AnalysisCollection - done. Time: {} sec'.format(
+            round(time() - start_time, 2)))
+
+        self.writer.write_data('AnalysisCollection', spectrum_identification)
 
     def parse_db_sequences(self):
         """Parse and write the DBSequences."""

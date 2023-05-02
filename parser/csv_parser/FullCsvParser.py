@@ -426,7 +426,7 @@ class FullCsvParser(AbstractCsvParser):
                 'id': identification_id,
                 'upload_id': self.writer.upload_id,
                 'spectrum_id': spectrum_id,
-                'spectra_data_ref': peak_list_file_name,
+                # 'spectra_data_ref': peak_list_file_name,
                 'pep1_id': pep1_id,
                 'pep2_id': pep2_id,
                 'charge_state': int(charge),

@@ -172,6 +172,11 @@ def create_schema(connection_str):
         Column("meta1", Text, server_default='', nullable=True),
         Column("meta2", Text, server_default='', nullable=True),
         Column("meta3", Text, server_default='', nullable=True),
+        ForeignKeyConstraint(
+            ["spectra_data_ref", "upload_id"],
+            ["AnalysisCollection.spectra_data_ref",
+             "AnalysisCollection.upload_id"],
+        ),
         # Can't use this ForeignKeyConstraint, because we want to allow people to upload data
         # without spectra
         # ForeignKeyConstraint(
@@ -187,6 +192,20 @@ def create_schema(connection_str):
             ["ModifiedPeptide.id", "ModifiedPeptide.upload_id"],
         ),
         quote=False
+    )
+
+    Table("AnalysisCollection",
+          base.metadata,
+          Column("upload_id", GUID, ForeignKey("Upload.id"), index=True, primary_key=True,
+                 nullable=False),
+          Column("spectrum_identification_list_ref", Text, primary_key=False, nullable=False),
+          Column("spectrum_identification_protocol_ref", Text, primary_key=False, nullable=False),
+          Column("spectra_data_ref", Text, primary_key=True, nullable=False),
+          ForeignKeyConstraint(
+              ["spectrum_identification_protocol_ref", "upload_id"],
+              ["SpectrumIdentificationProtocol.id", "SpectrumIdentificationProtocol.upload_id"],
+          ),
+          quote=False
     )
 
     Table(
