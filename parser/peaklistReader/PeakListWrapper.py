@@ -8,8 +8,6 @@ from abc import ABC, abstractmethod
 import numpy as np
 import io
 import tarfile
-import mmap
-from lxml.etree import XMLSyntaxError
 
 
 class PeakListParseError(Exception):
@@ -25,8 +23,7 @@ class ScanNotFoundException(Exception):
 
 
 class Spectrum:
-    def __init__(self, precursor, mz_array, int_array, scan_id, rt=np.nan, file_name='',
-                 source_path='', run_name='', scan_number=-1, scan_index=-1, title=''):
+    def __init__(self, precursor, mz_array, int_array, rt=np.nan):
         """
         Initialise a Spectrum object.
 
@@ -34,23 +31,10 @@ class Spectrum:
             102.234, 'charge': 2, 'intensity': 12654.35}
         :param mz_array: (ndarray, dtype: float64) m/z values of the spectrum peaks
         :param int_array: (ndarray, dtype: float64) intensity values of the spectrum peaks
-        :param scan_id: (str) Unique scan identifier
         :param rt: (str) Retention time in seconds (can be a range, e.g 60-62)
-        :param file_name: (str) Name of the peaklist file
-        :param source_path: (str) Path to the peaklist source
-        :param run_name: (str) Name of the MS run
-        :param scan_number: (int) Scan number of the spectrum
-        :param scan_index: (int) Index of the spectrum in the file
         """
         self.precursor = precursor
-        self.scan_id = scan_id
-        self.scan_number = scan_number
-        self.scan_index = scan_index
         self.rt = rt
-        self.file_name = file_name
-        self.source_path = source_path
-        self.run_name = run_name
-        self.title = title
         mz_array = np.asarray(mz_array, dtype=np.float64)
         int_array = np.asarray(int_array, dtype=np.float64)
         # make sure that the m/z values are sorted asc
@@ -58,34 +42,6 @@ class Spectrum:
         self.mz_values = mz_array[sorted_indices]
         self.int_values = int_array[sorted_indices]
         self._precursor_mass = None
-
-    # @property
-    # def precursor_charge(self):
-    #     """Get the precursor charge state."""
-    #     return self.precursor['charge']
-    #
-    # @property
-    # def precursor_mz(self):
-    #     """Get the precursor m/z."""
-    #     return self.precursor['mz']
-    #
-    # @precursor_mz.setter
-    # def precursor_mz(self, mz):
-    #     self._precursor_mass = None
-    #     self.precursor['mz'] = mz
-    #
-    # @property
-    # def precursor_int(self):
-    #     """Get the precursor intensity."""
-    #     return self.precursor['intensity']
-    #
-    # @property
-    # def precursor_mass(self):
-    #     """Return the neutral mass of the precursor."""
-    #     if self._precursor_mass is None:
-    #         self._precursor_mass = (self.precursor['mz'] - const.proton_mass) *\
-    #             self.precursor['charge']
-    #     return self._precursor_mass
 
 
 class PeakListWrapper:
@@ -198,25 +154,13 @@ class SpectraReader(ABC):
 
     @abstractmethod
     def __getitem__(self, spec_id):
-        """
-        Return the spectrum depending on the SpectrumIdFormat.
-
-        """
+        """Return the spectrum depending on the SpectrumIdFormat."""
         ...
 
     @abstractmethod
-    def _convert_spectrum(self, spec_id, spec):
+    def _convert_spectrum(self, spec):
         """Convert the spectrum from the reader to a Spectrum object."""
         ...
-
-    # @abstractmethod
-    # def count_spectra(self):
-    #     """
-    #     Count the number of spectra.
-    #
-    #     :return (int) Number of spectra in the file
-    #     """
-    #     ...
 
 
 class MGFReader(SpectraReader):
@@ -248,7 +192,8 @@ class MGFReader(SpectraReader):
         # Used for referencing peak list files with one spectrum per file,
         # typically in a folder of PKL or DTAs, where each sourceFileRef is different.
         elif self.spectrum_id_format_accession == 'MS:1000775':
-            spec = self._reader[0]
+            spec_id = 0
+            spec = self._reader[spec_id]
 
         # # MS:1000768 Thermo nativeID format: ToDo: not supported for now.
         # # controllerType=xsd:nonNegativeInt controllerNumber=xsd:positiveInt scan=xsd:positiveInt
@@ -260,7 +205,7 @@ class MGFReader(SpectraReader):
             raise SpectrumIdFormatError(
                     f"{self.spectrum_id_format_accession} not supported for MGF")
 
-        return self._convert_spectrum(spec_id, spec)
+        return self._convert_spectrum(spec)
 
     def load(self, source, file_name=None, source_path=None):
         """
@@ -273,24 +218,7 @@ class MGFReader(SpectraReader):
         self._reader = mgf.read(source, use_index=True)
         super().load(source, file_name, source_path)
 
-    def count_spectra(self):
-        """
-        Count the number of spectra.
-
-        :return (int) Number of spectra in the file.
-        """
-        if issubclass(type(self._source), io.TextIOBase):
-            text = self._source.read()
-            result = len(list(re.findall('BEGIN IONS', text)))
-            self._source.seek(0)
-        else:
-            with open(self._source, 'r+') as f:
-                text = mmap.mmap(f.fileno(), 0)
-                result = len(list(re.findall(b'BEGIN IONS', text)))
-                text.close()
-        return result
-
-    def _convert_spectrum(self, scan_index, spec):
+    def _convert_spectrum(self, spec):
         """Convert the spectrum from the reader to a Spectrum object."""
         precursor = {
             'mz': spec['params']['pepmass'][0],
@@ -298,24 +226,10 @@ class MGFReader(SpectraReader):
             'intensity': spec['params']['pepmass'][1]
         }
 
-        # # parse retention time, default to NaN
-        # rt = mgf_spec['params'].get('rtinseconds', np.nan)
-        #
-        # # try to parse scan number and run_name from title
-        # title = mgf_spec['params'].get('title', '')
-        # run_name_match = re.search(self._re_run_name, title)
-        # try:
-        #     run_name = run_name_match.group(1)
-        # except AttributeError:
-        #     run_name = self.default_run_name
-        #
-        # scan_number_match = re.search(self._re_scan_number, title)
-        # try:
-        #     scan_number = int(scan_number_match.group(1))
-        # except (AttributeError, ValueError):
-        #     scan_number = -1
+        # parse retention time, default to NaN
+        rt = spec['params'].get('rtinseconds', np.nan)
 
-        return Spectrum(precursor, spec['m/z array'], spec['intensity array'], scan_index)
+        return Spectrum(precursor, spec['m/z array'], spec['intensity array'], rt)
 
 
 class MZMLReader(SpectraReader):
@@ -323,7 +237,6 @@ class MZMLReader(SpectraReader):
 
     def __init__(self, spectrum_id_format_accession):
         super().__init__(spectrum_id_format_accession)
-        self.default_run_name = None
 
     def __getitem__(self, spec_id):
         """
@@ -359,7 +272,7 @@ class MZMLReader(SpectraReader):
             raise SpectrumIdFormatError(
                     f"{self.spectrum_id_format_accession} not supported for mzML!")
 
-        return self._convert_spectrum(spec_id, spec)
+        return self._convert_spectrum(spec)
 
     def load(self, source, file_name=None, source_path=None):
         """
@@ -374,40 +287,6 @@ class MZMLReader(SpectraReader):
             self._reader = mzml.read(source, use_index=True)
         super().load(source, file_name, source_path)
 
-        # get the default run name
-        if issubclass(type(self._source), tarfile.ExFileObject) or \
-                issubclass(type(self._source), zipfile.ZipExtFile):
-            text = self._source.read()
-            result = re.finditer(b'defaultSourceFileRef="(.*)"', text)
-            try:
-                result = result.__next__().groups()
-            except StopIteration:
-                result = None
-            self._source.seek(0)
-        else:
-            with open(self._source, 'r+') as f:
-                text = mmap.mmap(f.fileno(), 0)
-                result = re.finditer(b'defaultSourceFileRef="(.*)"', text)
-                try:
-                    result = result.__next__().groups()
-                except StopIteration:
-                    result = None
-                text.close()
-        if result is not None:
-            self.default_run_name = self._reader.get_by_id(result[0].decode('ascii'))['name']
-        else:
-            # try to get the default run name from sourceFileList:
-            try:
-                source_files = list(self._reader.iterfind('//sourceFileList'))[0]
-                # if there is more than one entry we can't determine the default
-                if source_files['count'] != 1:
-                    self.default_run_name = file_name
-                else:
-                    self.default_run_name = source_files['sourceFile'][0]['name']
-            except XMLSyntaxError:
-                self.default_run_name = file_name
-            self.reset()
-
     def reset(self):
         """Reset the reader."""
         if issubclass(type(self._source), tarfile.ExFileObject) or \
@@ -417,14 +296,7 @@ class MZMLReader(SpectraReader):
         else:
             self._reader.reset()
 
-    def count_spectra(self):
-        """
-        Count the number of spectra.
-        :return (int) Number of spectra in the file.
-        """
-        return len(self._reader)
-
-    def _convert_spectrum(self, spec_id, spec):
+    def _convert_spectrum(self, spec):
 
         # check for single scan per spectrum
         if spec['scanList']['count'] != 1:
@@ -436,7 +308,7 @@ class MZMLReader(SpectraReader):
         if spec['precursorList']['count'] != 1 or \
                 spec['precursorList']['precursor'][0]['selectedIonList']['count'] != 1:
             raise ValueError(
-                "xiSEARCH2 currently only supports a single precursor per spectrum.")
+                "Currently only a single precursor per spectrum is supported.")
         p = spec['precursorList']['precursor'][0]['selectedIonList']['selectedIon'][0]
 
         # create precursor dict
@@ -446,31 +318,11 @@ class MZMLReader(SpectraReader):
             'intensity': p.get('peak intensity', np.nan)
         }
 
-        # id is required in mzML so set this as scan_id
-        scan_id = spec['id']
-
-        # index is also required in mzML so just use this
-        scan_index = spec['index']
-
         # parse retention time, default to NaN
         rt = scan.get('scan start time', np.nan)
         rt = rt * 60
 
-        # sourceFileRef can optionally reference the 'id' of the appropriate sourceFile.
-        if hasattr(spec, 'sourceFileRef'):
-            run_name = self._reader.get_element_by_id(spec['sourceFileRef'])['name']
-        else:
-            run_name = self.default_run_name
-
-        # # try to parse scan number from scan_id
-        # scan_number_match = re.search(self._re_scan_number, scan_id)
-        # try:
-        #     scan_number = int(scan_number_match.group(1))
-        # except (AttributeError, ValueError):
-        #     scan_number = None
-
-        return Spectrum(precursor, spec['m/z array'], spec['intensity array'], scan_id,
-                        rt, self.file_name, self.source_path, run_name, scan_index=scan_index)
+        return Spectrum(precursor, spec['m/z array'], spec['intensity array'], rt)
 
 
 class MS2Reader(SpectraReader):
@@ -498,7 +350,8 @@ class MS2Reader(SpectraReader):
         # Used for referencing peak list files with one spectrum per file,
         # typically in a folder of PKL or DTAs, where each sourceFileRef is different.
         elif self.spectrum_id_format_accession == 'MS:1000775':
-            spec = self._reader[0]
+            spec_id = 0
+            spec = self._reader[spec_id]
 
         # ToDo: not supported for now.
         # # MS:1000768 Thermo nativeID format:
@@ -510,7 +363,7 @@ class MS2Reader(SpectraReader):
         else:
             raise SpectrumIdFormatError(
                     f"{self.spectrum_id_format_accession} not supported for MS2")
-        return self._convert_spectrum(spec_id, spec)
+        return self._convert_spectrum(spec)
 
     def load(self, source, file_name=None, source_path=None):
         """
@@ -523,47 +376,18 @@ class MS2Reader(SpectraReader):
         self._reader = ms2.read(source, use_index=True)
         super().load(source, file_name, source_path)
 
-    def count_spectra(self):
+    def _convert_spectrum(self, spec):
         """
-        Count the number of spectra.
-
-        :return (int) Number of spectra in the file.
+        Convert spectrum to Spectrum object.
         """
-        raise NotImplemented('Count spectra currently not implemented for MS2.')
-        # if issubclass(type(self._source), io.TextIOBase):
-        #     text = self._source.read()
-        #     result = len(list(re.findall('BEGIN IONS', text)))
-        #     self._source.seek(0)
-        # else:
-        #     with open(self._source, 'r+') as f:
-        #         text = mmap.mmap(f.fileno(), 0)
-        #         result = len(list(re.findall(b'BEGIN IONS', text)))
-        #         text.close()
-        # return result
-
-    def _convert_spectrum(self, scan_index, spec):
-        # ToDo:
         precursor = {
-            'mz': spec['params']['pepmass'][0],
+            'mz': spec['params']['precursor m/z'],
             'charge': spec['params']['charge'][0],
-            'intensity': spec['params']['pepmass'][1]
+            'intensity': spec['params']['PrecursorInt']
         }
 
-        # # parse retention time, default to NaN
-        # rt = mgf_spec['params'].get('rtinseconds', np.nan)
-        #
-        # # try to parse scan number and run_name from title
-        # title = mgf_spec['params'].get('title', '')
-        # run_name_match = re.search(self._re_run_name, title)
-        # try:
-        #     run_name = run_name_match.group(1)
-        # except AttributeError:
-        #     run_name = self.default_run_name
-        #
-        # scan_number_match = re.search(self._re_scan_number, title)
-        # try:
-        #     scan_number = int(scan_number_match.group(1))
-        # except (AttributeError, ValueError):
-        #     scan_number = -1
+        # parse retention time, default to NaN
+        rt = spec['params'].get('RetTime', np.nan)
+        rt = float(rt) * 60
 
-        return Spectrum(precursor, spec['m/z array'], spec['intensity array'], scan_index)
+        return Spectrum(precursor, spec['m/z array'], spec['intensity array'], rt)

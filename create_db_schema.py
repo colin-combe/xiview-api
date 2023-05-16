@@ -143,12 +143,12 @@ def create_schema(connection_str):
         Column("spectra_data_ref", Text, primary_key=True, nullable=False),
         Column("upload_id", GUID, ForeignKey("Upload.id"),  primary_key=True, index=True,
                nullable=False),
-        Column("scan_id", Text, nullable=False),   # parsed scan_id ToDo: Do we need this?
         Column("peak_list_file_name", Text, nullable=False),
         Column("precursor_mz", FLOAT, nullable=False),
         Column("precursor_charge", SMALLINT, nullable=True),
         Column("mz", LargeBinary, nullable=False),
         Column("intensity", LargeBinary, nullable=False),
+        Column("retention_time", FLOAT, nullable=True),
         quote=False
     )
 

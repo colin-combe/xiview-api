@@ -71,11 +71,9 @@ class MzIdParser:
     def parse(self):
         """Parse the file."""
         start_time = time()
-
+        self.parse_analysis_protocol_collection()
         if self.peak_list_dir:
             self.init_peak_list_readers()
-
-        self.parse_analysis_protocol_collection()
         self.parse_analysis_collection()
         self.parse_db_sequences()  # overridden (empty function) in xiSPEC subclass
         self.parse_peptides()
@@ -159,7 +157,11 @@ class MzIdParser:
         search_modifications = []
         enzymes = []
         for sid_protocol_id in self.mzid_reader._offset_index['SpectrumIdentificationProtocol'].keys():
-            sid_protocol = self.mzid_reader.get_by_id(sid_protocol_id, detailed=True)
+            try:
+                sid_protocol = self.mzid_reader.get_by_id(sid_protocol_id, detailed=True)
+            except KeyError:
+                raise MzIdParseException('SpectrumIdentificationProtocol not found: %s, '
+                                         'this can be caused by any schema error, such as missing name or accession in a cvParam ' % sid_protocol_id)
 
             # FragmentTolerance
             try:
@@ -557,13 +559,12 @@ class MzIdParser:
                     'id': sid_result["spectrumID"],
                     'spectra_data_ref': sid_result['spectraData_ref'],
                     'upload_id': self.writer.upload_id,
-                    'scan_id': spectrum.scan_id,  # ToDo: Do we need this parsed scan_id?
-                    # ToDo: from Spectrum?
                     'peak_list_file_name': ntpath.basename(peak_list_reader.peak_list_path),
                     'precursor_mz': spectrum.precursor['mz'],
                     'precursor_charge': spectrum.precursor['charge'],
                     'mz': spectrum.mz_values,
                     'intensity': spectrum.int_values,
+                    'retention_time': spectrum.rt
                 })
 
             spectrum_ident_dict = dict()

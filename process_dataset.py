@@ -53,22 +53,24 @@ if __name__ == "__main__":
     # arguments, one of three options to specify location of data
     parser = argparse.ArgumentParser(
         description='Process mzIdentML files in a dataset and load them into a relational database.')
+    parser.add_argument('--dontdelete', action='store_true', help='Do not delete downloaded data after processing')
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('-p', '--pxid',
+    group.add_argument('-p', '--pxid', nargs='+',
                        help='proteomeXchange accession, should be of the form PXDnnnnnn or numbers only', )
-    group.add_argument('-f', '--ftp',
-                       help='process files from specified ftp location, e.g. ftp://ftp.jpostdb.org/JPST001914/')
-    group.add_argument('-d', '--dir',
-                       help='process files in specified local directory, e.g. /home/user/data/JPST001914')
+    # group.add_argument('-f', '--ftp',
+    #                    help='process files from specified ftp location, e.g. ftp://ftp.jpostdb.org/JPST001914/')
+    # group.add_argument('-d', '--dir',
+    #                    help='process files in specified local directory, e.g. /home/user/data/JPST001914')
     args = parser.parse_args()
     # only one of the three options will be specified
-    px_accession = args.pxid
-    ftp_url = args.ftp
-    local_dir = args.dir
+    px_accessions = args.pxid
+    ftp_url = None  # args.ftp
+    local_dir = None  # args.dir
 
     temp_dir = os.path.expanduser('~/mzId_convertor_temp')
 
-    if px_accession:
+    for px_accession in px_accessions:
+    # if px_accession:
         # get ftp location from PX
         px_url = 'http://proteomecentral.proteomexchange.org/cgi/GetDataset?ID=' + px_accession + '&outputMode=JSON'
         print('GET request to ProteomeExchange: ' + px_url)
@@ -93,77 +95,77 @@ if __name__ == "__main__":
             print('Error: ProteomeXchange returned status code ' + str(pxresponse.status_code))
             sys.exit(1)
 
-    if ftp_url:
-        if not ftp_url.startswith('ftp://'):
-            print('Error: FTP location must start with ftp://')
-            sys.exit(1)
-        if not os.path.isdir(temp_dir):
-            try:
-                os.mkdir(temp_dir)
-            except OSError as e:
-                print('Failed to create temp directory ' + temp_dir)
-                print('Error: ' + e.strerror)
+        if ftp_url:
+            if not ftp_url.startswith('ftp://'):
+                print('Error: FTP location must start with ftp://')
                 sys.exit(1)
-        print('FTP url: ' + ftp_url)
-        parsed_url = urlparse(ftp_url)
-        if not px_accession:
-            px_accession = parsed_url.path.rsplit("/", 1)[-1]
-        path = os.path.join(temp_dir, px_accession)
-        try:
-            os.mkdir(path)
-        except OSError:
-            pass
-        ftp_ip = socket.getaddrinfo(parsed_url.hostname, 21)[0][4][0]
-        files = get_ftp_file_list(ftp_ip, parsed_url.path)
-        for f in files:
-            # check file not already in temp dir
-            if not (os.path.isfile(os.path.join(path, f))
-                    or f.lower == "generated"  # dunno what these files are but they seem to make ftp break
-                    or f.lower().endswith('raw')
-                    or f.lower().endswith('raw.gz')
-                    or f.lower().endswith('all.zip')):
-                print('Downloading ' + f + ' to ' + path)
-                ftp = get_ftp_login(ftp_ip)
+            if not os.path.isdir(temp_dir):
                 try:
-                    ftp.cwd(parsed_url.path)
-                    ftp.retrbinary("RETR " + f, open(os.path.join(path, f), 'wb').write)
-                    ftp.quit()
-                except ftplib.error_perm as e:
-                    ftp.quit()
-                    error_msg = "%s: %s" % (f, e.args[0])
-                    # self.logger.error(error_msg)
+                    os.mkdir(temp_dir)
+                except OSError as e:
+                    print('Failed to create temp directory ' + temp_dir)
+                    print('Error: ' + e.strerror)
+                    sys.exit(1)
+            print('FTP url: ' + ftp_url)
+            parsed_url = urlparse(ftp_url)
+            if not px_accession:
+                px_accession = parsed_url.path.rsplit("/", 1)[-1]
+            path = os.path.join(temp_dir, px_accession)
+            try:
+                os.mkdir(path)
+            except OSError:
+                pass
+            ftp_ip = socket.getaddrinfo(parsed_url.hostname, 21)[0][4][0]
+            files = get_ftp_file_list(ftp_ip, parsed_url.path)
+            for f in files:
+                # check file not already in temp dir
+                if not (os.path.isfile(os.path.join(path, f))
+                        or f.lower == "generated"  # dunno what these files are but they seem to make ftp break
+                        or f.lower().endswith('raw')
+                        or f.lower().endswith('raw.gz')
+                        or f.lower().endswith('all.zip')):
+                    print('Downloading ' + f + ' to ' + path)
+                    ftp = get_ftp_login(ftp_ip)
+                    try:
+                        ftp.cwd(parsed_url.path)
+                        ftp.retrbinary("RETR " + f, open(os.path.join(path, f), 'wb').write)
+                        ftp.quit()
+                    except ftplib.error_perm as e:
+                        ftp.quit()
+                        error_msg = "%s: %s" % (f, e.args[0])
+                        # self.logger.error(error_msg)
+                        raise e
+                        System.exit(1)
+            local_dir = path
+
+        #  iterate over files in local_dir
+        for file in os.listdir(local_dir):
+            if file.endswith(".mzid") or file.endswith(".mzid.gz"):
+                print("Processing " + file)
+                logging.basicConfig(level=logging.DEBUG,
+                                    format='%(asctime)s %(levelname)s %(name)s %(message)s')
+
+                logger = logging.getLogger(__name__)
+                conn_str = f'postgresql://{db.username}:{db.password}@{db.hostname}:{db.port}/{db.database}'
+                writer = Writer(conn_str, pxid=px_accession)
+                id_parser = MzIdParser(os.path.join(local_dir, file), local_dir, local_dir, writer, logger)
+                try:
+                    id_parser.parse()
+                    # print(id_parser.warnings + "\n")
+                except Exception as e:
+                    logger.exception(e)
                     raise e
                     System.exit(1)
-        local_dir = path
-
-    #  iterate over files in local_dir
-    for file in os.listdir(local_dir):
-        if file.endswith(".mzid") or file.endswith(".mzid.gz"):
-            print("Processing " + file)
-            logging.basicConfig(level=logging.DEBUG,
-                                format='%(asctime)s %(levelname)s %(name)s %(message)s')
-
-            logger = logging.getLogger(__name__)
-            conn_str = f'postgresql://{db.username}:{db.password}@{db.hostname}:{db.port}/{db.database}'
-            writer = Writer(conn_str, pxid=px_accession)
-            id_parser = MzIdParser(os.path.join(local_dir, file), local_dir, local_dir, writer, logger)
-            try:
-                id_parser.parse()
-                # print(id_parser.warnings + "\n")
-            except Exception as e:
-                logger.exception(e)
-                raise e
-                System.exit(1)
-            mzid_parser = None
-            gc.collect()
-        else:
-            continue
+                mzid_parser = None
+                gc.collect()
+            else:
+                continue
 
     # remove downloaded files
-    if ftp_url:
-        try:
-            shutil.rmtree(local_dir)
-        except OSError as e:
-            print('Failed to delete temp directory ' + local_dir)
-            print('Error: ' + e.strerror)
-            sys.exit(1)
+    # if ftp_url:
+    #     try:
+    #         shutil.rmtree(local_dir)
+    #     except OSError as e:
+    #         print('Failed to delete temp directory ' + local_dir)
+    #         print('Error: ' + e.strerror)
+    #         sys.exit(1)

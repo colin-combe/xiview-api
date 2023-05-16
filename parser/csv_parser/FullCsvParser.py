@@ -306,7 +306,6 @@ class FullCsvParser(AbstractCsvParser):
                         'id': scan_id,
                         'spectra_data_ref': peak_list_file_name,
                         'upload_id': self.writer.upload_id,
-                        'scan_id': spectrum.scan_id,  # ToDo: Do we need this parsed scan_id?
                         'peak_list_file_name': peak_list_file_name,
                         'precursor_mz': spectrum.precursor['mz'],
                         'precursor_charge': spectrum.precursor['charge'],
