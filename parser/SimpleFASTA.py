@@ -1,5 +1,6 @@
 import re
 
+#  why aren't we using pyteomics? todo? probably we haven't look at yet coz its only used by cvs parsers not mzid
 
 def get_db_sequence_dict(fasta_file_list):
     db_sequence_dict = {}
@@ -13,9 +14,9 @@ def get_db_sequence_dict(fasta_file_list):
                 if line.startswith(">"):
                     if identifier is not None:
                         add_entry(identifier, sequence, description, db_sequence_dict)
-
-                        # clear sequence
+                        identifier = None
                         sequence = ""
+                        description = None
 
                     # get new identifier
                     identifier = line
