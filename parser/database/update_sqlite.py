@@ -1,6 +1,7 @@
 from parser.parser import SQLite
 import glob
 
+
 def update_database(con, db_name):
 
     cur = con.cursor()

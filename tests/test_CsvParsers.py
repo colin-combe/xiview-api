@@ -34,6 +34,7 @@ def test_full_csv_parser_postgres_mgf(tmpdir, db_info, use_database, engine):
         rs = conn.execute(stmt)
         # compare_db_sequence(rs.fetchall())
 
+
 def test_no_peak_lists_csv_parser_postgres(tmpdir, db_info, use_database, engine):
     # file paths
     fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'csv_parser',
@@ -59,6 +60,21 @@ def test_links_only_csv_parser_postgres(tmpdir, db_info, use_database, engine):
     id_parser = parse_links_only_csv_into_postgresql(csv, None, tmpdir, logger, use_database, engine)
 
 
+def test_ambiguous_links_only_csv_parser_postgres(tmpdir, db_info, use_database, engine):
+    # file paths
+    fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'csv_parser', 'linksonly_csv')
+    csv = os.path.join(fixtures_dir, 'test_GH.csv')
+    # parse the csv file
+    id_parser = parse_links_only_csv_into_postgresql(csv, None, tmpdir, logger, use_database, engine)
+
+    with engine.connect() as conn:
+        # PeptideEvidence
+        stmt = Table("PeptideEvidence", id_parser.writer.meta,
+                     autoload_with=id_parser.writer.engine, quote=False).select()
+        rs = conn.execute(stmt)
+        results = rs.fetchall()
+        assert len(results) == 6
+
 
 def test_full_csv_parser_sqllite_mgf(tmpdir, db_info, use_database, engine):
     # file paths
@@ -83,6 +99,7 @@ def test_full_csv_parser_sqllite_mgf(tmpdir, db_info, use_database, engine):
                      quote=False).select()
         rs = conn.execute(stmt)
         # compare_db_sequence(rs.fetchall())
+
 
 def test_no_peak_lists_csv_parser_sqllite(tmpdir, db_info, use_database, engine):
     # file paths
@@ -117,9 +134,6 @@ def test_links_only_csv_parser_sqllite(tmpdir, db_info, use_database, engine):
     id_parser = parse_links_only_csv_into_sqllite(csv, None, tmpdir, logger, use_database, engine)
 
 
-
-#
-#
 # def test_xispec_csv_parser_mzml(tmpdir):
 #     # file paths
 #     fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'csv_parser', 'xispec_mzml')

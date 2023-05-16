@@ -120,7 +120,7 @@ def compare_modification(results):
     assert results[0].crosslinker_id == '0.0'  # value from cl donor / acceptor cv term (is a string)
 
     assert results[1].id == 1  # id from incrementing count
-    assert results[1].mod_name == 'cross-link acceptor'  # name from <SearchModification> cvParam / mod mass in brackets if unknown
+    assert results[1].mod_name == 'cross-link acceptor'  # name from <SearchModification> cvParam
     assert results[1].mass == 0  # massDelta from <SearchModification>
     assert results[1].residues == 'STYK'  # residues from <SearchModification>
     assert results[1].specificity_rules == []  # parsed from child <SpecificityRules>
@@ -138,7 +138,7 @@ def compare_modification(results):
     assert results[2].crosslinker_id == '0.0'  # value from cl donor  / acceptor cv term (is a string)
 
     assert results[3].id == 3  # id from incrementing count
-    assert results[3].mod_name == 'cross-link acceptor'  # name from <SearchModification> cvParam / mod mass in brackets if unknown
+    assert results[3].mod_name == 'cross-link acceptor'  # name from <SearchModification> cvParam
     assert results[3].mass == 158.00377  # massDelta from <SearchModification> (mistake in xml?)
     assert results[3].residues == '.'  # residues from <SearchModification>
     assert results[3].specificity_rules == ["MS:1002057"]  # parsed from child <SpecificityRules>
@@ -156,14 +156,13 @@ def compare_modification(results):
     assert results[4].crosslinker_id == '1.0'  # value from cl donor  / acceptor cv term (is a string)
 
     assert results[5].id == 5  # id from incrementing count
-    assert results[5].mod_name == 'cross-link acceptor'  # name from <SearchModification> cvParam / mod mass in brackets if unknown
+    assert results[5].mod_name == 'cross-link acceptor'  # name from <SearchModification> cvParam
     assert results[5].mass == 0  # massDelta from <SearchModification>
     assert results[5].residues == '.'  # residues from <SearchModification>
     assert results[5].specificity_rules == []  # parsed from child <SpecificityRules>
     assert results[5].fixed_mod  # fixedMod from <SearchModification>
     assert results[5].accession == 'MS:1002510'  # accession from <SearchModification> cvParam
     assert results[5].crosslinker_id == '1.0'  # value from cl donor  / acceptor cv term (is a string)
-
 
     assert results[6].id == 6  # id from incrementing count
     assert results[6].mod_name == 'Oxidation'  # name from <SearchModification> cvParam
@@ -259,12 +258,29 @@ def compare_spectrum_identification_protocol(results):
     assert results[0].frag_tol == '5.0 ppm'
     # cvParams from <AdditionalSearchParams> 'ion series considered in search' (MS:1002473)
 
-    assert results[0].search_params == {'MS:1001211': 'parent mass type mono', 'MS:1002494': 'cross-linking search', 'MS:1001256': 'fragment mass type mono', 'MS:1001118': 'param: b ion', 'MS:1001262': 'param: y ion'}
+    assert results[0].search_params == {'MS:1001211': 'parent mass type mono', 'MS:1002494': 'cross-linking search',
+                                        'MS:1001256': 'fragment mass type mono', 'MS:1001118': 'param: b ion',
+                                        'MS:1001262': 'param: y ion'}
 
-    assert results[0].analysis_software == (  # referenced <AnalysisSoftware> json
-        '{"version": "2.1.5.2", "id": "xiFDR_id", "name": "XiFDR", "SoftwareName": '
-        '{"xiFDR": ""}}')
+    assert results[0].analysis_software['id'] == "xiFDR_id"
 
+def compare_analysis_collection_mgf(results):
+    assert len(results) == 2
+    assert results[0].spectrum_identification_list_ref == 'SII_LIST_1_1_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mgf'
+    assert results[0].spectrum_identification_protocol_ref == 'SearchProtocol_1_0'
+    assert results[0].spectra_data_ref == 'SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mgf'
+    assert results[1].spectrum_identification_list_ref == 'SII_LIST_1_1_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mgf'
+    assert results[1].spectrum_identification_protocol_ref == 'SearchProtocol_1_0'
+    assert results[1].spectra_data_ref == 'SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mgf'
+
+def compare_analysis_collection_mzml(results):
+    assert len(results) == 2
+    assert results[0].spectrum_identification_list_ref == 'SII_LIST_1_1_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mzML'
+    assert results[0].spectrum_identification_protocol_ref == 'SearchProtocol_1_0'
+    assert results[0].spectra_data_ref == 'SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mzML'
+    assert results[1].spectrum_identification_list_ref == 'SII_LIST_1_1_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML'
+    assert results[1].spectrum_identification_protocol_ref == 'SearchProtocol_1_0'
+    assert results[1].spectra_data_ref == 'SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML'
 
 def compare_spectrum_mgf(conn, peak_list_folder):
     peaklists = [
@@ -375,17 +391,18 @@ def test_psql_mgf_mzid_parser(tmpdir, use_database, engine):
         assert results[0].exp_mz == 945.677359
         # calculatedMassToCharge from <SpectrumIdentificationItem>
         assert results[0].calc_mz == pytest.approx(945.6784858667701, abs=1e-12)
-        # Meta columns are only parsed from csv docs
-        assert results[0].meta1 == ''
-        assert results[0].meta2 == ''
-        assert results[0].meta3 == ''
-        # ToDo: check more rows?
 
         # SpectrumIdentificationProtocol
         stmt = Table("SpectrumIdentificationProtocol", id_parser.writer.meta,
                      autoload_with=id_parser.writer.engine, quote=False).select()
         rs = conn.execute(stmt)
         compare_spectrum_identification_protocol(rs.fetchall())
+
+        # AnalysisCollection
+        stmt = Table("AnalysisCollection", id_parser.writer.meta,
+                        autoload_with=id_parser.writer.engine, quote=False).select()
+        rs = conn.execute(stmt)
+        compare_analysis_collection_mgf(rs.fetchall())
 
         # Upload
         stmt = Table("Upload", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
@@ -422,7 +439,6 @@ def test_psql_mgf_mzid_parser(tmpdir, use_database, engine):
         assert results[0].upload_error is None
         assert results[0].error_type is None
         assert results[0].upload_warnings == []
-        assert not results[0].deleted
 
     engine.dispose()
 
@@ -523,17 +539,18 @@ def test_psql_mzml_mzid_parser(tmpdir, use_database, engine):
         assert results[0].exp_mz == 945.677359
         # calculatedMassToCharge from <SpectrumIdentificationItem>
         assert results[0].calc_mz == pytest.approx(945.6784858667701, abs=1e-12)
-        # Meta columns are only parsed from csv docs
-        assert results[0].meta1 == ''
-        assert results[0].meta2 == ''
-        assert results[0].meta3 == ''
-        # ToDo: check more rows?
 
         # SpectrumIdentificationProtocol
         stmt = Table("SpectrumIdentificationProtocol", id_parser.writer.meta,
                      autoload_with=id_parser.writer.engine, quote=False).select()
         rs = conn.execute(stmt)
         compare_spectrum_identification_protocol(rs.fetchall())
+
+        # AnalysisCollection
+        stmt = Table("AnalysisCollection", id_parser.writer.meta,
+                        autoload_with=id_parser.writer.engine, quote=False).select()
+        rs = conn.execute(stmt)
+        compare_analysis_collection_mzml(rs.fetchall())
 
         # Upload
         stmt = Table("Upload", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
@@ -573,7 +590,6 @@ def test_psql_mzml_mzid_parser(tmpdir, use_database, engine):
         # assert results[0].upload_warnings == [
         #     'mzidentML file does not specify any fragment ions (child terms of MS_1002473) within '
         #     '<AdditionalSearchParams>. Falling back to b and y ions.']
-        assert not results[0].deleted
 
     engine.dispose()
 
@@ -641,6 +657,13 @@ def test_sqlite_mgf_xispec_mzid_parser(tmpdir):
                      autoload_with=id_parser.writer.engine, quote=False).select()
         rs = conn.execute(stmt)
         compare_spectrum_identification_protocol(rs.fetchall())
+
+
+        # AnalysisCollection
+        stmt = Table("AnalysisCollection", id_parser.writer.meta,
+                        autoload_with=id_parser.writer.engine, quote=False).select()
+        rs = conn.execute(stmt)
+        compare_analysis_collection_mgf(rs.fetchall())
 
         # Upload - not written for xiSPEC
         stmt = Table("Upload", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
@@ -718,6 +741,12 @@ def test_sqlite_mzml_xispec_mzid_parser(tmpdir):
                      autoload_with=id_parser.writer.engine, quote=False).select()
         rs = conn.execute(stmt)
         compare_spectrum_identification_protocol(rs.fetchall())
+
+        # AnalysisCollection
+        stmt = Table("AnalysisCollection", id_parser.writer.meta,
+                        autoload_with=id_parser.writer.engine, quote=False).select()
+        rs = conn.execute(stmt)
+        compare_analysis_collection_mzml(rs.fetchall())
 
         # Upload - not written for xiSPEC
         stmt = Table("Upload", id_parser.writer.meta, autoload_with=id_parser.writer.engine,

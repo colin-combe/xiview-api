@@ -131,7 +131,7 @@ def create_schema(connection_str):
         Column("link_site1", Integer, nullable=True),
         Column("link_site2", Integer, nullable=True),  # only used for storing loop links
         Column("crosslinker_modmass", FLOAT, nullable=True),
-        Column("crosslinker_pair_id", Text, nullable=True), # yes, its a string
+        Column("crosslinker_pair_id", Text, nullable=True),  # yes, its a string
         Column("crosslinker_accession", Text, nullable=True),
         quote=False
     )
@@ -143,12 +143,12 @@ def create_schema(connection_str):
         Column("spectra_data_ref", Text, primary_key=True, nullable=False),
         Column("upload_id", GUID, ForeignKey("Upload.id"),  primary_key=True, index=True,
                nullable=False),
-        Column("scan_id", Text, nullable=False),   # parsed scan_id ToDo: Do we need this?
         Column("peak_list_file_name", Text, nullable=False),
         Column("precursor_mz", FLOAT, nullable=False),
         Column("precursor_charge", SMALLINT, nullable=True),
         Column("mz", LargeBinary, nullable=False),
         Column("intensity", LargeBinary, nullable=False),
+        Column("retention_time", FLOAT, nullable=True),
         quote=False
     )
 
@@ -160,7 +160,7 @@ def create_schema(connection_str):
                nullable=False),
         Column("spectrum_id", Text, nullable=True),
         Column("spectra_data_ref", Text, nullable=True),
-        Column("crosslink_identification_id", Integer, nullable=True),
+        Column("multiple_spectra_identification_id", Integer, nullable=True),
         Column("pep1_id", Text, nullable=False),
         Column("pep2_id", Text, nullable=True),
         Column("charge_state", Integer, nullable=True),
@@ -169,9 +169,11 @@ def create_schema(connection_str):
         Column("scores", JSON, nullable=True),
         Column("exp_mz", FLOAT, nullable=True),
         Column("calc_mz", FLOAT, nullable=True),
-        Column("meta1", Text, server_default='', nullable=True),
-        Column("meta2", Text, server_default='', nullable=True),
-        Column("meta3", Text, server_default='', nullable=True),
+        ForeignKeyConstraint(
+            ["spectra_data_ref", "upload_id"],
+            ["AnalysisCollection.spectra_data_ref",
+             "AnalysisCollection.upload_id"],
+        ),
         # Can't use this ForeignKeyConstraint, because we want to allow people to upload data
         # without spectra
         # ForeignKeyConstraint(
@@ -187,6 +189,20 @@ def create_schema(connection_str):
             ["ModifiedPeptide.id", "ModifiedPeptide.upload_id"],
         ),
         quote=False
+    )
+
+    Table("AnalysisCollection",
+          base.metadata,
+          Column("upload_id", GUID, ForeignKey("Upload.id"), index=True, primary_key=True,
+                 nullable=False),
+          Column("spectrum_identification_list_ref", Text, primary_key=False, nullable=False),
+          Column("spectrum_identification_protocol_ref", Text, primary_key=False, nullable=False),
+          Column("spectra_data_ref", Text, primary_key=True, nullable=False),
+          ForeignKeyConstraint(
+              ["spectrum_identification_protocol_ref", "upload_id"],
+              ["SpectrumIdentificationProtocol.id", "SpectrumIdentificationProtocol.upload_id"],
+          ),
+          quote=False
     )
 
     Table(
@@ -205,7 +221,8 @@ def create_schema(connection_str):
         "Upload",
         base.metadata,
         Column("id", GUID, primary_key=True, nullable=False),
-        Column("user_id", GUID, ForeignKey("UserAccount.id"), nullable=False),
+        Column("user_id", GUID, ForeignKey("UserAccount.id"), nullable=True),
+        Column("project_id", Text, nullable=True),
         Column("identification_file_name", Text, nullable=False),
         Column("provider", JSON, nullable=True),
         Column("audits", JSON, nullable=True),
@@ -217,7 +234,7 @@ def create_schema(connection_str):
         Column("upload_error", Text, nullable=True),  # nullable=False
         Column("error_type", Text, nullable=True),  # nullable=False
         Column("upload_warnings", JSON, nullable=True),  # nullable=False
-        Column("deleted", BOOLEAN, server_default='false', nullable=False),
+        Column("identification_file_name_clean", Text, nullable=True),
         quote=False
     )
 

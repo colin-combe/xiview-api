@@ -59,7 +59,7 @@ class FullCsvParser(AbstractCsvParser):
         #     duplicate_ids = [str(i) for i in duplicate_ids]
         #     raise CsvParseException('Duplicate ids found: %s' % "; ".join(duplicate_ids))
 
-        for identification_id, id_item in self.csv_reader.iterrows():  # identification_id, id_item = id_df.iterrows().next()
+        for identification_id, id_item in self.csv_reader.iterrows():
 
             # 1 based row number
             row_number = identification_id + 1
@@ -306,7 +306,6 @@ class FullCsvParser(AbstractCsvParser):
                         'id': scan_id,
                         'spectra_data_ref': peak_list_file_name,
                         'upload_id': self.writer.upload_id,
-                        'scan_id': spectrum.scan_id,  # ToDo: Do we need this parsed scan_id?
                         'peak_list_file_name': peak_list_file_name,
                         'precursor_mz': spectrum.precursor['mz'],
                         'precursor_charge': spectrum.precursor['charge'],
@@ -426,7 +425,7 @@ class FullCsvParser(AbstractCsvParser):
                 'id': identification_id,
                 'upload_id': self.writer.upload_id,
                 'spectrum_id': spectrum_id,
-                'spectra_data_ref': peak_list_file_name,
+                # 'spectra_data_ref': peak_list_file_name,
                 'pep1_id': pep1_id,
                 'pep2_id': pep2_id,
                 'charge_state': int(charge),

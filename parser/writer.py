@@ -17,7 +17,7 @@ def Table(name, *args, **kw):
 class Writer:
     """Class for writing results to a relational database."""
 
-    def __init__(self, connection_str, user_id=None, upload_id=None):
+    def __init__(self, connection_str, user_id=None, upload_id=None, pxid=None):
         """
         Initialises the database connection and the writer in general.
 
@@ -35,7 +35,10 @@ class Writer:
             self.upload_id = str(uuid4())
         # if user_id is not None and not isinstance(user_id, UUID):
         #     raise Exception('user_id must be a uuid!')
-        self.user_id = str(user_id)
+        if user_id is not None:
+            user_id = str(user_id)
+        self.user_id = user_id
+        self.pxid = pxid
         # Create table schema if necessary (SQLite)
         if not database_exists(self.engine.url):
             create_schema(self.engine.url)

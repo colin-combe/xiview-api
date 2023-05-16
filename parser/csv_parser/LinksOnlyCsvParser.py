@@ -3,7 +3,6 @@ from .AbstractCsvParser import CsvParseException
 from time import time
 import re
 import json
-import math
 
 
 class LinksOnlyCsvParser(AbstractCsvParser):
@@ -37,7 +36,7 @@ class LinksOnlyCsvParser(AbstractCsvParser):
 
         crosslinker_pair_count = 0
 
-        for identification_id, id_item in self.csv_reader.iterrows():  # identification_id, id_item = id_df.iterrows().next()
+        for identification_id, id_item in self.csv_reader.iterrows():
 
             # 1 based row number
             row_number = identification_id + 1
@@ -117,8 +116,8 @@ class LinksOnlyCsvParser(AbstractCsvParser):
             # ToDo: might need changing for xiUI where pepPos is not optional
             self.logger.info(id_item['abspos2'])
             abs2 = id_item['abspos2']
-            if abs2 == -1: #or math.isnan(abs2):
-                abs_pos_list2 = [-1] * len(protein_list2)
+            if abs2 == -1:  # or math.isnan(abs2): # todo - check
+                abs_pos_list2 = [-1] * len(protein_list2)  # todo - check, should maybe set it to none instead of -1
             else:
                 abs_pos_list2 = str(id_item['abspos2']).split(";")
                 abs_pos_list2 = [s.strip().replace("'", "") for s in abs_pos_list2]
@@ -229,35 +228,14 @@ class LinksOnlyCsvParser(AbstractCsvParser):
             #
             scores = json.dumps({'score': score})
 
-            # try:
-            #     meta1 = id_item[self.meta_columns[0]]
-            # except IndexError:
-            #     meta1 = ""
-            # try:
-            #     meta2 = id_item[self.meta_columns[1]]
-            # except IndexError:
-            #     meta2 = ""
-            # try:
-            #     meta3 = id_item[self.meta_columns[2]]
-            # except IndexError:
-            #     meta3 = ""
-
             spectrum_identification = {
                 'id': identification_id,
                 'upload_id': self.writer.upload_id,
-                # 'spectrum_id': spectrum_id,
-                # 'spectra_data_ref': peak_list_file_name,
                 'pep1_id': pep1_id,
                 'pep2_id': pep2_id,
-                # 'charge_state': int(charge),
                 'pass_threshold': True,
                 'rank': 1,
                 'scores': scores,
-                # 'exp_mz': exp_mz,
-                # 'calc_mz': calc_mz,
-                 # meta1,
-                 # meta2,
-                 # meta3
             }
 
             spectrum_identifications.append(spectrum_identification)
@@ -299,12 +277,11 @@ class LinksOnlyCsvParser(AbstractCsvParser):
 
             db_sequences.append(db_seq)
 
-
         # for prot in proteins:
         #     try:
         #         # data = [prot] + self.fasta[prot] + [self.upload_id]
         #         temp = self.fasta[prot]
-        #         data = [prot, temp[0], temp[1], temp[2], temp[3], self.writer.upload_id]  # surely there's a better way
+        #         data = [prot, temp[0], temp[1], temp[2], temp[3], self.writer.upload_id]  # surely there's better way
         #     except Exception as ke:
         #         sp_regex = re.compile('(.*)\|(.*)\|(.*)')
         #         matches = sp_regex.search(prot)
