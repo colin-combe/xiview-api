@@ -11,6 +11,8 @@ from sqlalchemy import text
 from pyteomics import mgf
 from .db_pytest_fixtures import *
 from .parse_mzid import parse_mzid_into_postgresql, parse_mzid_into_sqlite_xispec
+import struct
+
 
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(levelname)s %(name)s %(message)s')
@@ -292,7 +294,7 @@ def compare_spectrum_mgf(conn, peak_list_folder):
         results = rs.fetchall()
         assert len(results) == 11
         reader = mgf.read(os.path.join(peak_list_folder, pl))
-        for r in rs:
+        for r in results:
             # For MGF the index is encoded as e.g. index=3
             reader_idx = int(r.id.replace('index=', ''))
             spectrum = reader[reader_idx]
@@ -303,6 +305,11 @@ def compare_spectrum_mgf(conn, peak_list_folder):
             assert r.peak_list_file_name == pl
             assert r.precursor_mz == spectrum['params']['pepmass'][0]
             assert r.precursor_charge == spectrum['params']['charge'][0]
+            # check that mz and intensity values are as expected
+            # 1. unpacking the blob
+            assert_array_equal(struct.unpack('%sd' % (len(r.mz) // 8), r.mz), spectrum['m/z array'])
+            assert_array_equal(struct.unpack('%sd' % (len(r.mz) // 8), r.intensity), spectrum['intensity array'])
+            # 2. using np.frombuffer (this works because np assumes double precision as default)
             assert_array_equal(np.frombuffer(r.mz), spectrum['m/z array'])
             assert_array_equal(np.frombuffer(r.intensity), spectrum['intensity array'])
 

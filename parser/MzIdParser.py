@@ -1,3 +1,4 @@
+import struct
 from pyteomics import mzid  # https://pyteomics.readthedocs.io/en/latest/data.html#controlled-vocabularies
 from pyteomics.auxiliary import cvquery
 import re
@@ -553,6 +554,13 @@ class MzIdParser:
                 peak_list_reader = self.peak_list_readers[sid_result['spectraData_ref']]
 
                 spectrum = peak_list_reader[sid_result["spectrumID"]]
+
+                # convert mz and intensity numpy arrays into tightly packed binary objects
+                mz_blob = spectrum.mz_values.tolist()
+                mz_blob = struct.pack(f'{len(mz_blob)}d', *mz_blob)
+                intensity_blob = spectrum.int_values.tolist()
+                intensity_blob = struct.pack(f'{len(intensity_blob)}d', *intensity_blob)
+
                 spectra.append({
                     'id': sid_result["spectrumID"],
                     'spectra_data_ref': sid_result['spectraData_ref'],
@@ -560,8 +568,8 @@ class MzIdParser:
                     'peak_list_file_name': ntpath.basename(peak_list_reader.peak_list_path),
                     'precursor_mz': spectrum.precursor['mz'],
                     'precursor_charge': spectrum.precursor['charge'],
-                    'mz': spectrum.mz_values,
-                    'intensity': spectrum.int_values,
+                    'mz': mz_blob,
+                    'intensity': intensity_blob,
                     'retention_time': spectrum.rt
                 })
 
