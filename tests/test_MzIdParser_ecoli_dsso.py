@@ -308,7 +308,7 @@ def compare_spectrum_mgf(conn, peak_list_folder):
             # check that mz and intensity values are as expected
             # 1. unpacking the blob
             assert_array_equal(struct.unpack('%sd' % (len(r.mz) // 8), r.mz), spectrum['m/z array'])
-            assert_array_equal(struct.unpack('%sd' % (len(r.mz) // 8), r.intensity), spectrum['intensity array'])
+            assert_array_equal(struct.unpack('%sd' % (len(r.intensity) // 8), r.intensity), spectrum['intensity array'])
             # 2. using np.frombuffer (this works because np assumes double precision as default)
             assert_array_equal(np.frombuffer(r.mz), spectrum['m/z array'])
             assert_array_equal(np.frombuffer(r.intensity), spectrum['intensity array'])
