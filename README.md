@@ -9,11 +9,11 @@ python3.10
 
 pipenv
 
-sqlite3 or postgresql
+sqlite3 or postgresql (these instruction use posrgresql)
 
-### Installation
+## 1. Installation
 
-Clone git repository into your web-server directory (e.g. /var/www/html):
+Clone git repository :
 
 ```git clone https://github.com/Rappsilber-Laboratory/xi-mzidentml-converter.git```
 
@@ -25,28 +25,61 @@ Checkout python3 branch:
 
 ```git checkout python3```
 
-Create pipenv:
+## 2. create a postgresql role and database to use
 
-```pipenv install --python 3.10```
+```
+sudo su postgres
+psql
+create database xiview;
+create user xiadmin with login password 'your_password_here';
+grant all privileges on database xiview to xiadmin;
+```
 
-Create uploads directory:
+find the hba.conf file in the postgresql installation directory and add a line to allow  the xiadmin role to access the database:
+e.g.
+```
+sudo nano /etc/postgresql/13/main/pg_hba.conf
+```
+then add the line:
+`local   xiview   xiadmin   md5`
 
-```mkdir ../uploads```
+then restart postgresql:
+```
+sudo service postgresql restart
+```
 
-Change owner of uploads directory to www-data:
+## 3. Configure the python environment for the file parser
 
-```sudo chown www-data:www-data ../uploads/```
+edit the file xiSPEC_ms_parser/credentials.py to point to your postgressql database.
+e.g. so its content is:
+```
+hostname = 'localhost'
+username = 'xiadmin'
+password = 'your_password_here'
+database = 'xiview'
+port = 5432
+```
 
-Change owner of log directory to www-data:
+Set up the python environment:
 
-```sudo chown www-data:www-data log```
+```
+cd xiSPEC_ms_parser
+pipenv install --python 3.10
+```
 
-Change owner of dbs directory (and sub directories) to www-data:
+run create_db_schema.py to create the database tables:
+```
+python create_db_schema.py
+```
 
-```sudo chown -R www-data:www-data dbs```
+parse a test dataset:
+```
+python process_dataset.py -d ~/PXD038060 -i PXD038060
+```
 
+The argument ```-d``` is the directory to read files from and ```-i``` is the project identifier to use in the database.
 
-### Run tests
+### To run tests
 
 Make sure we have the right db user available
 ```
