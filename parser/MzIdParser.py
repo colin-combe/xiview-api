@@ -162,7 +162,8 @@ class MzIdParser:
                 sid_protocol = self.mzid_reader.get_by_id(sid_protocol_id, detailed=True)
             except KeyError:
                 raise MzIdParseException('SpectrumIdentificationProtocol not found: %s, '
-                                         'this can be caused by any schema error, such as missing name or accession in a cvParam ' % sid_protocol_id)
+                                         'this can be caused by any schema error, '
+                                         'such as missing name or accession in a cvParam ' % sid_protocol_id)
 
             # FragmentTolerance
             try:
@@ -352,7 +353,7 @@ class MzIdParser:
                     'spectrum_identification_list_ref': si['spectrumIdentificationList_ref'],
                     'spectra_data_ref': input_spectra['spectraData_ref'],
                 }
-            spectrum_identification.append(si_data)
+                spectrum_identification.append(si_data)
 
         self.mzid_reader.reset()
         self.logger.info('parsing AnalysisCollection - done. Time: {} sec'.format(
@@ -454,7 +455,6 @@ class MzIdParser:
                         mod_accessions.append(cvs)  # unit of fragment loss is always daltons
                         mod_avg_masses.append(mod.get('avgMassDelta', None))
                         mod_monoiso_masses.append(mod.get('monoisotopicMassDelta', None))
-
 
             peptide_data = {
                 'id': peptide['id'],
