@@ -55,5 +55,5 @@ spec:
     - protocol: TCP
       port: $PORT
       targetPort: $PORT
-      nodePort: $node_port
+#      nodePort: $node_port
   type: NodePort
