@@ -1,8 +1,7 @@
-apiVersion: batch/v1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: $app_name
-  namespace: proteomics
   labels:
     app: $app_name
 spec:
