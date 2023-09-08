@@ -29,6 +29,9 @@ spec:
             items:
               - key: database.ini
                 path: database.ini
+        - name: cache-volume
+          emptyDir:
+              sizeLimit: 500Mi
       containers:
         - name: $app_name
           image: $IMAGE
