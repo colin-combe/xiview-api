@@ -22,6 +22,7 @@ RUN mkdir -p /home/appuser/mzId_convertor_temp
 USER appuser
 
 # Install application into container
+COPY app ./app
 COPY dbs ./dbs
 COPY log ./log
 COPY obo ./obo
