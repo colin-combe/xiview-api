@@ -36,8 +36,12 @@ spec:
         - name: $app_name
           image: $IMAGE
           imagePullPolicy: Always
+          command: [ "uvicorn" ]
+          args: [ "app.api:app", "--port=6000", "--host", "0.0.0.0" ]
           ports:
             - containerPort: $PORT
+              name: http
+              protocol: TCP
           volumeMounts:
             - name: application-db-config
               mountPath: /home/appuser/database.ini
@@ -55,7 +59,8 @@ spec:
   selector:
     app: $app_name
   ports:
-    - protocol: TCP
-      port: $PORT
-      targetPort: $PORT
+    - port: $PORT
+      protocol: TCP
+      targetPort: http
+  type: ClusterIP
 #  type: NodePort
