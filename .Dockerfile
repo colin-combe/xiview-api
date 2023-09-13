@@ -32,4 +32,4 @@ COPY *.py .
 COPY default.database.ini .
 COPY .kubernetes.yml .
 
-CMD ["uvicorn", "app.api:app", "--host", "0.0.0.0", "--port", "8081"]
+CMD ["uvicorn", "app.api:app", "--host", "0.0.0.0", "--port", "6000"]
