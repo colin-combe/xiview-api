@@ -4,10 +4,10 @@ from app.routes.index import get_session
 from process_dataset import convert_pxd_accession
 import os
 
-main_router = APIRouter(prefix="/parse")
+main_router = APIRouter()
 
 
-@main_router.get("/{px_accession}", tags=["Main"])
+@main_router.get("/parse/{px_accession}", tags=["Main"])
 async def parse(px_accession: str, temp_dir: str | None = None, dont_delete: bool = False,
                 session: Session = Depends(get_session)):
     if temp_dir:
