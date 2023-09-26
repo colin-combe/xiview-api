@@ -26,3 +26,6 @@ credentials.py
 *.pyc
 
 test.db
+database.ini
+kubernetes.yml
+Dockerfile

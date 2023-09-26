@@ -258,11 +258,11 @@ def create_schema(connection_str):
 
 if __name__ == "__main__":
     try:
-        from credentials import *
+        from db_config_parser import get_conn_str
     except ModuleNotFoundError:
         raise ModuleNotFoundError(
             'Database credentials missing! '
-            'Change credentials_template.py and save as credentials.py')
-    conn_str = f"postgresql://{username}:{password}@{hostname}/{database}"
+            'Change default.database.ini and save as database.ini')
+    conn_str = get_conn_str()
     create_db(conn_str)
     create_schema(conn_str)

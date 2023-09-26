@@ -13,7 +13,7 @@ import shutil
 from parser.MzIdParser import MzIdParser
 from parser.writer import Writer
 
-import credentials as db
+from db_config_parser import get_conn_str
 
 
 def main(args):
@@ -154,7 +154,7 @@ def convert_dir(local_dir, project_identifier):
     for file in os.listdir(local_dir):
         if file.endswith(".mzid") or file.endswith(".mzid.gz"):
             print("Processing " + file)
-            conn_str = f'postgresql://{db.username}:{db.password}@{db.hostname}:{db.port}/{db.database}'
+            conn_str = get_conn_str()
             writer = Writer(conn_str, pxid=project_identifier)
             id_parser = MzIdParser(os.path.join(local_dir, file), local_dir, local_dir, writer, logger)
             try:
