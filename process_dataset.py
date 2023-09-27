@@ -28,16 +28,16 @@ def main(args):
             convert_pxd_accession(px_accession, temp_dir, args.dontdelete)
     elif args.ftp:
         ftp_url = args.ftp
-        if args.project_identifier_to_use:
-            project_identifier = args.project_identifier_to_use
+        if args.identifier:
+            project_identifier = args.identifier
         else:
             parsed_url = urlparse(ftp_url)
             project_identifier = parsed_url.path.rsplit("/", 1)[-1]
         convert_from_ftp(ftp_url, temp_dir, project_identifier, args.dontdelete)
     else:
         local_dir = args.dir
-        if args.project_identifier_to_use:
-            project_identifier = args.project_identifier_to_use
+        if args.identifier:
+            project_identifier = args.identifier
         else:
             project_identifier = local_dir.path.rsplit("/", 1)[-1]
         convert_dir(local_dir, project_identifier)
