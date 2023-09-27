@@ -18,6 +18,6 @@ async def parse(px_accession: str, temp_dir: str | None = None, dont_delete: boo
     convert_pxd_accession(px_accession, temp_dir, dont_delete)
 
 
-@main_router.get("/health", tags=["Main"])
+@main_router.get("/health-test", tags=["Main"])
 async def health():
     return "OK"
