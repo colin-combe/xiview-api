@@ -4,7 +4,8 @@ from app.routes.index import get_session
 from process_dataset import convert_pxd_accession
 import os
 
-main_router = APIRouter(prefix="/pride/archive/xi-mzidentml-converter-api")
+# main_router = APIRouter(prefix="/pride/archive/xi-mzidentml-converter-api")
+main_router = APIRouter(prefix="/api")
 
 
 @main_router.get("/parse/{px_accession}", tags=["Main"])
