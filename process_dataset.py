@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 import logging
 import gc
 import shutil
+from urllib.parse import urlparse
 
 from parser.MzIdParser import MzIdParser
 from parser.writer import Writer
@@ -25,7 +26,8 @@ def main(args):
     if args.pxid:
         px_accessions = args.pxid
         for px_accession in px_accessions:
-            convert_pxd_accession(px_accession, temp_dir, args.dontdelete)
+            # convert_pxd_accession(px_accession, temp_dir, args.dontdelete)
+            convert_pxd_accession_from_pride(px_accession, temp_dir, args.dontdelete)
     elif args.ftp:
         ftp_url = args.ftp
         if args.identifier:
@@ -64,6 +66,42 @@ def convert_pxd_accession(px_accession, temp_dir, dont_delete=False):
     else:
         raise Exception('Error: ProteomeXchange returned status code ' + str(px_response.status_code))
 
+
+def convert_pxd_accession_from_pride(px_accession, temp_dir, dont_delete=False):
+    # get ftp location from PRIDE API
+    px_url = 'https://www.ebi.ac.uk/pride/ws/archive/v2/files/byProject?accession=' + px_accession
+    print('GET request to PRIDE API: ' + px_url)
+    pride_response = requests.get(px_url)
+    r = requests.get(px_url)
+    if r.status_code == 200:
+        print('PRIDE API returned status code 200')
+        pride_json = pride_response.json()
+        ftp_url = None
+
+        if len(pride_json) > 0:
+            for protocol in pride_json[0]['publicFileLocations']:
+                if protocol['name'] == "FTP Protocol":
+
+                    # Parse the FTP path
+                    parsed_url = urlparse(protocol['value'])
+
+                    # Split the path into segments
+                    path_segments = parsed_url.path.split('/')
+
+                    # Construct the parent folder path
+                    parent_folder = parsed_url.scheme + '://' + parsed_url.netloc
+
+                    for segment in path_segments[:-1]:  # Exclude the filename with extension part
+                        parent_folder += segment + '/'
+                    ftp_url = parent_folder
+
+                    print('PRIDE FTP path : ' + parent_folder)
+                    break;
+        convert_from_ftp(ftp_url, temp_dir, px_accession, dont_delete)
+        if not ftp_url:
+            raise Exception('Error: Public File location not found in PRIDE API response')
+    else:
+        raise Exception('Error: PRIDE API returned status code ' + str(pride_response.status_code))
 
 def convert_from_ftp(ftp_url, temp_dir, project_identifier, dont_delete):
     if not ftp_url.startswith('ftp://'):
