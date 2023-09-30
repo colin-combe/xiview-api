@@ -8,9 +8,8 @@ import os
 main_router = APIRouter()
 
 
-@main_router.get("/parse/{px_accession}", tags=["Main"])
-async def parse(px_accession: str, temp_dir: str | None = None, dont_delete: bool = False,
-                session: Session = Depends(get_session)):
+@main_router.post("/parse/{px_accession}", tags=["Main"])
+async def parse(px_accession: str, temp_dir: str | None = None, dont_delete: bool = False):
     if temp_dir:
         temp_dir = os.path.expanduser(temp_dir)
     else:
