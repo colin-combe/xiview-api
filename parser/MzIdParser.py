@@ -143,7 +143,23 @@ class MzIdParser:
                         sp_datum['SpectrumIDFormat'].accession
                     )
                 except IOError:
-                    raise MzIdParseException('Missing peak list file: %s' % peak_list_file_path)
+                    # look for missing peak lists in zip files
+                    for file in os.listdir(self.peak_list_dir):
+                        if file.endswith(".zip"):
+                            zip_file = os.path.join(self.peak_list_dir, file)
+                            try:
+                                with zipfile.ZipFile(zip_file, 'r') as zip_ref:
+                                    zip_ref.extractall(self.peak_list_dir)
+                            except IOError:
+                                raise IOError()
+                    try:
+                        peak_list_reader = PeakListWrapper(
+                            peak_list_file_path,
+                            sp_datum['FileFormat'].accession,
+                            sp_datum['SpectrumIDFormat'].accession
+                        )
+                    except Exception:
+                        raise MzIdParseException('Missing peak list file: %s' % peak_list_file_path)
 
             peak_list_readers[sd_id] = peak_list_reader
 
@@ -413,7 +429,7 @@ class MzIdParser:
         peptides = []
         for pep_id in self.mzid_reader._offset_index["Peptide"].keys():
             peptide = self.mzid_reader.get_by_id(pep_id, tag_id='Peptide')
-
+            self.logger.debug(peptide)
             link_site1 = None
             crosslinker_modmass = 0
             crosslinker_pair_id = None
@@ -426,7 +442,7 @@ class MzIdParser:
             if 'Modification' in peptide.keys():
                 # parse modifications and crosslink info
                 for mod in peptide['Modification']:
-
+                    self.logger.debug(mod)
                     # parse crosslinker info
                     # ToDo: crosslinker mod mass should go into Crosslinker Table together with
                     #   specificity info. Mapping to this table would work same as for modifications
@@ -474,7 +490,7 @@ class MzIdParser:
             peptides.append(peptide_data)
 
             # Batch write 1000 peptides into the DB
-            if peptide_index % 1000 == 0:
+            if peptide_index > 0 and peptide_index % 1000 == 0:
                 self.logger.info('writing 1000 peptides to DB')
                 try:
                     self.writer.write_data('ModifiedPeptide', peptides)
