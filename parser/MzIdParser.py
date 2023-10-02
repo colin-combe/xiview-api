@@ -429,7 +429,7 @@ class MzIdParser:
         peptides = []
         for pep_id in self.mzid_reader._offset_index["Peptide"].keys():
             peptide = self.mzid_reader.get_by_id(pep_id, tag_id='Peptide')
-            self.logger.debug(peptide)
+            # self.logger.debug(peptide)
             link_site1 = None
             crosslinker_modmass = 0
             crosslinker_pair_id = None
@@ -442,7 +442,7 @@ class MzIdParser:
             if 'Modification' in peptide.keys():
                 # parse modifications and crosslink info
                 for mod in peptide['Modification']:
-                    self.logger.debug(mod)
+                    # self.logger.debug(mod)
                     # parse crosslinker info
                     # ToDo: crosslinker mod mass should go into Crosslinker Table together with
                     #   specificity info. Mapping to this table would work same as for modifications
