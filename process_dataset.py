@@ -128,7 +128,9 @@ def convert_from_ftp(ftp_url, temp_dir, project_identifier, dont_delete):
                 or f.lower == "generated"  # dunno what these files are but they seem to make ftp break
                 or f.lower().endswith('raw')
                 or f.lower().endswith('raw.gz')
-                or f.lower().endswith('all.zip')):
+                or f.lower().endswith('all.zip')
+                or f.lower().endswith('csv')
+                or f.lower().endswith('txt')):
             print('Downloading ' + f + ' to ' + path)
             ftp = get_ftp_login(ftp_ip)
             try:
@@ -199,6 +201,8 @@ def convert_dir(local_dir, project_identifier):
                 id_parser.parse()
                 # print(id_parser.warnings + "\n")
             except Exception as e:
+                print("Error parsing " + file)
+                print(type(e).__name__, e)
                 raise e
             gc.collect()
         else:
