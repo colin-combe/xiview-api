@@ -43,8 +43,10 @@ jobs:
         context: .
         push: true
         tags: |
-          ghcr.io/${{ vars.API_GITHUB_REPOSITORY }}:latest
-          ghcr.io/${{ vars.API_GITHUB_REPOSITORY }}:${{ env.IMAGE_TAG }}
+#          ghcr.io/${{ vars.API_GITHUB_REPOSITORY }}:latest
+#          ghcr.io/${{ vars.API_GITHUB_REPOSITORY }}:${{ env.IMAGE_TAG }}
+          ghcr.io/$GITHUB_REPOSITORY/$IMAGE_NAME:$GITHUB_SHA
+          ghcr.io/$GITHUB_REPOSITORY/$IMAGE_NAME:latest
 
   deploy:
     needs: docker_build
@@ -63,7 +65,7 @@ jobs:
       k8s_replicas: ${{ vars.K8S_REPLICAS }}
       K8S_NAMESPACE: ${{ vars.K8S_NAMESPACE }}
       DATABASE_INI: ${{ vars.DATABASE_INI }}
-      IMAGE: ghcr.io/${{ vars.API_GITHUB_REPOSITORY }}:latest
+      IMAGE: ghcr.io/$GITHUB_REPOSITORY/$IMAGE_NAME:$GITHUB_SHA
 
     steps:
       - name: Checkout repository
