@@ -38,7 +38,7 @@ jobs:
         password: ${{ secrets.GHCR_TOKEN }}
 
     - name: Print variables
-      run: cat ${{ vars.API_GITHUB_REPOSITORY }}
+      run: echo ghcr.io/${{ vars.API_GITHUB_REPOSITORY }}:${{ env.IMAGE_TAG }}
 
     - name: Build and push Docker image
       uses: docker/build-push-action@v2
