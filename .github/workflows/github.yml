@@ -40,12 +40,18 @@ jobs:
     - name: Print variables
       run: echo $GITHUB_REPOSITORY $IMAGE_NAME $GITHUB_SHA
 
+    - name: Read Docker Image Identifiers
+      run: echo ::set-env name=IMAGE_REPOSITORY::$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')
+
+    - name: Print variables again
+      run: echo ${{ env.IMAGE_REPOSITORY }}
+
     - name: Build and push Docker image
       uses: docker/build-push-action@v2
       with:
         context: .
         push: true
-        tags: ghcr.io/$GITHUB_REPOSITORY/$IMAGE_NAME:$GITHUB_SHA
+        tags: ghcr.io/${{ env.IMAGE_REPOSITORY }}/$IMAGE_NAME:$GITHUB_SHA
 
   deploy:
     needs: docker_build
