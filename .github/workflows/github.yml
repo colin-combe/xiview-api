@@ -37,17 +37,14 @@ jobs:
         username: ${{ secrets.GHCR_USER }}
         password: ${{ secrets.GHCR_TOKEN }}
 
-    - name: Print variables
-      run: echo ghcr.io/${{ vars.API_GITHUB_REPOSITORY }}:${{ env.IMAGE_TAG }}   --> $GITHUB_REPOSITORY/$IMAGE_NAME:$GITHUB_SHA
-
     - name: Build and push Docker image
       uses: docker/build-push-action@v2
       with:
         context: .
         push: true
         tags: |
-          ghcr.io/${{ vars.API_GITHUB_REPOSITORY }}:latest
-          ghcr.io/${{ vars.API_GITHUB_REPOSITORY }}:${{ env.IMAGE_TAG }}
+          ghcr.io/proteomics-developers/xi-mzidentml-converter:latest
+          ghcr.io/proteomics-developers/xi-mzidentml-converter:${{ env.IMAGE_TAG }}
 
   deploy:
     needs: docker_build
