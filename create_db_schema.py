@@ -169,6 +169,7 @@ def create_schema(connection_str):
         Column("scores", JSON, nullable=True),
         Column("exp_mz", FLOAT, nullable=True),
         Column("calc_mz", FLOAT, nullable=True),
+        Column("sil_id", Text, nullable=False),
         ForeignKeyConstraint(
             ["spectra_data_ref", "upload_id"],
             ["AnalysisCollection.spectra_data_ref",

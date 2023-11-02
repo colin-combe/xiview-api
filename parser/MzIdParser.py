@@ -565,99 +565,104 @@ class MzIdParser:
         spec_count = 0
         spectra = []
         spectrum_identifications = []
-        for sid_result in self.mzid_reader:
-            if self.peak_list_dir:
-                peak_list_reader = self.peak_list_readers[sid_result['spectraData_ref']]
 
-                spectrum = peak_list_reader[sid_result["spectrumID"]]
+        # iterate over all the spectrum identification lists
+        for sil_id in self.mzid_reader._offset_index["SpectrumIdentificationList"].keys():
+            sil = self.mzid_reader.get_by_id(sil_id, tag_id='SpectrumIdentificationList')
+            for sid_result in sil['SpectrumIdentificationResult']:
+                if self.peak_list_dir:
+                    peak_list_reader = self.peak_list_readers[sid_result['spectraData_ref']]
 
-                # convert mz and intensity numpy arrays into tightly packed binary objects
-                mz_blob = spectrum.mz_values.tolist()
-                mz_blob = struct.pack(f'{len(mz_blob)}d', *mz_blob)
-                intensity_blob = spectrum.int_values.tolist()
-                intensity_blob = struct.pack(f'{len(intensity_blob)}d', *intensity_blob)
+                    spectrum = peak_list_reader[sid_result["spectrumID"]]
 
-                spectra.append({
-                    'id': sid_result["spectrumID"],
-                    'spectra_data_ref': sid_result['spectraData_ref'],
-                    'upload_id': self.writer.upload_id,
-                    'peak_list_file_name': ntpath.basename(peak_list_reader.peak_list_path),
-                    'precursor_mz': spectrum.precursor['mz'],
-                    'precursor_charge': spectrum.precursor['charge'],
-                    'mz': mz_blob,
-                    'intensity': intensity_blob,
-                    'retention_time': spectrum.rt
-                })
+                    # convert mz and intensity numpy arrays into tightly packed binary objects
+                    mz_blob = spectrum.mz_values.tolist()
+                    mz_blob = struct.pack(f'{len(mz_blob)}d', *mz_blob)
+                    intensity_blob = spectrum.int_values.tolist()
+                    intensity_blob = struct.pack(f'{len(intensity_blob)}d', *intensity_blob)
 
-            spectrum_ident_dict = dict()
-
-            for spec_id_item in sid_result['SpectrumIdentificationItem']:
-                # get suitable id # ToDo: use accession instead of cvParam string?
-                if 'cross-link spectrum identification item' in spec_id_item.keys():
-                    self.contains_crosslinks = True
-                    crosslink_id = spec_id_item['cross-link spectrum identification item']
-                else:  # assuming linear
-                    crosslink_id = None
-
-                # check if seen it before
-                if crosslink_id in spectrum_ident_dict.keys():
-                    # do crosslink specific stuff
-                    ident_data = spectrum_ident_dict.get(crosslink_id)
-                    ident_data['pep2_id'] = spec_id_item['peptide_ref']
-                else:
-                    # do stuff common to linears and crosslinks
-                    # ToDo: refactor with MS: cvParam list of all scores
-                    scores = {
-                        k: v for k, v in spec_id_item.items()
-                        if 'score' in k.lower() or
-                           'pvalue' in k.lower() or
-                           'evalue' in k.lower() or
-                           'sequest' in k.lower() or
-                           'scaffold' in k.lower()
-                    }
-
-                    rank = spec_id_item['rank']
-                    # from mzidentML schema 1.2.0: For PMF data, the rank attribute may be
-                    # meaningless and values of rank = 0 should be given.
-                    # xiSPEC front-end expects rank = 1 as default
-                    if rank is None or int(rank) == 0:
-                        rank = 1
-
-                    calculated_mass_to_charge = None
-                    if 'calculatedMassToCharge' in spec_id_item.keys():
-                        calculated_mass_to_charge = float(spec_id_item['calculatedMassToCharge'])
-
-                    ident_data = {
-                        'id': spec_id_item['id'],
-                        'upload_id': self.writer.upload_id,
-                        'spectrum_id': sid_result['spectrumID'],
+                    spectra.append({
+                        'id': sid_result["spectrumID"],
                         'spectra_data_ref': sid_result['spectraData_ref'],
-                        'pep1_id': spec_id_item['peptide_ref'],
-                        'pep2_id': None,
-                        'charge_state': int(spec_id_item['chargeState']),
-                        'pass_threshold': spec_id_item['passThreshold'],
-                        'rank': int(rank),
-                        'scores': scores,
-                        'exp_mz': spec_id_item['experimentalMassToCharge'],
-                        'calc_mz': calculated_mass_to_charge,
-                    }
+                        'upload_id': self.writer.upload_id,
+                        'peak_list_file_name': ntpath.basename(peak_list_reader.peak_list_path),
+                        'precursor_mz': spectrum.precursor['mz'],
+                        'precursor_charge': spectrum.precursor['charge'],
+                        'mz': mz_blob,
+                        'intensity': intensity_blob,
+                        'retention_time': spectrum.rt
+                    })
 
-                    if crosslink_id:
-                        spectrum_ident_dict[crosslink_id] = ident_data
+                spectrum_ident_dict = dict()
 
-            spectrum_identifications += spectrum_ident_dict.values()
-            spec_count += 1
+                for spec_id_item in sid_result['SpectrumIdentificationItem']:
+                    # get suitable id # ToDo: use accession instead of cvParam string?
+                    if 'cross-link spectrum identification item' in spec_id_item.keys():
+                        self.contains_crosslinks = True
+                        crosslink_id = spec_id_item['cross-link spectrum identification item']
+                    else:  # assuming linear
+                        crosslink_id = None
 
-            if spec_count % 1000 == 0:
-                self.logger.info('writing 1000 entries (1000 spectra and their idents) to DB')
-                try:
-                    if self.peak_list_dir:
-                        self.writer.write_data('Spectrum', spectra)
-                    spectra = []
-                    self.writer.write_data('SpectrumIdentification', spectrum_identifications)
-                    spectrum_identifications = []
-                except Exception as e:
-                    raise e
+                    # check if seen it before
+                    if crosslink_id in spectrum_ident_dict.keys():
+                        # do crosslink specific stuff
+                        ident_data = spectrum_ident_dict.get(crosslink_id)
+                        ident_data['pep2_id'] = spec_id_item['peptide_ref']
+                    else:
+                        # do stuff common to linears and crosslinks
+                        # ToDo: refactor with MS: cvParam list of all scores
+                        scores = {
+                            k: v for k, v in spec_id_item.items()
+                            if 'score' in k.lower() or
+                               'pvalue' in k.lower() or
+                               'evalue' in k.lower() or
+                               'sequest' in k.lower() or
+                               'scaffold' in k.lower()
+                        }
+
+                        rank = spec_id_item['rank']
+                        # from mzidentML schema 1.2.0: For PMF data, the rank attribute may be
+                        # meaningless and values of rank = 0 should be given.
+                        # xiSPEC front-end expects rank = 1 as default
+                        if rank is None or int(rank) == 0:
+                            rank = 1
+
+                        calculated_mass_to_charge = None
+                        if 'calculatedMassToCharge' in spec_id_item.keys():
+                            calculated_mass_to_charge = float(spec_id_item['calculatedMassToCharge'])
+
+                        ident_data = {
+                            'id': spec_id_item['id'],
+                            'upload_id': self.writer.upload_id,
+                            'spectrum_id': sid_result['spectrumID'],
+                            'spectra_data_ref': sid_result['spectraData_ref'],
+                            'pep1_id': spec_id_item['peptide_ref'],
+                            'pep2_id': None,
+                            'charge_state': int(spec_id_item['chargeState']),
+                            'pass_threshold': spec_id_item['passThreshold'],
+                            'rank': int(rank),
+                            'scores': scores,
+                            'exp_mz': spec_id_item['experimentalMassToCharge'],
+                            'calc_mz': calculated_mass_to_charge,
+                            'sil_id': sil.id,
+                        }
+
+                        if crosslink_id:
+                            spectrum_ident_dict[crosslink_id] = ident_data
+
+                spectrum_identifications += spectrum_ident_dict.values()
+                spec_count += 1
+
+                if spec_count % 1000 == 0:
+                    self.logger.info('writing 1000 entries (1000 spectra and their idents) to DB')
+                    try:
+                        if self.peak_list_dir:
+                            self.writer.write_data('Spectrum', spectra)
+                        spectra = []
+                        self.writer.write_data('SpectrumIdentification', spectrum_identifications)
+                        spectrum_identifications = []
+                    except Exception as e:
+                        raise e
 
         # end main loop
         self.logger.info('main loop - done Time: {} sec'.format(
