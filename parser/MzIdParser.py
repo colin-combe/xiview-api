@@ -644,7 +644,7 @@ class MzIdParser:
                             'scores': scores,
                             'exp_mz': spec_id_item['experimentalMassToCharge'],
                             'calc_mz': calculated_mass_to_charge,
-                            'sil_id': sil.id,
+                            'sil_id': sil['id'],
                         }
 
                         if crosslink_id:
