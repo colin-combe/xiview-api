@@ -1,4 +1,3 @@
-from uuid import uuid4, UUID
 from sqlalchemy import create_engine, MetaData
 from sqlalchemy import Table as SATable
 from create_db_schema import create_schema
@@ -29,17 +28,11 @@ class Writer:
         # It has lazy initialisation.
         self.engine = create_engine(connection_str)
         self.meta = MetaData()
-        if upload_id:
-            self.upload_id = upload_id
-        else:
-            self.upload_id = str(uuid4())
-        # if user_id is not None and not isinstance(user_id, UUID):
-        #     raise Exception('user_id must be a uuid!')
         if user_id is not None:
             user_id = str(user_id)
         self.user_id = user_id
         self.pxid = pxid
-        # Create table schema if necessary (SQLite)
+        # Create table schema if necessary (SQLite) - not working for postgresql - why?
         if not database_exists(self.engine.url):
             create_schema(self.engine.url)
 

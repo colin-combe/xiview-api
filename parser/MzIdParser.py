@@ -11,6 +11,7 @@ import gzip
 import os
 from .NumpyEncoder import NumpyEncoder
 import obonet
+from sqlalchemy import Table as SATable
 
 
 class MzIdParseException(Exception):
@@ -737,19 +738,19 @@ class MzIdParser:
         """Write new upload."""
         filename = os.path.basename(self.mzid_path)
         upload_data = {
-            'id': self.writer.upload_id,
+            # 'id': self.writer.upload_id,
             'user_id': self.writer.user_id,
             'identification_file_name': filename,
             'project_id': self.writer.pxid,
             'identification_file_name_clean': re.sub(r'[^0-9a-zA-Z-]+', '-', filename)
         }
-        self.writer.write_data('Upload', upload_data)
-        # table = SATable('upload', self.writer.meta, autoload_with=self.writer.engine, quote=False)
-        # with self.writer.engine.connect() as conn:
-        #     statement = table.insert().values(upload_data).returning(table.columns[0])  #  RETURNING id AS upload_id
-        #     result = conn.execute(statement)
-        #     self.writer.upload_id = result.fetchall()[0][0]
-        #     conn.close()
+        # self.writer.write_data('Upload', upload_data)
+        table = SATable('upload', self.writer.meta, autoload_with=self.writer.engine, quote=False)
+        with self.writer.engine.connect() as conn:
+            statement = table.insert().values(upload_data).returning(table.columns[0])  #  RETURNING id AS upload_id
+            result = conn.execute(statement)
+            self.writer.upload_id = result.fetchall()[0][0]
+            conn.close()
 
     def write_other_info(self):
         """Write remaining information into Upload table."""
@@ -830,6 +831,7 @@ class xiSPEC_MzIdParser(MzIdParser):
 
     def write_new_upload(self):
         """Overrides base class function - not needed for xiSPEC."""
+        self.writer.upload_id = 1
         pass
 
     def upload_info(self):
