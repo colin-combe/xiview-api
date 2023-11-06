@@ -595,6 +595,7 @@ class MzIdParser:
                     })
 
                 spectrum_ident_dict = dict()
+                linear_index = -1  # negative index values for linear peptides
 
                 for spec_id_item in sid_result['SpectrumIdentificationItem']:
                     # get suitable id # ToDo: use accession instead of cvParam string?
@@ -602,7 +603,8 @@ class MzIdParser:
                         self.contains_crosslinks = True
                         crosslink_id = spec_id_item['cross-link spectrum identification item']
                     else:  # assuming linear
-                        crosslink_id = None
+                        crosslink_id = linear_index
+                        linear_index -= 1
 
                     # check if seen it before
                     if crosslink_id in spectrum_ident_dict.keys():
@@ -648,8 +650,7 @@ class MzIdParser:
                             'sil_id': sil['id'],
                         }
 
-                        if crosslink_id:
-                            spectrum_ident_dict[crosslink_id] = ident_data
+                        spectrum_ident_dict[crosslink_id] = ident_data
 
                 spectrum_identifications += spectrum_ident_dict.values()
                 spec_count += 1

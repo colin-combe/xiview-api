@@ -41,7 +41,7 @@ def main(args):
         if args.identifier:
             project_identifier = args.identifier
         else:
-            project_identifier = local_dir.path.rsplit("/", 1)[-1]
+            project_identifier = local_dir.rsplit("/", 1)[-1]
         convert_dir(local_dir, project_identifier)
 
 
