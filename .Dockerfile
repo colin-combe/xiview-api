@@ -30,6 +30,7 @@ COPY parser ./parser
 COPY tests ./tests
 COPY *.py .
 COPY default.database.ini .
+COPY logging.ini .
 COPY .kubernetes.yml .
 
 #CMD ["uvicorn", "app.api:app", "--host", "0.0.0.0", "--port", "6000"]
