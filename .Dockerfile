@@ -26,7 +26,7 @@ RUN mkdir -p /home/appuser/logs
 COPY app ./app
 COPY dbs ./dbs
 COPY log ./log
-COPY logs ./logs
+#COPY logs ./logs
 COPY obo ./obo
 COPY parser ./parser
 COPY tests ./tests
