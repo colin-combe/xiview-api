@@ -19,8 +19,8 @@ RUN PIPENV_VENV_IN_PROJECT=1 pipenv install --system
 RUN useradd --create-home appuser
 WORKDIR /home/appuser
 RUN mkdir -p /home/appuser/mzId_convertor_temp
-RUN mkdir -p /home/appuser/logs
 USER appuser
+RUN mkdir -p /home/appuser/logs
 
 # Install application into container
 COPY app ./app
