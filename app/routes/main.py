@@ -10,6 +10,10 @@ from sqlalchemy.orm import Session
 from app.routes.index import get_session
 import os
 import requests
+import logging.config
+
+logging.config.fileConfig('logging.ini')
+logger = logging.getLogger(__name__)
 
 main_router = APIRouter()
 
@@ -25,6 +29,7 @@ async def parse(px_accession: str, temp_dir: str | None = None, dont_delete: boo
 
 @main_router.get("/health-test", tags=["Main"])
 async def health():
+    logger.info('Checking the health-test')
     return "OK"
 
 

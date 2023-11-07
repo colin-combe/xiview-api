@@ -5,7 +5,6 @@ import socket
 import requests
 import time
 import ftplib
-from urllib.parse import urlparse
 import logging.config
 import gc
 import shutil
