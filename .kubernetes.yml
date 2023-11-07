@@ -34,7 +34,7 @@ spec:
               sizeLimit: 100Gi
         - name: log-volume-converter
           persistentVolumeClaim:
-            claimName: parser-pvc
+            claimName: xi-converter-logs-pvc
       containers:
         - name: $app_name
           image: $IMAGE
