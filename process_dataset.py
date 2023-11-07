@@ -42,7 +42,7 @@ def main(args):
             project_identifier = args.identifier
         else:
             project_identifier = local_dir.rsplit("/", 1)[-1]
-        convert_dir(local_dir, project_identifier)
+        convert_dir(local_dir, project_identifier, nopeaklist=args.nopeaklist)
 
 
 def convert_pxd_accession(px_accession, temp_dir, dont_delete=False):
@@ -186,17 +186,18 @@ def get_ftp_file_list(ftp_ip, ftp_dir):
     return filelist
 
 
-def convert_dir(local_dir, project_identifier):
+def convert_dir(local_dir, project_identifier, nopeaklist = False):
     logging.basicConfig(level=logging.DEBUG,
                         format='%(asctime)s %(levelname)s %(name)s %(message)s')
     logger = logging.getLogger(__name__)
+    peaklist_dir = local_dir if not nopeaklist else None
     #  iterate over files in local_dir
     for file in os.listdir(local_dir):
         if file.endswith(".mzid") or file.endswith(".mzid.gz"):
             print("Processing " + file)
             conn_str = get_conn_str()
             writer = Writer(conn_str, pxid=project_identifier)
-            id_parser = MzIdParser(os.path.join(local_dir, file), local_dir, local_dir, writer, logger)
+            id_parser = MzIdParser(os.path.join(local_dir, file), local_dir, peaklist_dir, writer, logger)
             try:
                 id_parser.parse()
                 # print(id_parser.warnings + "\n")
@@ -224,6 +225,7 @@ if __name__ == "__main__":
                              'proteome exchange accession these are always used instead and this arg is ignored)')
     parser.add_argument('--dontdelete', action='store_true', help='Do not delete downloaded data after processing')
     parser.add_argument('-t', '--temp', action='store_true', help='Temp folder to download data files into')
+    parser.add_argument('-n', '--nopeaklist', help='No peak list files available, only works in comination with --dir arg', action='store_true')
     try:
         main(parser.parse_args())
         sys.exit(0)
