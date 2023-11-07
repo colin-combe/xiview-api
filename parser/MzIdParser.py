@@ -220,13 +220,15 @@ class MzIdParser:
 
             # Additional search parameters
             add_sp = sid_protocol.get('AdditionalSearchParams', {})
+            # Threshold
+            threshold = sid_protocol.get('Threshold', {})
             data = {
                 'id': sid_protocol['id'],
                 'upload_id': self.writer.upload_id,
-                # ToDo: split into multiple cols
                 'frag_tol': f'{frag_tol_value} {frag_tol_unit}',
                 'search_params': cvquery(add_sp),
-                'analysis_software': analysis_software
+                'analysis_software': analysis_software,
+                'threshold': threshold,
             }
 
             # Modifications

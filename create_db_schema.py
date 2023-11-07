@@ -215,6 +215,7 @@ def create_schema(connection_str):
         Column("frag_tol", Text, nullable=False),
         Column("search_params", JSON, nullable=True),
         Column("analysis_software", JSON, nullable=True),
+        Column("threshold", JSON, nullable=True),
         quote=False
     )
 
