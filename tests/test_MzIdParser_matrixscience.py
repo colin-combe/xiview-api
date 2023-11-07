@@ -4,7 +4,6 @@ import logging
 from .db_pytest_fixtures import *
 from .parse_mzid import parse_mzid_into_postgresql
 
-
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(levelname)s %(name)s %(message)s')
 logger = logging.getLogger(__name__)
@@ -14,8 +13,10 @@ def fixture_path(file):
     current_dir = os.path.dirname(__file__)
     return os.path.join(current_dir, "fixtures", file)
 
+
 def compare_spectrum_identification(results):
     assert len(results) == 249
+
 
 def compare_db_sequence(results):
     assert len(results) == 47
@@ -77,10 +78,9 @@ def test_psql_matrixscience_mzid_parser(tmpdir, db_info, use_database, engine):
                                            engine)
 
     with engine.connect() as conn:
-
         # SpectrumIdentification
         stmt = Table("SpectrumIdentification", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
-                        quote=False).select()
+                     quote=False).select()
         rs = conn.execute(stmt)
         compare_spectrum_identification(rs.fetchall())
 
@@ -129,4 +129,3 @@ def test_psql_matrixscience_mzid_parser(tmpdir, db_info, use_database, engine):
         # ToDo: remaining Tables
 
     engine.dispose()
-

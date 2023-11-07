@@ -252,15 +252,15 @@ class AbstractCsvParser:
     def write_new_upload(self):
         """Write new upload."""
         upload_data = {
-                # 'id': self.writer.upload_id,
-                'user_id': self.writer.user_id,
-                'identification_file_name': os.path.basename(self.csv_path),
+            # 'id': self.writer.upload_id,
+            'user_id': self.writer.user_id,
+            'identification_file_name': os.path.basename(self.csv_path),
         }
         # self.writer.write_data('Upload', upload_data)
         table = SATable('upload', self.writer.meta, autoload_with=self.writer.engine, quote=False)
         with self.writer.engine.connect() as conn:
             try:
-                statement = table.insert().values(upload_data).returning(table.columns[0])  #  RETURNING id AS upload_id
+                statement = table.insert().values(upload_data).returning(table.columns[0])  # RETURNING id AS upload_id
                 result = conn.execute(statement)
                 self.writer.upload_id = result.fetchall()[0][0]
                 conn.close()

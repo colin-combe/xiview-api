@@ -96,12 +96,13 @@ def convert_pxd_accession_from_pride(px_accession, temp_dir, dont_delete=False):
                     ftp_url = parent_folder
 
                     print('PRIDE FTP path : ' + parent_folder)
-                    break;
+                    break
         convert_from_ftp(ftp_url, temp_dir, px_accession, dont_delete)
         if not ftp_url:
             raise Exception('Error: Public File location not found in PRIDE API response')
     else:
         raise Exception('Error: PRIDE API returned status code ' + str(pride_response.status_code))
+
 
 def convert_from_ftp(ftp_url, temp_dir, project_identifier, dont_delete):
     if not ftp_url.startswith('ftp://'):
@@ -186,7 +187,7 @@ def get_ftp_file_list(ftp_ip, ftp_dir):
     return filelist
 
 
-def convert_dir(local_dir, project_identifier, nopeaklist = False):
+def convert_dir(local_dir, project_identifier, nopeaklist=False):
     logging.basicConfig(level=logging.DEBUG,
                         format='%(asctime)s %(levelname)s %(name)s %(message)s')
     logger = logging.getLogger(__name__)
@@ -225,7 +226,9 @@ if __name__ == "__main__":
                              'proteome exchange accession these are always used instead and this arg is ignored)')
     parser.add_argument('--dontdelete', action='store_true', help='Do not delete downloaded data after processing')
     parser.add_argument('-t', '--temp', action='store_true', help='Temp folder to download data files into')
-    parser.add_argument('-n', '--nopeaklist', help='No peak list files available, only works in comination with --dir arg', action='store_true')
+    parser.add_argument('-n', '--nopeaklist',
+                        help='No peak list files available, only works in comination with --dir arg',
+                        action='store_true')
     try:
         main(parser.parse_args())
         sys.exit(0)

@@ -47,8 +47,8 @@ def create_schema(connection_str):
         "Layout",
         base.metadata,
         Column("upload_id", Integer, ForeignKey("Upload.id"), primary_key=True, index=True, nullable=False),
-        Column("user_id", Integer, ForeignKey("UserAccount.id"), primary_key=True,  nullable=False),
-        Column("time", TIMESTAMP, server_default=func.now(),  primary_key=True, nullable=False),
+        Column("user_id", Integer, ForeignKey("UserAccount.id"), primary_key=True, nullable=False),
+        Column("time", TIMESTAMP, server_default=func.now(), primary_key=True, nullable=False),
         Column("layout", JSON, nullable=False),
         Column("description", Text, nullable=True),
         quote=False
@@ -139,9 +139,9 @@ def create_schema(connection_str):
     Table(
         "Spectrum",
         base.metadata,
-        Column("id", Text, primary_key=True, nullable=False),   # spectrumID from mzID
+        Column("id", Text, primary_key=True, nullable=False),  # spectrumID from mzID
         Column("spectra_data_ref", Text, primary_key=True, nullable=False),
-        Column("upload_id", Integer, ForeignKey("Upload.id"),  primary_key=True, index=True,
+        Column("upload_id", Integer, ForeignKey("Upload.id"), primary_key=True, index=True,
                nullable=False),
         Column("peak_list_file_name", Text, nullable=False),
         Column("precursor_mz", FLOAT, nullable=False),
@@ -169,7 +169,7 @@ def create_schema(connection_str):
         Column("scores", JSON, nullable=True),
         Column("exp_mz", FLOAT, nullable=True),
         Column("calc_mz", FLOAT, nullable=True),
-        Column("sil_id", Text, nullable=True), #  may be null if from csv file
+        Column("sil_id", Text, nullable=True),  # may be null if from csv file
         ForeignKeyConstraint(
             ["spectra_data_ref", "upload_id"],
             ["AnalysisCollection.spectra_data_ref",
@@ -194,7 +194,7 @@ def create_schema(connection_str):
 
     Table("AnalysisCollection",
           base.metadata,
-          Column("upload_id", Integer, ForeignKey("Upload.id"), index=True,  primary_key=True,
+          Column("upload_id", Integer, ForeignKey("Upload.id"), index=True, primary_key=True,
                  nullable=False),
           Column("spectrum_identification_list_ref", Text, primary_key=False, nullable=False),
           Column("spectrum_identification_protocol_ref", Text, primary_key=False, nullable=False),
@@ -204,7 +204,7 @@ def create_schema(connection_str):
               ["SpectrumIdentificationProtocol.id", "SpectrumIdentificationProtocol.upload_id"],
           ),
           quote=False
-    )
+          )
 
     Table(
         "SpectrumIdentificationProtocol",

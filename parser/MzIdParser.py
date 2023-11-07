@@ -603,7 +603,7 @@ class MzIdParser:
                     cvs = cvquery(spec_id_item)
                     if 'MS:1002511' in cvs:
                         self.contains_crosslinks = True
-                        crosslink_id = cvs['MS:1002511'];
+                        crosslink_id = cvs['MS:1002511']
                     else:  # assuming linear
                         crosslink_id = linear_index
                         linear_index -= 1
@@ -750,7 +750,7 @@ class MzIdParser:
         # self.writer.write_data('Upload', upload_data)
         table = SATable('upload', self.writer.meta, autoload_with=self.writer.engine, quote=False)
         with self.writer.engine.connect() as conn:
-            statement = table.insert().values(upload_data).returning(table.columns[0])  #  RETURNING id AS upload_id
+            statement = table.insert().values(upload_data).returning(table.columns[0])  # RETURNING id AS upload_id
             result = conn.execute(statement)
             self.writer.upload_id = result.fetchall()[0][0]
             conn.close()
