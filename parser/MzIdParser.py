@@ -253,7 +253,7 @@ class MzIdParser:
                     # ToDo: be more strict with the allowed accessions?
                     match = re.match('(?:MOD|UNIMOD|MS|XLMOD):[0-9]+', acc)
                     if match:
-                        # not cross-link donor
+                        # not crosslink donor
                         if match.group() != 'MS:1002509':
                             mod_accession = acc
                         # name
@@ -269,7 +269,7 @@ class MzIdParser:
                 if crosslinker_id is None:
                     crosslinker_id = cvquery(mod, "MS:1002510")
                     if crosslinker_id is not None:
-                        mod_name = 'cross-link acceptor'
+                        mod_name = 'crosslink acceptor'
 
                 if mod_name is None or mod_accession is None:
                     raise MzIdParseException(
@@ -447,7 +447,7 @@ class MzIdParser:
                     # parse crosslinker info
                     # ToDo: crosslinker mod mass should go into Crosslinker Table together with
                     #   specificity info. Mapping to this table would work same as for modifications
-                    # cross-link donor
+                    # crosslink donor
                     crosslinker_pair_id = cvquery(mod, 'MS:1002509')
                     if crosslinker_pair_id is not None:
                         link_site1 = mod['location']
@@ -459,7 +459,7 @@ class MzIdParser:
                             crosslinker_accession = None
                             # self.warnings.append(
                             #     f'No accession for crosslinker {crosslinker_pair_id} for peptide {pep_id}')
-                    # cross-link acceptor/
+                    # crosslink acceptor/
                     if crosslinker_pair_id is None:
                         crosslinker_pair_id = cvquery(mod, 'MS:1002510')
                         if crosslinker_pair_id is not None:
@@ -598,10 +598,10 @@ class MzIdParser:
                 linear_index = -1  # negative index values for linear peptides
 
                 for spec_id_item in sid_result['SpectrumIdentificationItem']:
-                    # get suitable id # ToDo: use accession instead of cvParam string?
-                    if 'cross-link spectrum identification item' in spec_id_item.keys():
+                    cvs = cvquery(spec_id_item)
+                    if 'MS:1002511' in cvs:
                         self.contains_crosslinks = True
-                        crosslink_id = spec_id_item['cross-link spectrum identification item']
+                        crosslink_id = cvs['MS:1002511'];
                     else:  # assuming linear
                         crosslink_id = linear_index
                         linear_index -= 1

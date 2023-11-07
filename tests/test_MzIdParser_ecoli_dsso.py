@@ -122,7 +122,7 @@ def compare_modification(results):
     assert results[0].crosslinker_id == '0.0'  # value from cl donor / acceptor cv term (is a string)
 
     assert results[1].id == 1  # id from incrementing count
-    assert results[1].mod_name == 'cross-link acceptor'  # name from <SearchModification> cvParam
+    assert results[1].mod_name == 'crosslink acceptor'  # name from <SearchModification> cvParam
     assert results[1].mass == 0  # massDelta from <SearchModification>
     assert results[1].residues == 'STYK'  # residues from <SearchModification>
     assert results[1].specificity_rules == []  # parsed from child <SpecificityRules>
@@ -140,7 +140,7 @@ def compare_modification(results):
     assert results[2].crosslinker_id == '0.0'  # value from cl donor  / acceptor cv term (is a string)
 
     assert results[3].id == 3  # id from incrementing count
-    assert results[3].mod_name == 'cross-link acceptor'  # name from <SearchModification> cvParam
+    assert results[3].mod_name == 'crosslink acceptor'  # name from <SearchModification> cvParam
     assert results[3].mass == 158.00377  # massDelta from <SearchModification> (mistake in xml?)
     assert results[3].residues == '.'  # residues from <SearchModification>
     assert results[3].specificity_rules == ["MS:1002057"]  # parsed from child <SpecificityRules>
@@ -158,7 +158,7 @@ def compare_modification(results):
     assert results[4].crosslinker_id == '1.0'  # value from cl donor  / acceptor cv term (is a string)
 
     assert results[5].id == 5  # id from incrementing count
-    assert results[5].mod_name == 'cross-link acceptor'  # name from <SearchModification> cvParam
+    assert results[5].mod_name == 'crosslink acceptor'  # name from <SearchModification> cvParam
     assert results[5].mass == 0  # massDelta from <SearchModification>
     assert results[5].residues == '.'  # residues from <SearchModification>
     assert results[5].specificity_rules == []  # parsed from child <SpecificityRules>
