@@ -18,14 +18,14 @@ RUN PIPENV_VENV_IN_PROJECT=1 pipenv install --system
 # Create and switch to a new user to ensure security
 RUN useradd --create-home appuser
 WORKDIR /home/appuser
-RUN mkdir -p /home/appuser/mzId_convertor_temp
 USER appuser
+RUN mkdir -p /home/appuser/mzId_convertor_temp
 RUN mkdir -p /home/appuser/logs
 
 # Install application into container
 COPY app ./app
 COPY dbs ./dbs
-COPY log ./log
+#COPY log ./log
 #COPY logs ./logs
 COPY obo ./obo
 COPY parser ./parser
