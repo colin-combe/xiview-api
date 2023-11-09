@@ -8,7 +8,7 @@ import datetime
 
 class Upload(Base):
     __tablename__ = "upload"
-    id: Mapped[str] = mapped_column(Integer, primary_key=True, nullable=False)
+    id: Mapped[str] = mapped_column(Integer, primary_key=True,  autoincrement=True, nullable=False)
     user_id: Mapped[str] = mapped_column(Integer, ForeignKey("useraccount.id"), nullable=True)
     project_id: Mapped[str] = mapped_column(Text, nullable=True)
     title: Mapped[str] = mapped_column(Text, nullable=True)
