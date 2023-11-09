@@ -687,12 +687,15 @@ class MzIdParser:
         upload_info_start_time = time()
         self.logger.info('parse upload info - start')
 
+        # Analysis Software
+        #analysis_software = self.mzid_reader.iterfind('AnalysisSoftware')
+
         spectra_formats = []
         for spectra_data_id in self.mzid_reader._offset_index["SpectraData"].keys():
             sp_datum = self.mzid_reader.get_by_id(spectra_data_id, tag_id='SpectraData',
                                                   detailed=True)
             spectra_formats.append(sp_datum)
-        spectra_formats = json.dumps(spectra_formats, cls=NumpyEncoder)
+        #spectra_formats = json.dumps(spectra_formats, cls=NumpyEncoder)
 
         # Provider - optional element
         try:
@@ -726,7 +729,7 @@ class MzIdParser:
         bib_refs = []
         for bib in self.mzid_reader.iterfind('BibliographicReference'):
             bib_refs.append(bib)
-        bib_refs = json.dumps(bib_refs)
+        #bib_refs = json.dumps(bib_refs)
         self.mzid_reader.reset()
 
         self.writer.write_mzid_info(spectra_formats, provider, audits, samples, bib_refs)
