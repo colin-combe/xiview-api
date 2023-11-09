@@ -1,13 +1,12 @@
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import ForeignKey, Text, Integer, JSON, FLOAT
 from app.models.base import Base
-from app.models.misc.guid import GUID
 from typing import Optional, Any
 
 class ModifiedPeptide(Base):
     __tablename__ = "modifiedpeptide"
     id: Mapped[str] = mapped_column(Text, primary_key=True, nullable=False)
-    upload_id: Mapped[str] = mapped_column(GUID, ForeignKey("upload.id"), index=True, primary_key=True, nullable=False)
+    upload_id: Mapped[str] = mapped_column(Integer, ForeignKey("upload.id"), index=True, primary_key=True, nullable=False)
     base_sequence: Mapped[str] = mapped_column(Text, nullable=False)
     mod_accessions: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     mod_avg_mass_deltas: Mapped[Optional[dict[str, Any]]] = mapped_column(JSON, nullable=True)
