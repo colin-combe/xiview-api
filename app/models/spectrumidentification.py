@@ -19,6 +19,7 @@ class SpectrumIdentification(Base):
     scores: Mapped[Optional[dict[str, Any]]] = mapped_column(JSON, nullable=True)
     exp_mz: Mapped[float] = mapped_column(FLOAT, nullable=True)
     calc_mz: Mapped[float] = mapped_column(FLOAT, nullable=True)
+    sil_id: Mapped[str] = mapped_column(Text, nullable=True) #  null if from csv file
     ForeignKeyConstraint(
         ["spectra_data_ref", "upload_id"],
         ["analysiscollection.spectra_data_ref",
