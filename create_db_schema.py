@@ -1,3 +1,4 @@
+from app.models.base import Base
 from app.models import *
 from sqlalchemy import Column, Integer, ForeignKey, ForeignKeyConstraint, Table
 from parser.database.guid import GUID
@@ -16,6 +17,10 @@ from sqlalchemy import create_engine
 from sqlalchemy_utils import database_exists, drop_database, create_database
 from sqlalchemy.sql import func
 
+import logging.config
+
+logging.config.fileConfig('logging.ini')
+logger = logging.getLogger(__name__)
 
 def create_db(connection_str):
     engine = create_engine(connection_str)
@@ -253,7 +258,8 @@ def create_schema(connection_str):
     #     quote=False
     # )
 
-    base.metadata.create_all(engine)
+    Base.metadata.create_all(engine)
+    logging.info(Base.metadata.tables)
     engine.dispose()
 
 
