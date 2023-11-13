@@ -13,6 +13,7 @@ dbs/saved/*
 log/*
 logs/xi_mzidentml_converter.log
 !log/.gitkeep
+.DS_Store
 
 tests/test.db
 dbs/xiSPEC\.db
