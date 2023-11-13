@@ -2,15 +2,14 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey, Text, JSON, BOOLEAN, TIMESTAMP, func, Integer
 from app.models.base import Base
 from app.models.useraccount import UserAccount
-from app.models.misc.guid import GUID
 from typing import Optional, Any
 import datetime
 
 
 class Upload(Base):
     __tablename__ = "upload"
-    id: Mapped[str] = mapped_column(GUID, primary_key=True, nullable=False)
-    user_id: Mapped[str] = mapped_column(GUID, ForeignKey("useraccount.id"), nullable=True)
+    id: Mapped[str] = mapped_column(Integer, primary_key=True,  autoincrement=True, nullable=False)
+    user_id: Mapped[str] = mapped_column(Integer, ForeignKey("useraccount.id"), nullable=True)
     project_id: Mapped[str] = mapped_column(Text, nullable=True)
     title: Mapped[str] = mapped_column(Text, nullable=True)
     description: Mapped[str] = mapped_column(Text, nullable=True)

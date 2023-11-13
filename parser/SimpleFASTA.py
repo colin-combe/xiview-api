@@ -1,5 +1,6 @@
 import re
 
+
 #  why aren't we using pyteomics? todo? probably we haven't look at yet coz its only used by cvs parsers not mzid
 
 def get_db_sequence_dict(fasta_file_list):

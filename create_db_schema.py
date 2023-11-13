@@ -1,7 +1,6 @@
 from app.models.base import Base
 from app.models import *
 from sqlalchemy import Column, Integer, ForeignKey, ForeignKeyConstraint, Table
-from parser.database.guid import GUID
 from sqlalchemy.types import (
     FLOAT,
     JSON,
@@ -41,7 +40,8 @@ def create_schema(connection_str):
     #     "DBSequence",
     #     base.metadata,
     #     Column("id", Text, primary_key=True, nullable=False),
-    #     Column("upload_id", GUID, ForeignKey("Upload.id"), primary_key=True, nullable=False),
+    #     Column("upload_id", Integer, ForeignKey("Upload.id"), primary_key=True,
+    #            nullable=False, index=True),
     #     Column("accession", Text, nullable=False),
     #     Column("name", Text, nullable=True),
     #     Column("description", Text, nullable=True),
@@ -52,10 +52,9 @@ def create_schema(connection_str):
     # Table(
     #     "Layout",
     #     base.metadata,
-    #     Column("upload_id", GUID, ForeignKey("Upload.id"), primary_key=True, index=True,
-    #            nullable=False),
-    #     Column("user_id", GUID, ForeignKey("UserAccount.id"), primary_key=True,  nullable=False),
-    #     Column("time", TIMESTAMP, server_default=func.now(),  primary_key=True, nullable=False),
+    #     Column("upload_id", Integer, ForeignKey("Upload.id"), primary_key=True, index=True, nullable=False),
+    #     Column("user_id", Integer, ForeignKey("UserAccount.id"), primary_key=True, nullable=False),
+    #     Column("time", TIMESTAMP, server_default=func.now(), primary_key=True, nullable=False),
     #     Column("layout", JSON, nullable=False),
     #     Column("description", Text, nullable=True),
     #     quote=False
@@ -65,7 +64,7 @@ def create_schema(connection_str):
     #     "SearchModification",
     #     base.metadata,
     #     Column("id", BIGINT, primary_key=True, nullable=False),
-    #     Column("upload_id", GUID, ForeignKey("Upload.id"), primary_key=True, nullable=False),
+    #     Column("upload_id", Integer, ForeignKey("Upload.id"), primary_key=True, nullable=False, index=True),
     #     Column("protocol_id", Text, primary_key=True, nullable=False),
     #     Column("mod_name", Text, nullable=False),
     #     Column("mass", FLOAT, nullable=False),
@@ -85,7 +84,8 @@ def create_schema(connection_str):
     #     "Enzyme",
     #     base.metadata,
     #     Column("id", Text, primary_key=True, nullable=False),
-    #     Column("upload_id", GUID, ForeignKey("Upload.id"), primary_key=True, nullable=False),
+    #     Column("upload_id", Integer, ForeignKey("Upload.id"), primary_key=True,
+    #            nullable=False, index=True),
     #     Column("protocol_id", Text, nullable=False),
     #     Column("c_term_gain", Text, nullable=True),
     #     Column("min_distance", Integer, nullable=True),
@@ -105,7 +105,7 @@ def create_schema(connection_str):
     # Table(
     #     "PeptideEvidence",  # equivalent of xi2 PeptidePosition Table
     #     base.metadata,
-    #     Column("upload_id", GUID, ForeignKey("Upload.id"), index=True, primary_key=True,
+    #     Column("upload_id", Integer, ForeignKey("Upload.id"), index=True, primary_key=True,
     #            nullable=False),
     #     Column("peptide_ref", Text, primary_key=True, nullable=False, index=True),
     #     Column("dbsequence_ref", Text, primary_key=True, nullable=False),
@@ -126,7 +126,7 @@ def create_schema(connection_str):
     #     "ModifiedPeptide",
     #     base.metadata,
     #     Column("id", Text, primary_key=True, nullable=False),
-    #     Column("upload_id", GUID, ForeignKey("Upload.id"), index=True, primary_key=True,
+    #     Column("upload_id", Integer, ForeignKey("Upload.id"), index=True, primary_key=True,
     #            nullable=False),
     #     Column("base_sequence", Text, nullable=False),
     #     Column("mod_accessions", JSON, nullable=False),
@@ -145,9 +145,9 @@ def create_schema(connection_str):
     # Table(
     #     "Spectrum",
     #     base.metadata,
-    #     Column("id", Text, primary_key=True, nullable=False),   # spectrumID from mzID
+    #     Column("id", Text, primary_key=True, nullable=False),  # spectrumID from mzID
     #     Column("spectra_data_ref", Text, primary_key=True, nullable=False),
-    #     Column("upload_id", GUID, ForeignKey("Upload.id"),  primary_key=True, index=True,
+    #     Column("upload_id", Integer, ForeignKey("Upload.id"), primary_key=True, index=True,
     #            nullable=False),
     #     Column("peak_list_file_name", Text, nullable=False),
     #     Column("precursor_mz", FLOAT, nullable=False),
@@ -162,7 +162,7 @@ def create_schema(connection_str):
     #     "SpectrumIdentification",
     #     base.metadata,
     #     Column("id", Text, primary_key=True, nullable=False),
-    #     Column("upload_id", GUID, ForeignKey("Upload.id"), index=True, primary_key=True,
+    #     Column("upload_id", Integer, ForeignKey("Upload.id"), index=True, primary_key=True,
     #            nullable=False),
     #     Column("spectrum_id", Text, nullable=True),
     #     Column("spectra_data_ref", Text, nullable=True),
@@ -175,6 +175,7 @@ def create_schema(connection_str):
     #     Column("scores", JSON, nullable=True),
     #     Column("exp_mz", FLOAT, nullable=True),
     #     Column("calc_mz", FLOAT, nullable=True),
+    #     Column("sil_id", Text, nullable=True),  # may be null if from csv file
     #     ForeignKeyConstraint(
     #         ["spectra_data_ref", "upload_id"],
     #         ["AnalysisCollection.spectra_data_ref",
@@ -199,7 +200,7 @@ def create_schema(connection_str):
     #
     # Table("AnalysisCollection",
     #       base.metadata,
-    #       Column("upload_id", GUID, ForeignKey("Upload.id"), index=True, primary_key=True,
+    #       Column("upload_id", Integer, ForeignKey("Upload.id"), index=True, primary_key=True,
     #              nullable=False),
     #       Column("spectrum_identification_list_ref", Text, primary_key=False, nullable=False),
     #       Column("spectrum_identification_protocol_ref", Text, primary_key=False, nullable=False),
@@ -209,25 +210,26 @@ def create_schema(connection_str):
     #           ["SpectrumIdentificationProtocol.id", "SpectrumIdentificationProtocol.upload_id"],
     #       ),
     #       quote=False
-    # )
+    #       )
     #
     # Table(
     #     "SpectrumIdentificationProtocol",
     #     base.metadata,
     #     Column("id", Text, primary_key=True, nullable=False),
-    #     Column("upload_id", GUID, ForeignKey("Upload.id"), index=True, primary_key=True,
+    #     Column("upload_id", Integer, ForeignKey("Upload.id"), index=True, primary_key=True,
     #            nullable=False),
     #     Column("frag_tol", Text, nullable=False),
     #     Column("search_params", JSON, nullable=True),
     #     Column("analysis_software", JSON, nullable=True),
+    #     Column("threshold", JSON, nullable=True),
     #     quote=False
     # )
     #
     # Table(
     #     "Upload",
     #     base.metadata,
-    #     Column("id", GUID, primary_key=True, nullable=False),
-    #     Column("user_id", GUID, ForeignKey("UserAccount.id"), nullable=True),
+    #     Column("id", Integer, primary_key=True, autoincrement=True, nullable=False),
+    #     Column("user_id", Integer, ForeignKey("UserAccount.id"), nullable=True),
     #     Column("project_id", Text, nullable=True),
     #     Column("identification_file_name", Text, nullable=False),
     #     Column("provider", JSON, nullable=True),
@@ -241,13 +243,17 @@ def create_schema(connection_str):
     #     Column("error_type", Text, nullable=True),  # nullable=False
     #     Column("upload_warnings", JSON, nullable=True),  # nullable=False
     #     Column("identification_file_name_clean", Text, nullable=True),
+    #     # Column(
+    #     #     "random_id", GUID,
+    #     #     server_default=text("gen_random_uuid()"),
+    #     # ),
     #     quote=False
     # )
     #
     # Table(
     #     "UserAccount",
     #     base.metadata,
-    #     Column("id", GUID, primary_key=True, nullable=False),
+    #     Column("id", Integer, primary_key=True, nullable=False),
     #     Column("user_name", Text, nullable=False),
     #     Column("password", Text, nullable=False),
     #     Column("email", Text, nullable=False),

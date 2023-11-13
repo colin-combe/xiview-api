@@ -13,7 +13,6 @@ from .db_pytest_fixtures import *
 from .parse_mzid import parse_mzid_into_postgresql, parse_mzid_into_sqlite_xispec
 import struct
 
-
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(levelname)s %(name)s %(message)s')
 logger = logging.getLogger(__name__)
@@ -122,7 +121,7 @@ def compare_modification(results):
     assert results[0].crosslinker_id == '0.0'  # value from cl donor / acceptor cv term (is a string)
 
     assert results[1].id == 1  # id from incrementing count
-    assert results[1].mod_name == 'cross-link acceptor'  # name from <SearchModification> cvParam
+    assert results[1].mod_name == 'crosslink acceptor'  # name from <SearchModification> cvParam
     assert results[1].mass == 0  # massDelta from <SearchModification>
     assert results[1].residues == 'STYK'  # residues from <SearchModification>
     assert results[1].specificity_rules == []  # parsed from child <SpecificityRules>
@@ -140,7 +139,7 @@ def compare_modification(results):
     assert results[2].crosslinker_id == '0.0'  # value from cl donor  / acceptor cv term (is a string)
 
     assert results[3].id == 3  # id from incrementing count
-    assert results[3].mod_name == 'cross-link acceptor'  # name from <SearchModification> cvParam
+    assert results[3].mod_name == 'crosslink acceptor'  # name from <SearchModification> cvParam
     assert results[3].mass == 158.00377  # massDelta from <SearchModification> (mistake in xml?)
     assert results[3].residues == '.'  # residues from <SearchModification>
     assert results[3].specificity_rules == ["MS:1002057"]  # parsed from child <SpecificityRules>
@@ -158,7 +157,7 @@ def compare_modification(results):
     assert results[4].crosslinker_id == '1.0'  # value from cl donor  / acceptor cv term (is a string)
 
     assert results[5].id == 5  # id from incrementing count
-    assert results[5].mod_name == 'cross-link acceptor'  # name from <SearchModification> cvParam
+    assert results[5].mod_name == 'crosslink acceptor'  # name from <SearchModification> cvParam
     assert results[5].mass == 0  # massDelta from <SearchModification>
     assert results[5].residues == '.'  # residues from <SearchModification>
     assert results[5].specificity_rules == []  # parsed from child <SpecificityRules>
@@ -266,23 +265,30 @@ def compare_spectrum_identification_protocol(results):
 
     assert results[0].analysis_software['id'] == "xiFDR_id"
 
+
 def compare_analysis_collection_mgf(results):
     assert len(results) == 2
-    assert results[0].spectrum_identification_list_ref == 'SII_LIST_1_1_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mgf'
+    assert results[
+               0].spectrum_identification_list_ref == 'SII_LIST_1_1_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mgf'
     assert results[0].spectrum_identification_protocol_ref == 'SearchProtocol_1_0'
     assert results[0].spectra_data_ref == 'SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mgf'
-    assert results[1].spectrum_identification_list_ref == 'SII_LIST_1_1_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mgf'
+    assert results[
+               1].spectrum_identification_list_ref == 'SII_LIST_1_1_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mgf'
     assert results[1].spectrum_identification_protocol_ref == 'SearchProtocol_1_0'
     assert results[1].spectra_data_ref == 'SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mgf'
 
+
 def compare_analysis_collection_mzml(results):
     assert len(results) == 2
-    assert results[0].spectrum_identification_list_ref == 'SII_LIST_1_1_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mzML'
+    assert results[
+               0].spectrum_identification_list_ref == 'SII_LIST_1_1_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mzML'
     assert results[0].spectrum_identification_protocol_ref == 'SearchProtocol_1_0'
     assert results[0].spectra_data_ref == 'SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mzML'
-    assert results[1].spectrum_identification_list_ref == 'SII_LIST_1_1_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML'
+    assert results[
+               1].spectrum_identification_list_ref == 'SII_LIST_1_1_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML'
     assert results[1].spectrum_identification_protocol_ref == 'SearchProtocol_1_0'
     assert results[1].spectra_data_ref == 'SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML'
+
 
 def compare_spectrum_mgf(conn, peak_list_folder):
     peaklists = [
@@ -332,7 +338,6 @@ def test_psql_mgf_mzid_parser(tmpdir, use_database, engine):
                                            use_database, engine)
 
     with engine.connect() as conn:
-
         # DBSequence
         stmt = Table("DBSequence", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
                      quote=False).select()
@@ -407,7 +412,7 @@ def test_psql_mgf_mzid_parser(tmpdir, use_database, engine):
 
         # AnalysisCollection
         stmt = Table("AnalysisCollection", id_parser.writer.meta,
-                        autoload_with=id_parser.writer.engine, quote=False).select()
+                     autoload_with=id_parser.writer.engine, quote=False).select()
         rs = conn.execute(stmt)
         compare_analysis_collection_mgf(rs.fetchall())
 
@@ -460,7 +465,6 @@ def test_psql_mzml_mzid_parser(tmpdir, use_database, engine):
                                            use_database, engine)
 
     with engine.connect() as conn:
-
         # DBSequence
         stmt = Table("DBSequence", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
                      quote=False).select()
@@ -508,7 +512,7 @@ def test_psql_mzml_mzid_parser(tmpdir, use_database, engine):
         assert results[0].id == 'controllerType=0 controllerNumber=1 scan=14905'
         # spectraData_ref from <SpectrumIdentificationResult>
         assert results[0].spectra_data_ref == (
-               'SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML')
+            'SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML')
         # assert results[0].scan_id == '3'  # ToDo: keep this?
         assert results[0].peak_list_file_name == (  # ToDo
             'B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML')
@@ -555,7 +559,7 @@ def test_psql_mzml_mzid_parser(tmpdir, use_database, engine):
 
         # AnalysisCollection
         stmt = Table("AnalysisCollection", id_parser.writer.meta,
-                        autoload_with=id_parser.writer.engine, quote=False).select()
+                     autoload_with=id_parser.writer.engine, quote=False).select()
         rs = conn.execute(stmt)
         compare_analysis_collection_mzml(rs.fetchall())
 
@@ -613,7 +617,6 @@ def test_sqlite_mgf_xispec_mzid_parser(tmpdir):
     id_parser = parse_mzid_into_sqlite_xispec(mzid, peak_list_folder, tmpdir, logger, engine)
 
     with engine.connect() as conn:
-
         # DBSequence - not written for xiSPEC
         stmt = Table("DBSequence", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
                      quote=False).select()
@@ -665,10 +668,9 @@ def test_sqlite_mgf_xispec_mzid_parser(tmpdir):
         rs = conn.execute(stmt)
         compare_spectrum_identification_protocol(rs.fetchall())
 
-
         # AnalysisCollection
         stmt = Table("AnalysisCollection", id_parser.writer.meta,
-                        autoload_with=id_parser.writer.engine, quote=False).select()
+                     autoload_with=id_parser.writer.engine, quote=False).select()
         rs = conn.execute(stmt)
         compare_analysis_collection_mgf(rs.fetchall())
 
@@ -694,7 +696,6 @@ def test_sqlite_mzml_xispec_mzid_parser(tmpdir):
     id_parser = parse_mzid_into_sqlite_xispec(mzid, peak_list_folder, tmpdir, logger, engine)
 
     with engine.connect() as conn:
-
         # DBSequence - not written for xiSPEC
         stmt = Table("DBSequence", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
                      quote=False).select()
@@ -751,7 +752,7 @@ def test_sqlite_mzml_xispec_mzid_parser(tmpdir):
 
         # AnalysisCollection
         stmt = Table("AnalysisCollection", id_parser.writer.meta,
-                        autoload_with=id_parser.writer.engine, quote=False).select()
+                     autoload_with=id_parser.writer.engine, quote=False).select()
         rs = conn.execute(stmt)
         compare_analysis_collection_mzml(rs.fetchall())
 

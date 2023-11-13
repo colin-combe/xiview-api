@@ -31,19 +31,19 @@ def main(args):
             convert_pxd_accession_from_pride(px_accession, temp_dir, args.dontdelete)
     elif args.ftp:
         ftp_url = args.ftp
-        if args.project_identifier_to_use:
-            project_identifier = args.project_identifier_to_use
+        if args.identifier:
+            project_identifier = args.identifier
         else:
             parsed_url = urlparse(ftp_url)
             project_identifier = parsed_url.path.rsplit("/", 1)[-1]
         convert_from_ftp(ftp_url, temp_dir, project_identifier, args.dontdelete)
     else:
         local_dir = args.dir
-        if args.project_identifier_to_use:
-            project_identifier = args.project_identifier_to_use
+        if args.identifier:
+            project_identifier = args.identifier
         else:
-            project_identifier = local_dir.path.rsplit("/", 1)[-1]
-        convert_dir(local_dir, project_identifier)
+            project_identifier = local_dir.rsplit("/", 1)[-1]
+        convert_dir(local_dir, project_identifier, nopeaklist=args.nopeaklist)
 
 
 def convert_pxd_accession(px_accession, temp_dir, dont_delete=False):
@@ -104,6 +104,7 @@ def convert_pxd_accession_from_pride(px_accession, temp_dir, dont_delete=False):
     else:
         raise Exception('Error: PRIDE API returned status code ' + str(pride_response.status_code))
 
+
 def convert_from_ftp(ftp_url, temp_dir, project_identifier, dont_delete):
     if not ftp_url.startswith('ftp://'):
         raise Exception('Error: FTP location must start with ftp://')
@@ -129,7 +130,9 @@ def convert_from_ftp(ftp_url, temp_dir, project_identifier, dont_delete):
                 or f.lower == "generated"  # dunno what these files are but they seem to make ftp break
                 or f.lower().endswith('raw')
                 or f.lower().endswith('raw.gz')
-                or f.lower().endswith('all.zip')):
+                or f.lower().endswith('all.zip')
+                or f.lower().endswith('csv')
+                or f.lower().endswith('txt')):
             logger.info('Downloading ' + f + ' to ' + path)
             ftp = get_ftp_login(ftp_ip)
             try:
@@ -185,21 +188,24 @@ def get_ftp_file_list(ftp_ip, ftp_dir):
     return filelist
 
 
-def convert_dir(local_dir, project_identifier):
+def convert_dir(local_dir, project_identifier, nopeaklist=False):
     logging.basicConfig(level=logging.DEBUG,
                         format='%(asctime)s %(levelname)s %(name)s %(message)s')
     logger = logging.getLogger(__name__)
+    peaklist_dir = local_dir if not nopeaklist else None
     #  iterate over files in local_dir
     for file in os.listdir(local_dir):
         if file.endswith(".mzid") or file.endswith(".mzid.gz"):
             logger.info("Processing " + file)
             conn_str = get_conn_str()
             writer = Writer(conn_str, pxid=project_identifier)
-            id_parser = MzIdParser(os.path.join(local_dir, file), local_dir, local_dir, writer, logger)
+            id_parser = MzIdParser(os.path.join(local_dir, file), local_dir, peaklist_dir, writer, logger)
             try:
                 id_parser.parse()
                 # logger.info(id_parser.warnings + "\n")
             except Exception as e:
+                print("Error parsing " + file)
+                print(type(e).__name__, e)
                 raise e
             gc.collect()
         else:
@@ -221,6 +227,9 @@ if __name__ == "__main__":
                              'proteome exchange accession these are always used instead and this arg is ignored)')
     parser.add_argument('--dontdelete', action='store_true', help='Do not delete downloaded data after processing')
     parser.add_argument('-t', '--temp', action='store_true', help='Temp folder to download data files into')
+    parser.add_argument('-n', '--nopeaklist',
+                        help='No peak list files available, only works in comination with --dir arg',
+                        action='store_true')
     try:
         main(parser.parse_args())
         sys.exit(0)
