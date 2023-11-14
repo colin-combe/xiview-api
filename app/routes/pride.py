@@ -15,10 +15,10 @@ import logging.config
 logging.config.fileConfig('logging.ini')
 logger = logging.getLogger(__name__)
 
-main_router = APIRouter()
+pride_router = APIRouter()
 
 
-@main_router.post("/parse/{px_accession}", tags=["Main"])
+@pride_router.post("/parse/{px_accession}", tags=["Main"])
 async def parse(px_accession: str, temp_dir: str | None = None, dont_delete: bool = False):
     if temp_dir:
         temp_dir = os.path.expanduser(temp_dir)
@@ -27,13 +27,13 @@ async def parse(px_accession: str, temp_dir: str | None = None, dont_delete: boo
     convert_pxd_accession_from_pride(px_accession, temp_dir, dont_delete)
 
 
-@main_router.get("/health-test", tags=["Main"])
+@pride_router.get("/health-test", tags=["Main"])
 async def health():
     logger.info('Checking the health-test')
     return "OK"
 
 
-@main_router.get("/update-project-details", tags=["Maintenance"])
+@pride_router.get("/update-project-details", tags=["Maintenance"])
 async def update_project_details(session: Session = Depends(get_session)):
     uploads = session.execute(select(Upload)).all()
     projectListToUpdate = []
@@ -72,7 +72,7 @@ async def update_project_details(session: Session = Depends(get_session)):
     session.commit()
 
 
-@main_router.get("/calculate-stats", tags=["Maintenance"])
+@pride_router.get("/calculate-stats", tags=["Maintenance"])
 async def calculate_stats(session: Session = Depends(get_session)):
     rows = session.query(Upload).all()
     for row in rows:
