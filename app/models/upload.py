@@ -1,7 +1,6 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey, Text, JSON, BOOLEAN, TIMESTAMP, func, Integer
 from app.models.base import Base
-from app.models.useraccount import UserAccount
 from typing import Optional, Any
 import datetime
 
@@ -25,5 +24,4 @@ class Upload(Base):
     identification_file_name_clean: Mapped[str] = mapped_column(Text, nullable=True)
     quote = False
 
-    user = relationship('UserAccount', backref='uploads')
 
