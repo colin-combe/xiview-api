@@ -11,5 +11,6 @@ __all__ = [
     "spectrumidentificationprotocol",
     "upload",
     "useraccount",
+    "projectdetails",
     "base"
 ]
