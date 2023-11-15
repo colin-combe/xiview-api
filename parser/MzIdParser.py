@@ -755,6 +755,7 @@ class MzIdParser:
         with self.writer.engine.connect() as conn:
             statement = table.insert().values(upload_data).returning(table.columns[0])  # RETURNING id AS upload_id
             result = conn.execute(statement)
+            conn.commit()
             self.writer.upload_id = result.fetchall()[0][0]
             conn.close()
 
