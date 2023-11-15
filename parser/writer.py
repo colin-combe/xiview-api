@@ -44,6 +44,7 @@ class Writer:
         with self.engine.connect() as conn:
             statement = table.insert().values(data)
             conn.execute(statement)
+            conn.commit()
             conn.close()
 
     def write_mzid_info(self, spectra_formats,
@@ -69,6 +70,7 @@ class Writer:
         )
         with self.engine.connect() as conn:
             conn.execute(stmt)
+            conn.commit()
 
     def write_other_info(self, contains_crosslinks, upload_warnings):
         """
@@ -86,6 +88,7 @@ class Writer:
                 upload_warnings=upload_warnings,
             )
             conn.execute(stmt)
+            conn.commit()
 
     def fill_in_missing_scores(self):
         """
