@@ -2,7 +2,6 @@ from sqlalchemy import create_engine, MetaData
 from sqlalchemy import Table as SATable
 from create_db_schema import create_schema
 from sqlalchemy_utils import database_exists
-from app.models.base import Base
 
 
 def Table(name, *args, **kw):
