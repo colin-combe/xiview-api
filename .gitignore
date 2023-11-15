@@ -12,7 +12,7 @@ dbs/saved/*
 !dbs/saved/.gitkeep
 log/*
 logs/xi_mzidentml_converter.log
-!log/.gitkeep
+!logs/.gitkeep
 .DS_Store
 
 tests/test.db
