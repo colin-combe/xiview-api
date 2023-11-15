@@ -5,9 +5,9 @@ from app.models.dbsequence import DBSequence
 from app.models.peptideevidence import PeptideEvidence
 from app.models.spectrumidentification import SpectrumIdentification
 from app.models.upload import Upload
+from index import get_session
 from process_dataset import convert_pxd_accession_from_pride
 from sqlalchemy.orm import Session
-from app.routes.index import get_session
 import os
 import requests
 import logging.config
