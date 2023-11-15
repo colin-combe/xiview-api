@@ -2,6 +2,7 @@ from sqlalchemy import create_engine, MetaData
 from sqlalchemy import Table as SATable
 from create_db_schema import create_schema
 from sqlalchemy_utils import database_exists
+from app.models.base import Base
 
 
 def Table(name, *args, **kw):
@@ -27,7 +28,7 @@ class Writer:
         # The 'engine' in SQLAlchemy is a Factory and connection pool to the database.
         # It has lazy initialisation.
         self.engine = create_engine(connection_str)
-        self.meta = MetaData()
+        self.meta = Base.metadata
         if user_id is not None:
             user_id = str(user_id)
         self.user_id = user_id
