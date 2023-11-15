@@ -28,7 +28,7 @@ class Writer:
         # The 'engine' in SQLAlchemy is a Factory and connection pool to the database.
         # It has lazy initialisation.
         self.engine = create_engine(connection_str)
-        self.meta = Base.metadata
+        self.meta = MetaData()
         if user_id is not None:
             user_id = str(user_id)
         self.user_id = user_id
