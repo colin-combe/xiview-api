@@ -745,7 +745,7 @@ class MzIdParser:
         filename = os.path.basename(self.mzid_path)
         upload_data = {
             # 'id': self.writer.upload_id,
-            'user_id': self.writer.user_id,
+            # 'user_id': self.writer.user_id,
             'identification_file_name': filename,
             'project_id': self.writer.pxid,
             'identification_file_name_clean': re.sub(r'[^0-9a-zA-Z-]+', '-', filename)
@@ -755,6 +755,7 @@ class MzIdParser:
         with self.writer.engine.connect() as conn:
             statement = table.insert().values(upload_data).returning(table.columns[0])  # RETURNING id AS upload_id
             result = conn.execute(statement)
+            conn.commit()
             self.writer.upload_id = result.fetchall()[0][0]
             conn.close()
 
