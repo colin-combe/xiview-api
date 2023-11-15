@@ -16,7 +16,7 @@ def Table(name, *args, **kw):
 class Writer:
     """Class for writing results to a relational database."""
 
-    def __init__(self, connection_str, user_id=None, upload_id=None, pxid=None):
+    def __init__(self, connection_str, pxid=None):
         """
         Initialises the database connection and the writer in general.
 
@@ -28,9 +28,6 @@ class Writer:
         # It has lazy initialisation.
         self.engine = create_engine(connection_str)
         self.meta = MetaData()
-        if user_id is not None:
-            user_id = str(user_id)
-        self.user_id = user_id
         self.pxid = pxid
         # Create table schema if necessary (SQLite) - not working for postgresql - why?
         if not database_exists(self.engine.url):
