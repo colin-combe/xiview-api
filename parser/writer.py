@@ -64,8 +64,8 @@ class Writer:
         stmt = upload.update().where(upload.c.id == str(self.upload_id)).values(
             spectra_formats=spectra_formats,
             provider=provider,
-            audits=audits,
-            samples=samples,
+            audit_collection=audits,
+            analysis_sample_collection=samples,
             bib=bib
         )
         with self.engine.connect() as conn:

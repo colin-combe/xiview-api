@@ -229,7 +229,7 @@ class MzIdParser:
                 'id': sid_protocol['id'],
                 'upload_id': self.writer.upload_id,
                 'frag_tol': f'{frag_tol_value} {frag_tol_unit}',
-                'search_params': cvquery(add_sp),
+                'additional_search_params': cvquery(add_sp),
                 'analysis_software': analysis_software,
                 'threshold': threshold,
             }

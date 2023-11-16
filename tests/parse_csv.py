@@ -8,13 +8,6 @@ from .db_pytest_fixtures import *
 def parse_full_csv_into_postgresql(mzid_file, peaklist, tmpdir, logger, use_database, engine):
     # create temp user for user_id
     user_id = 1
-    with engine.connect() as conn:
-        conn.execute(
-            text(
-                f"INSERT INTO UserAccount (id, user_name, password, email) VALUES "
-                f"('{user_id}', 'testuser', 'testpw', 'testemail')"
-            )
-        )
     # create writer
     writer = Writer(engine.url, user_id)
     engine.dispose()
@@ -29,13 +22,6 @@ def parse_full_csv_into_postgresql(mzid_file, peaklist, tmpdir, logger, use_data
 def parse_no_peak_lists_csv_into_postgresql(mzid_file, peaklist, tmpdir, logger, use_database, engine):
     # create temp user for user_id
     user_id = 1
-    with engine.connect() as conn:
-        conn.execute(
-            text(
-                f"INSERT INTO UserAccount (id, user_name, password, email) VALUES "
-                f"('{user_id}', 'testuser', 'testpw', 'testemail')"
-            )
-        )
     # create writer
     writer = Writer(engine.url, user_id)
     engine.dispose()
@@ -50,13 +36,6 @@ def parse_no_peak_lists_csv_into_postgresql(mzid_file, peaklist, tmpdir, logger,
 def parse_links_only_csv_into_postgresql(mzid_file, peaklist, tmpdir, logger, use_database, engine):
     # create temp user for user_id
     user_id = 1
-    with engine.connect() as conn:
-        conn.execute(
-            text(
-                f"INSERT INTO UserAccount (id, user_name, password, email) VALUES "
-                f"('{user_id}', 'testuser', 'testpw', 'testemail')"
-            )
-        )
     # create writer
     writer = Writer(engine.url, user_id)
     engine.dispose()

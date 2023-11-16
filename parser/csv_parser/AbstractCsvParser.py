@@ -253,7 +253,7 @@ class AbstractCsvParser:
         """Write new upload."""
         upload_data = {
             # 'id': self.writer.upload_id,
-            'user_id': self.writer.user_id,
+            # 'user_id': self.writer.user_id,
             'identification_file_name': os.path.basename(self.csv_path),
         }
         # self.writer.write_data('Upload', upload_data)
@@ -263,13 +263,15 @@ class AbstractCsvParser:
                 statement = table.insert().values(upload_data).returning(table.columns[0])  # RETURNING id AS upload_id
                 result = conn.execute(statement)
                 self.writer.upload_id = result.fetchall()[0][0]
+                conn.commit()
                 conn.close()
-            except sqlalchemy.exc.CompileError:
+            except Exception as e:
                 # its SQLite
                 upload_data['id'] = 1
                 statement = table.insert().values(upload_data)
                 result = conn.execute(statement)
                 self.writer.upload_id = upload_data['id']
+                conn.commit()
                 conn.close()
 
 # class NumpyEncoder(json.JSONEncoder):
