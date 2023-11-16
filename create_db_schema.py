@@ -18,7 +18,7 @@ from sqlalchemy.sql import func
 
 import logging.config
 
-logging.config.fileConfig('logging.ini')
+# logging.config.fileConfig('logging.ini') # having this uncommented this seems to break things
 logger = logging.getLogger(__name__)
 
 def create_db(connection_str):

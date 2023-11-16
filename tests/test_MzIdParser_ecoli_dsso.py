@@ -344,12 +344,6 @@ def test_psql_mgf_mzid_parser(tmpdir, use_database, engine):
         rs = conn.execute(stmt)
         compare_db_sequence(rs.fetchall())
 
-        # Layout
-        stmt = Table("Layout", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
-                     quote=False).select()
-        rs = conn.execute(stmt)
-        assert len(rs.fetchall()) == 0
-
         # SearchModification - parsed from <SearchModification>s
         stmt = Table("SearchModification", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
                      quote=False).select()
@@ -437,16 +431,15 @@ def test_psql_mgf_mzid_parser(tmpdir, use_database, engine):
             '"contact name": "TU Berlin"}}'
         )
         assert results[0].samples == '{}'
-        assert results[0].bib == '[]'
-        assert results[0].spectra_formats == (
-            '[{"location": "recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mgf", '
-            '"id": "SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mgf", '
-            '"FileFormat": "Mascot MGF format", '
-            '"SpectrumIDFormat": "multiple peak list nativeID format"}, '
-            '{"location": "recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mgf", '
-            '"id": "SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mgf", '
-            '"FileFormat": "Mascot MGF format", '
-            '"SpectrumIDFormat": "multiple peak list nativeID format"}]')
+        assert results[0].bib == []
+        assert results[0].spectra_formats == [{'FileFormat': 'Mascot MGF format',
+                                               'SpectrumIDFormat': 'multiple peak list nativeID format',
+                                               'id': 'SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mgf',
+                                               'location': 'recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mgf'},
+                                              {'FileFormat': 'Mascot MGF format',
+                                               'SpectrumIDFormat': 'multiple peak list nativeID format',
+                                               'id': 'SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mgf',
+                                               'location': 'recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mgf'}]
         assert results[0].contains_crosslinks
         assert results[0].upload_error is None
         assert results[0].error_type is None
@@ -470,12 +463,6 @@ def test_psql_mzml_mzid_parser(tmpdir, use_database, engine):
                      quote=False).select()
         rs = conn.execute(stmt)
         compare_db_sequence(rs.fetchall())
-
-        # Layout
-        stmt = Table("Layout", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
-                     quote=False).select()
-        rs = conn.execute(stmt)
-        assert len(rs.fetchall()) == 0
 
         # Modification - parsed from <SearchModification>s
         stmt = Table("SearchModification", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
@@ -584,17 +571,15 @@ def test_psql_mzml_mzid_parser(tmpdir, use_database, engine):
             '"contact name": "TU Berlin"}}'
         )
         assert results[0].samples == '{}'
-        assert results[0].bib == '[]'
-        assert results[0].spectra_formats == (
-            '[{"location": "B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mzML", '
-            '"id": "SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mzML", '
-            '"FileFormat": "mzML format", '
-            '"SpectrumIDFormat": "mzML unique identifier"}, '
-            '{"location": "B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML", '
-            '"id": "SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML", '
-            '"FileFormat": "mzML format", '
-            '"SpectrumIDFormat": "mzML unique identifier"}]'
-        )
+        assert results[0].bib == []
+        assert results[0].spectra_formats == [{'FileFormat': 'mzML format',
+                                               'SpectrumIDFormat': 'mzML unique identifier',
+                                               'id': 'SD_0_recal_B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mzML',
+                                               'location': 'B190717_20_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX01_rep2.mzML'},
+                                              {'FileFormat': 'mzML format',
+                                               'SpectrumIDFormat': 'mzML unique identifier',
+                                               'id': 'SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML',
+                                               'location': 'B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML'}]
         assert results[0].contains_crosslinks
         assert results[0].upload_error is None
         assert results[0].error_type is None
@@ -619,12 +604,6 @@ def test_sqlite_mgf_xispec_mzid_parser(tmpdir):
     with engine.connect() as conn:
         # DBSequence - not written for xiSPEC
         stmt = Table("DBSequence", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
-                     quote=False).select()
-        rs = conn.execute(stmt)
-        assert len(rs.fetchall()) == 0
-
-        # Layout - not written for xiSPEC
-        stmt = Table("Layout", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
                      quote=False).select()
         rs = conn.execute(stmt)
         assert len(rs.fetchall()) == 0
@@ -698,12 +677,6 @@ def test_sqlite_mzml_xispec_mzid_parser(tmpdir):
     with engine.connect() as conn:
         # DBSequence - not written for xiSPEC
         stmt = Table("DBSequence", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
-                     quote=False).select()
-        rs = conn.execute(stmt)
-        assert len(rs.fetchall()) == 0
-
-        # Layout - not written for xiSPEC
-        stmt = Table("Layout", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
                      quote=False).select()
         rs = conn.execute(stmt)
         assert len(rs.fetchall()) == 0
