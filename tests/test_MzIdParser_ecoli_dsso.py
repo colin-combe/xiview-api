@@ -421,7 +421,7 @@ def test_psql_mgf_mzid_parser(tmpdir, use_database, engine):
         assert results[0].provider == (
             '{"id": "PROVIDER", "ContactRole": ['
             '{"contact_ref": "PERSON_DOC_OWNER", "Role": "researcher"}]}')
-        assert results[0].audits == (
+        assert results[0].audit_collection == (
             '{"Person": {"lastName": "Kolbowski", "firstName": "Lars", "id": "PERSON_DOC_OWNER", '
             '"Affiliation": [{"organization_ref": "ORG_DOC_OWNER"}], '
             '"contact address": "TIB 4/4-3 Geb\\u00e4ude 17, Aufgang 1, Raum 476 '
@@ -430,7 +430,7 @@ def test_psql_mgf_mzid_parser(tmpdir, use_database, engine):
             '"Organization": {"id": "ORG_DOC_OWNER", "name": "TU Berlin", '
             '"contact name": "TU Berlin"}}'
         )
-        assert results[0].samples == '{}'
+        assert results[0].analysis_sample_collection == '{}'
         assert results[0].bib == []
         assert results[0].spectra_formats == [{'FileFormat': 'Mascot MGF format',
                                                'SpectrumIDFormat': 'multiple peak list nativeID format',
@@ -441,8 +441,6 @@ def test_psql_mgf_mzid_parser(tmpdir, use_database, engine):
                                                'id': 'SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mgf',
                                                'location': 'recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mgf'}]
         assert results[0].contains_crosslinks
-        assert results[0].upload_error is None
-        assert results[0].error_type is None
         assert results[0].upload_warnings == []
 
     engine.dispose()
@@ -561,7 +559,7 @@ def test_psql_mzml_mzid_parser(tmpdir, use_database, engine):
         assert results[0].provider == (
             '{"id": "PROVIDER", "ContactRole": ['
             '{"contact_ref": "PERSON_DOC_OWNER", "Role": "researcher"}]}')
-        assert results[0].audits == (
+        assert results[0].audit_collection == (
             '{"Person": {"lastName": "Kolbowski", "firstName": "Lars", "id": "PERSON_DOC_OWNER", '
             '"Affiliation": [{"organization_ref": "ORG_DOC_OWNER"}], '
             '"contact address": "TIB 4/4-3 Geb\\u00e4ude 17, Aufgang 1, Raum 476 '
@@ -570,7 +568,7 @@ def test_psql_mzml_mzid_parser(tmpdir, use_database, engine):
             '"Organization": {"id": "ORG_DOC_OWNER", "name": "TU Berlin", '
             '"contact name": "TU Berlin"}}'
         )
-        assert results[0].samples == '{}'
+        assert results[0].analysis_sample_collection == '{}'
         assert results[0].bib == []
         assert results[0].spectra_formats == [{'FileFormat': 'mzML format',
                                                'SpectrumIDFormat': 'mzML unique identifier',
@@ -581,8 +579,6 @@ def test_psql_mzml_mzid_parser(tmpdir, use_database, engine):
                                                'id': 'SD_0_recal_B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML',
                                                'location': 'B190717_13_HF_LS_IN_130_ECLP_DSSO_01_SCX23_hSAX05_rep2.mzML'}]
         assert results[0].contains_crosslinks
-        assert results[0].upload_error is None
-        assert results[0].error_type is None
         # assert results[0].upload_warnings == [
         #     'mzidentML file does not specify any fragment ions (child terms of MS_1002473) within '
         #     '<AdditionalSearchParams>. Falling back to b and y ions.']
