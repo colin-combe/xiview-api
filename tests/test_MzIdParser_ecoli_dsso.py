@@ -259,7 +259,7 @@ def compare_spectrum_identification_protocol(results):
     assert results[0].frag_tol == '5.0 ppm'
     # cvParams from <AdditionalSearchParams> 'ion series considered in search' (MS:1002473)
 
-    assert results[0].search_params == {'MS:1001211': 'parent mass type mono', 'MS:1002494': 'cross-linking search',
+    assert results[0].additional_search_params == {'MS:1001211': 'parent mass type mono', 'MS:1002494': 'cross-linking search',
                                         'MS:1001256': 'fragment mass type mono', 'MS:1001118': 'param: b ion',
                                         'MS:1001262': 'param: y ion'}
 
