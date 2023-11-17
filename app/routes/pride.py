@@ -30,6 +30,18 @@ async def parse(px_accession: str, temp_dir: str | None = None, dont_delete: boo
     convert_pxd_accession_from_pride(px_accession, temp_dir, dont_delete)
 
 
+@pride_router.get("/projects", tags=["Main"])
+async def list_all_projects(session: Session = Depends(get_session)) -> list[ProjectDetails]:
+    """
+    This gives the high-level view of list of projects
+    :param session: connection to database
+    :return: List of ProjectDetails in JSON format
+    """
+    projects = session.query(ProjectDetails).all()
+    session.close()
+    return projects
+
+
 @pride_router.get("/health", tags=["Main"])
 async def health():
     """
