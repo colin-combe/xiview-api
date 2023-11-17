@@ -40,7 +40,7 @@ async def health():
     return "OK"
 
 
-@pride_router.get("/update-project-details", tags=["Maintenance"])
+@pride_router.post("/update-project-details", tags=["Maintenance"])
 async def update_project_details(session: Session = Depends(get_session)):
     """
     An endpoint to update the project details including title, description, PubmedID,
