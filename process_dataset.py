@@ -12,8 +12,8 @@ from urllib.parse import urlparse
 
 from parser.MzIdParser import MzIdParser
 from parser.writer import Writer
-
 from db_config_parser import get_conn_str
+
 logging.config.fileConfig('logging.ini')
 logger = logging.getLogger(__name__)
 
@@ -189,9 +189,9 @@ def get_ftp_file_list(ftp_ip, ftp_dir):
 
 
 def convert_dir(local_dir, project_identifier, nopeaklist=False):
-    logging.basicConfig(level=logging.DEBUG,
-                        format='%(asctime)s %(levelname)s %(name)s %(message)s')
-    logger = logging.getLogger(__name__)
+    # logging.basicConfig(level=logging.DEBUG,
+    #                     format='%(asctime)s %(levelname)s %(name)s %(message)s')
+    # logger = logging.getLogger(__name__)
     peaklist_dir = local_dir if not nopeaklist else None
     #  iterate over files in local_dir
     for file in os.listdir(local_dir):

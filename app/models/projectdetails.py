@@ -15,4 +15,4 @@ class ProjectDetails(Base):
     number_of_spectra: Mapped[int] = mapped_column(Integer, nullable=True)
     quote = False
 
-    user = relationship('UserAccount', backref='uploads')
+    # user = relationship('UserAccount', backref='uploads')
