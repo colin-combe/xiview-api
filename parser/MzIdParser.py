@@ -11,7 +11,7 @@ import gzip
 import os
 from .NumpyEncoder import NumpyEncoder
 import obonet
-from sqlalchemy import Table as SATable
+from sqlalchemy import Table
 
 
 class MzIdParseException(Exception):
@@ -351,9 +351,9 @@ class MzIdParser:
         self.logger.info('parsing AnalysisProtocolCollection - done. Time: {} sec'.format(
             round(time() - start_time, 2)))
 
-        self.writer.write_data('SpectrumIdentificationProtocol', sid_protocols)
-        self.writer.write_data('SearchModification', search_modifications)
-        self.writer.write_data('Enzyme', enzymes)
+        self.writer.write_data('spectrumidentificationprotocol', sid_protocols)
+        self.writer.write_data('searchmodification', search_modifications)
+        self.writer.write_data('enzyme', enzymes)
         self.search_modifications = search_modifications
 
     def parse_analysis_collection(self):
@@ -378,7 +378,7 @@ class MzIdParser:
         self.logger.info('parsing AnalysisCollection - done. Time: {} sec'.format(
             round(time() - start_time, 2)))
 
-        self.writer.write_data('AnalysisCollection', spectrum_identification)
+        self.writer.write_data('analysiscollection', spectrum_identification)
 
     def parse_db_sequences(self):
         """Parse and write the DBSequences."""
@@ -418,7 +418,7 @@ class MzIdParser:
 
             db_sequences.append(db_sequence_data)
 
-        self.writer.write_data('DBSequence', db_sequences)
+        self.writer.write_data('dbsequence', db_sequences)
 
         self.logger.info('parse db sequences - done. Time: {} sec'.format(
             round(time() - start_time, 2)))
@@ -494,9 +494,9 @@ class MzIdParser:
 
             # Batch write 1000 peptides into the DB
             if peptide_index > 0 and peptide_index % 1000 == 0:
-                self.logger.info('writing 1000 peptides to DB')
+                self.logger.debug('writing 1000 peptides to DB')
                 try:
-                    self.writer.write_data('ModifiedPeptide', peptides)
+                    self.writer.write_data('modifiedpeptide', peptides)
                     peptides = []
                 except Exception as e:
                     raise e
@@ -504,7 +504,7 @@ class MzIdParser:
 
         # write the remaining peptides
         try:
-            self.writer.write_data('ModifiedPeptide', peptides)
+            self.writer.write_data('modifiedpeptide', peptides)
         except Exception as e:
             raise e
 
@@ -542,16 +542,16 @@ class MzIdParser:
 
             # Batch write 1000 peptide evidences into the DB
             if len(pep_evidences) % 1000 == 0:
-                self.logger.info('writing 1000 peptide_evidences to DB')
+                self.logger.debug('writing 1000 peptide_evidences to DB')
                 try:
-                    self.writer.write_data('PeptideEvidence', pep_evidences)
+                    self.writer.write_data('peptideevidence', pep_evidences)
                     pep_evidences = []
                 except Exception as e:
                     raise e
 
         # write the remaining data
         try:
-            self.writer.write_data('PeptideEvidence', pep_evidences)
+            self.writer.write_data('peptideevidence', pep_evidences)
         except Exception as e:
             raise e
 
@@ -658,12 +658,12 @@ class MzIdParser:
                 spec_count += 1
 
                 if spec_count % 1000 == 0:
-                    self.logger.info('writing 1000 entries (1000 spectra and their idents) to DB')
+                    self.logger.debug('writing 1000 entries (1000 spectra and their idents) to DB')
                     try:
                         if self.peak_list_dir:
-                            self.writer.write_data('Spectrum', spectra)
+                            self.writer.write_data('spectrum', spectra)
                         spectra = []
-                        self.writer.write_data('SpectrumIdentification', spectrum_identifications)
+                        self.writer.write_data('spectrumidentification', spectrum_identifications)
                         spectrum_identifications = []
                     except Exception as e:
                         raise e
@@ -677,8 +677,8 @@ class MzIdParser:
         self.logger.info('write remaining entries to DB - start')
 
         if self.peak_list_dir:
-            self.writer.write_data('Spectrum', spectra)
-        self.writer.write_data('SpectrumIdentification', spectrum_identifications)
+            self.writer.write_data('spectrum', spectra)
+        self.writer.write_data('spectrumidentification', spectrum_identifications)
 
         self.logger.info('write remaining entries to DB - done.  Time: {} sec'.format(
             round(time() - db_wrap_up_start_time, 2)))
@@ -751,7 +751,7 @@ class MzIdParser:
             'identification_file_name_clean': re.sub(r'[^0-9a-zA-Z-]+', '-', filename)
         }
         # self.writer.write_data('Upload', upload_data)
-        table = SATable('upload', self.writer.meta, autoload_with=self.writer.engine, quote=False)
+        table = Table('upload', self.writer.meta, autoload_with=self.writer.engine, quote=False)
         with self.writer.engine.connect() as conn:
             statement = table.insert().values(upload_data).returning(table.columns[0])  # RETURNING id AS upload_id
             result = conn.execute(statement)

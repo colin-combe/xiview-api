@@ -77,7 +77,7 @@ def test_psql_matrixscience_mzid_parser(tmpdir, db_info, use_database, engine):
     with engine.connect() as conn:
 
         # DBSequence
-        stmt = Table("DBSequence", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
+        stmt = Table("dbsequence", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
                      quote=False).select()
         rs = conn.execute(stmt)
         # compare_db_sequence(rs.fetchall())

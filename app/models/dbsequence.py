@@ -11,4 +11,3 @@ class DBSequence(Base):
     name: Mapped[str] = mapped_column(Text, nullable=True)
     description: Mapped[str] = mapped_column(Text, nullable=True)
     sequence: Mapped[str] = mapped_column(Text, nullable=True)
-    quote = False

@@ -29,7 +29,7 @@ def test_full_csv_parser_postgres_mgf(tmpdir, db_info, use_database, engine):
     with engine.connect() as conn:
 
         # DBSequence
-        stmt = Table("DBSequence", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
+        stmt = Table("dbsequence", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
                      quote=False).select()
         rs = conn.execute(stmt)
         # compare_db_sequence(rs.fetchall())
@@ -69,7 +69,7 @@ def test_ambiguous_links_only_csv_parser_postgres(tmpdir, db_info, use_database,
 
     with engine.connect() as conn:
         # PeptideEvidence
-        stmt = Table("PeptideEvidence", id_parser.writer.meta,
+        stmt = Table("peptideevidence", id_parser.writer.meta,
                      autoload_with=id_parser.writer.engine, quote=False).select()
         rs = conn.execute(stmt)
         results = rs.fetchall()

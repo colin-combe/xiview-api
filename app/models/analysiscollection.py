@@ -13,4 +13,3 @@ class AnalysisCollection(Base):
         ["spectrum_identification_protocol_ref", "upload_id"],
         ["spectrumidentificationprotocol.id", "spectrumidentificationprotocol.upload_id"],
     )
-    quote = False

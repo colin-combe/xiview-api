@@ -1,16 +1,7 @@
 from sqlalchemy import create_engine, MetaData
-from sqlalchemy import Table as SATable
+from sqlalchemy import Table
 from create_db_schema import create_schema
 from sqlalchemy_utils import database_exists
-
-
-def Table(name, *args, **kw):
-    """Return an SQLAlchemy table but that uses the lower case table name.
-    This is a workaround for the "quote=False" argument not working properly for the postgresql
-    dialect in SQLAlchemy.
-    :param name: name of the table - will be forwarded as lower case string.
-    """
-    return SATable(name.lower(), *args, **kw)
 
 
 class Writer:
@@ -40,7 +31,7 @@ class Writer:
         :param table: (str) Table name
         :param data: (list dict) data to insert.
         """
-        table = Table(table, self.meta, autoload_with=self.engine, quote=False)
+        table = Table(table, self.meta, autoload_with=self.engine)
         with self.engine.connect() as conn:
             statement = table.insert().values(data)
             conn.execute(statement)
@@ -60,7 +51,7 @@ class Writer:
         :param bib:
         :return:
         """
-        upload = Table("Upload", self.meta, autoload_with=self.engine, quote=False)
+        upload = Table("upload", self.meta, autoload_with=self.engine, quote=False)
         stmt = upload.update().where(upload.c.id == str(self.upload_id)).values(
             spectra_formats=spectra_formats,
             provider=provider,
@@ -81,7 +72,7 @@ class Writer:
         :param upload_warnings:
         :return:
         """
-        upload = Table("Upload", self.meta, autoload_with=self.engine, quote=False)
+        upload = Table("upload", self.meta, autoload_with=self.engine, quote=False)
         with self.engine.connect() as conn:
             stmt = upload.update().where(upload.c.id == str(self.upload_id)).values(
                 contains_crosslinks=contains_crosslinks,

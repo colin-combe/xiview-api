@@ -19,4 +19,3 @@ class PeptideEvidence(Base):
         ("peptide_ref", "upload_id"),
         ("modifiedpeptide.id", "modifiedpeptide.upload_id"),
     )
-    quote = False

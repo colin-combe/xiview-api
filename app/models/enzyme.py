@@ -20,4 +20,3 @@ class Enzyme(Base):
         ("protocol_id", "upload_id"),
         ("spectrumidentificationprotocol.id", "spectrumidentificationprotocol.upload_id"),
     )
-    quote = False

@@ -14,5 +14,4 @@ class Spectrum(Base):
     mz: Mapped[str] = mapped_column(LargeBinary, nullable=False)
     intensity: Mapped[str] = mapped_column(LargeBinary, nullable=False)
     retention_time: Mapped[float] = mapped_column(FLOAT, nullable=True)
-    quote = False
 

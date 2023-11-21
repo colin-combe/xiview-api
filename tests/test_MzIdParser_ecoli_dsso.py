@@ -339,31 +339,31 @@ def test_psql_mgf_mzid_parser(tmpdir, use_database, engine):
 
     with engine.connect() as conn:
         # DBSequence
-        stmt = Table("DBSequence", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
+        stmt = Table("dbsequence", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
                      quote=False).select()
         rs = conn.execute(stmt)
         compare_db_sequence(rs.fetchall())
 
         # SearchModification - parsed from <SearchModification>s
-        stmt = Table("SearchModification", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
+        stmt = Table("searchmodification", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
                      quote=False).select()
         rs = conn.execute(stmt)
         compare_modification(rs.fetchall())
 
         # Enzyme - parsed from SpectrumIdentificationProtocols
-        stmt = Table("Enzyme", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
+        stmt = Table("enzyme", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
                      quote=False).select()
         rs = conn.execute(stmt)
         compare_enzyme(rs.fetchall())
 
         # PeptideEvidence
-        stmt = Table("PeptideEvidence", id_parser.writer.meta,
+        stmt = Table("peptideevidence", id_parser.writer.meta,
                      autoload_with=id_parser.writer.engine, quote=False).select()
         rs = conn.execute(stmt)
         compare_peptide_evidence(rs.fetchall())
 
         # ModifiedPeptide
-        stmt = Table("ModifiedPeptide", id_parser.writer.meta,
+        stmt = Table("modifiedpeptide", id_parser.writer.meta,
                      autoload_with=id_parser.writer.engine, quote=False).select()
         rs = conn.execute(stmt)
         compare_modified_peptide(rs.fetchall())
@@ -372,7 +372,7 @@ def test_psql_mgf_mzid_parser(tmpdir, use_database, engine):
         compare_spectrum_mgf(conn, peak_list_folder)
 
         # SpectrumIdentification
-        stmt = Table("SpectrumIdentification", id_parser.writer.meta,
+        stmt = Table("spectrumidentification", id_parser.writer.meta,
                      autoload_with=id_parser.writer.engine, quote=False).select()
         rs = conn.execute(stmt)
         assert 22 == rs.rowcount
@@ -399,19 +399,19 @@ def test_psql_mgf_mzid_parser(tmpdir, use_database, engine):
         assert results[0].calc_mz == pytest.approx(945.6784858667701, abs=1e-12)
 
         # SpectrumIdentificationProtocol
-        stmt = Table("SpectrumIdentificationProtocol", id_parser.writer.meta,
+        stmt = Table("spectrumidentificationprotocol", id_parser.writer.meta,
                      autoload_with=id_parser.writer.engine, quote=False).select()
         rs = conn.execute(stmt)
         compare_spectrum_identification_protocol(rs.fetchall())
 
         # AnalysisCollection
-        stmt = Table("AnalysisCollection", id_parser.writer.meta,
+        stmt = Table("analysiscollection", id_parser.writer.meta,
                      autoload_with=id_parser.writer.engine, quote=False).select()
         rs = conn.execute(stmt)
         compare_analysis_collection_mgf(rs.fetchall())
 
         # Upload
-        stmt = Table("Upload", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
+        stmt = Table("upload", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
                      quote=False).select()
         rs = conn.execute(stmt)
         assert 1 == rs.rowcount
@@ -457,38 +457,38 @@ def test_psql_mzml_mzid_parser(tmpdir, use_database, engine):
 
     with engine.connect() as conn:
         # DBSequence
-        stmt = Table("DBSequence", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
+        stmt = Table("dbsequence", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
                      quote=False).select()
         rs = conn.execute(stmt)
         compare_db_sequence(rs.fetchall())
 
         # Modification - parsed from <SearchModification>s
-        stmt = Table("SearchModification", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
+        stmt = Table("searchmodification", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
                      quote=False).select()
         rs = conn.execute(stmt)
         compare_modification(rs.fetchall())
 
         # Enzyme - parsed from SpectrumIdentificationProtocols
-        stmt = Table("Enzyme", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
+        stmt = Table("enzyme", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
                      quote=False).select()
         rs = conn.execute(stmt)
         compare_enzyme(rs.fetchall())
 
         # PeptideEvidence
-        stmt = Table("PeptideEvidence", id_parser.writer.meta,
+        stmt = Table("peptideevidence", id_parser.writer.meta,
                      autoload_with=id_parser.writer.engine, quote=False).select()
         rs = conn.execute(stmt)
         compare_peptide_evidence(rs.fetchall())
 
         # ModifiedPeptide
-        stmt = Table("ModifiedPeptide", id_parser.writer.meta,
+        stmt = Table("modifiedpeptide", id_parser.writer.meta,
                      autoload_with=id_parser.writer.engine, quote=False).select()
         rs = conn.execute(stmt)
         compare_modified_peptide(rs.fetchall())
 
         # Spectrum
         # ToDo: create and use compare_spectrum_mzml()
-        stmt = Table("Spectrum", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
+        stmt = Table("spectrum", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
                      quote=False).select()
         rs = conn.execute(stmt)
         assert 22 == rs.rowcount
@@ -509,7 +509,7 @@ def test_psql_mzml_mzid_parser(tmpdir, use_database, engine):
         # assert results[0].intensity == []  # ToDo
 
         # SpectrumIdentification
-        stmt = Table("SpectrumIdentification", id_parser.writer.meta,
+        stmt = Table("spectrumidentification", id_parser.writer.meta,
                      autoload_with=id_parser.writer.engine, quote=False).select()
         rs = conn.execute(stmt)
         assert 22 == rs.rowcount
@@ -537,19 +537,19 @@ def test_psql_mzml_mzid_parser(tmpdir, use_database, engine):
         assert results[0].calc_mz == pytest.approx(945.6784858667701, abs=1e-12)
 
         # SpectrumIdentificationProtocol
-        stmt = Table("SpectrumIdentificationProtocol", id_parser.writer.meta,
+        stmt = Table("spectrumidentificationprotocol", id_parser.writer.meta,
                      autoload_with=id_parser.writer.engine, quote=False).select()
         rs = conn.execute(stmt)
         compare_spectrum_identification_protocol(rs.fetchall())
 
         # AnalysisCollection
-        stmt = Table("AnalysisCollection", id_parser.writer.meta,
+        stmt = Table("analysiscollection", id_parser.writer.meta,
                      autoload_with=id_parser.writer.engine, quote=False).select()
         rs = conn.execute(stmt)
         compare_analysis_collection_mzml(rs.fetchall())
 
         # Upload
-        stmt = Table("Upload", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
+        stmt = Table("upload", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
                      quote=False).select()
         rs = conn.execute(stmt)
         assert 1 == rs.rowcount
