@@ -14,4 +14,4 @@ class ProjectDetails(Base):
     number_of_peptides: Mapped[int] = mapped_column(Integer, nullable=True)
     number_of_spectra: Mapped[int] = mapped_column(Integer, nullable=True)
 
-    user = relationship('UserAccount', backref='uploads')
+    # user = relationship('UserAccount', backref='uploads')

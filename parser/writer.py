@@ -7,7 +7,7 @@ from sqlalchemy_utils import database_exists
 class Writer:
     """Class for writing results to a relational database."""
 
-    def __init__(self, connection_str, pxid=None):
+    def __init__(self, connection_str, user_id=None, upload_id=None, pxid=None):
         """
         Initialises the database connection and the writer in general.
 
