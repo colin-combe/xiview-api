@@ -299,10 +299,10 @@ class LinksOnlyCsvParser(AbstractCsvParser):
         db_wrap_up_start_time = time()
         self.logger.info('write spectra to DB - start')
         try:
-            self.writer.write_data("DBSequence", db_sequences)
-            self.writer.write_data("ModifiedPeptide", peptides)
-            self.writer.write_data("PeptideEvidence", peptide_evidences)
-            self.writer.write_data("SpectrumIdentification", spectrum_identifications)
+            self.writer.write_data("dbsequence", db_sequences)
+            self.writer.write_data("modifiedpeptide", peptides)
+            self.writer.write_data("peptideevidence", peptide_evidences)
+            self.writer.write_data("spectrumidentification", spectrum_identifications)
         except Exception as e:
             raise e
 

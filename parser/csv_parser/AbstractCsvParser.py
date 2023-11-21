@@ -9,7 +9,7 @@ import os
 # import pyteomics.fasta as py_fasta
 from parser import SimpleFASTA
 import abc
-from sqlalchemy import Table as SATable
+from sqlalchemy import Table
 
 
 class CsvParseException(Exception):
@@ -257,7 +257,7 @@ class AbstractCsvParser:
             'identification_file_name': os.path.basename(self.csv_path),
         }
         # self.writer.write_data('Upload', upload_data)
-        table = SATable('upload', self.writer.meta, autoload_with=self.writer.engine, quote=False)
+        table = Table('upload', self.writer.meta, autoload_with=self.writer.engine, quote=False)
         with self.writer.engine.connect() as conn:
             try:
                 statement = table.insert().values(upload_data).returning(table.columns[0])  # RETURNING id AS upload_id

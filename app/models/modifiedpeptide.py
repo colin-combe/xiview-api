@@ -18,5 +18,4 @@ class ModifiedPeptide(Base):
     crosslinker_modmass: Mapped[float] = mapped_column(FLOAT, nullable=True)
     crosslinker_pair_id: Mapped[str] = mapped_column(Text, nullable=True)  # yes, its a string
     crosslinker_accession: Mapped[str] = mapped_column(Text, nullable=True)
-    quote = False
 

@@ -13,5 +13,4 @@ class SpectrumIdentificationProtocol(Base):
     additional_search_params: Mapped[Optional[dict[str, Any]]] = mapped_column(JSON, nullable=True)
     threshold: Mapped[Optional[dict[str, Any]]] = mapped_column(JSON, nullable=True)
     frag_tol: Mapped[str] = mapped_column(Text, nullable=False)
-    quote = False
 

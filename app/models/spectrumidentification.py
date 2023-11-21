@@ -39,4 +39,3 @@ class SpectrumIdentification(Base):
         ["pep2_id", "upload_id"],
         ["modifiedpeptide.id", "modifiedpeptide.upload_id"],
     )
-    quote = False

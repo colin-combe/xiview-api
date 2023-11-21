@@ -20,6 +20,5 @@ class Upload(Base):
     contains_crosslinks: Mapped[bool] = mapped_column(BOOLEAN, nullable=True)  # nullable=False
     upload_warnings: Mapped[Optional[dict[str, Any]]] = mapped_column(JSON, nullable=True)  # nullable=False
     identification_file_name_clean: Mapped[str] = mapped_column(Text, nullable=True)
-    quote = False
 
 
