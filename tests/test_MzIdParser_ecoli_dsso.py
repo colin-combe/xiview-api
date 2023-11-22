@@ -256,7 +256,8 @@ def compare_spectrum_identification_protocol(results):
     assert len(results) == 1
     # parsed from <FragmentTolerance> in <SpectrumIdentificationProtocol>
     assert results[0].id == 'SearchProtocol_1_0'  # id from <SpectrumIdentificationProtocol>
-    assert results[0].frag_tol == '5.0 ppm'
+    assert results[0].frag_tol == 5.0
+    assert results[0].frag_tol_unit == 'ppm'
     # cvParams from <AdditionalSearchParams> 'ion series considered in search' (MS:1002473)
 
     assert results[0].additional_search_params == {'MS:1001211': 'parent mass type mono', 'MS:1002494': 'cross-linking search',
