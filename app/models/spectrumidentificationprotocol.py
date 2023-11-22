@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import ForeignKey, Text, JSON, Integer
+from sqlalchemy import ForeignKey, Text, JSON, Integer, Float
 from app.models.base import Base
 from typing import Optional, Any
 
@@ -12,5 +12,5 @@ class SpectrumIdentificationProtocol(Base):
     search_type: Mapped[Optional[dict[str, Any]]] = mapped_column(JSON, nullable=True)
     additional_search_params: Mapped[Optional[dict[str, Any]]] = mapped_column(JSON, nullable=True)
     threshold: Mapped[Optional[dict[str, Any]]] = mapped_column(JSON, nullable=True)
-    frag_tol: Mapped[str] = mapped_column(Text, nullable=False)
-
+    frag_tol: Mapped[float] = mapped_column(Float, nullable=False)
+    frag_tol_unit: Mapped[str] = mapped_column(Text, nullable=False)
