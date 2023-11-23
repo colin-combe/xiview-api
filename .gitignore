@@ -11,7 +11,9 @@ dbs/tmp/*
 dbs/saved/*
 !dbs/saved/.gitkeep
 log/*
-!log/.gitkeep
+logs/xi_mzidentml_converter.log
+!logs/.gitkeep
+.DS_Store
 
 tests/test.db
 dbs/xiSPEC\.db

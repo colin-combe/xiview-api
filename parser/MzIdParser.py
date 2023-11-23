@@ -5,12 +5,16 @@ import re
 import ntpath
 import json
 from time import time
+
+from sqlalchemy.exc import SQLAlchemyError
+
 from parser.peaklistReader.PeakListWrapper import PeakListWrapper
 import zipfile
 import gzip
 import os
 from .NumpyEncoder import NumpyEncoder
 import obonet
+from sqlalchemy import Table
 
 
 class MzIdParseException(Exception):
@@ -219,13 +223,16 @@ class MzIdParser:
 
             # Additional search parameters
             add_sp = sid_protocol.get('AdditionalSearchParams', {})
+            # Threshold
+            threshold = sid_protocol.get('Threshold', {})
             data = {
                 'id': sid_protocol['id'],
                 'upload_id': self.writer.upload_id,
-                # ToDo: split into multiple cols
-                'frag_tol': f'{frag_tol_value} {frag_tol_unit}',
-                'search_params': cvquery(add_sp),
-                'analysis_software': analysis_software
+                'frag_tol': frag_tol_value,
+                'frag_tol_unit': frag_tol_unit,
+                'additional_search_params': cvquery(add_sp),
+                'analysis_software': analysis_software,
+                'threshold': threshold,
             }
 
             # Modifications
@@ -252,7 +259,7 @@ class MzIdParser:
                     # ToDo: be more strict with the allowed accessions?
                     match = re.match('(?:MOD|UNIMOD|MS|XLMOD):[0-9]+', acc)
                     if match:
-                        # not cross-link donor
+                        # not crosslink donor
                         if match.group() != 'MS:1002509':
                             mod_accession = acc
                         # name
@@ -268,7 +275,7 @@ class MzIdParser:
                 if crosslinker_id is None:
                     crosslinker_id = cvquery(mod, "MS:1002510")
                     if crosslinker_id is not None:
-                        mod_name = 'cross-link acceptor'
+                        mod_name = 'crosslink acceptor'
 
                 if mod_name is None or mod_accession is None:
                     raise MzIdParseException(
@@ -348,9 +355,9 @@ class MzIdParser:
         self.logger.info('parsing AnalysisProtocolCollection - done. Time: {} sec'.format(
             round(time() - start_time, 2)))
 
-        self.writer.write_data('SpectrumIdentificationProtocol', sid_protocols)
-        self.writer.write_data('SearchModification', search_modifications)
-        self.writer.write_data('Enzyme', enzymes)
+        self.writer.write_data('spectrumidentificationprotocol', sid_protocols)
+        self.writer.write_data('searchmodification', search_modifications)
+        self.writer.write_data('enzyme', enzymes)
         self.search_modifications = search_modifications
 
     def parse_analysis_collection(self):
@@ -375,7 +382,7 @@ class MzIdParser:
         self.logger.info('parsing AnalysisCollection - done. Time: {} sec'.format(
             round(time() - start_time, 2)))
 
-        self.writer.write_data('AnalysisCollection', spectrum_identification)
+        self.writer.write_data('analysiscollection', spectrum_identification)
 
     def parse_db_sequences(self):
         """Parse and write the DBSequences."""
@@ -415,7 +422,7 @@ class MzIdParser:
 
             db_sequences.append(db_sequence_data)
 
-        self.writer.write_data('DBSequence', db_sequences)
+        self.writer.write_data('dbsequence', db_sequences)
 
         self.logger.info('parse db sequences - done. Time: {} sec'.format(
             round(time() - start_time, 2)))
@@ -446,7 +453,7 @@ class MzIdParser:
                     # parse crosslinker info
                     # ToDo: crosslinker mod mass should go into Crosslinker Table together with
                     #   specificity info. Mapping to this table would work same as for modifications
-                    # cross-link donor
+                    # crosslink donor
                     crosslinker_pair_id = cvquery(mod, 'MS:1002509')
                     if crosslinker_pair_id is not None:
                         link_site1 = mod['location']
@@ -458,7 +465,7 @@ class MzIdParser:
                             crosslinker_accession = None
                             # self.warnings.append(
                             #     f'No accession for crosslinker {crosslinker_pair_id} for peptide {pep_id}')
-                    # cross-link acceptor/
+                    # crosslink acceptor/
                     if crosslinker_pair_id is None:
                         crosslinker_pair_id = cvquery(mod, 'MS:1002510')
                         if crosslinker_pair_id is not None:
@@ -491,9 +498,9 @@ class MzIdParser:
 
             # Batch write 1000 peptides into the DB
             if peptide_index > 0 and peptide_index % 1000 == 0:
-                self.logger.info('writing 1000 peptides to DB')
+                self.logger.debug('writing 1000 peptides to DB')
                 try:
-                    self.writer.write_data('ModifiedPeptide', peptides)
+                    self.writer.write_data('modifiedpeptide', peptides)
                     peptides = []
                 except Exception as e:
                     raise e
@@ -501,7 +508,7 @@ class MzIdParser:
 
         # write the remaining peptides
         try:
-            self.writer.write_data('ModifiedPeptide', peptides)
+            self.writer.write_data('modifiedpeptide', peptides)
         except Exception as e:
             raise e
 
@@ -539,16 +546,16 @@ class MzIdParser:
 
             # Batch write 1000 peptide evidences into the DB
             if len(pep_evidences) % 1000 == 0:
-                self.logger.info('writing 1000 peptide_evidences to DB')
+                self.logger.debug('writing 1000 peptide_evidences to DB')
                 try:
-                    self.writer.write_data('PeptideEvidence', pep_evidences)
+                    self.writer.write_data('peptideevidence', pep_evidences)
                     pep_evidences = []
                 except Exception as e:
                     raise e
 
         # write the remaining data
         try:
-            self.writer.write_data('PeptideEvidence', pep_evidences)
+            self.writer.write_data('peptideevidence', pep_evidences)
         except Exception as e:
             raise e
 
@@ -565,99 +572,105 @@ class MzIdParser:
         spec_count = 0
         spectra = []
         spectrum_identifications = []
-        for sid_result in self.mzid_reader:
-            if self.peak_list_dir:
-                peak_list_reader = self.peak_list_readers[sid_result['spectraData_ref']]
 
-                spectrum = peak_list_reader[sid_result["spectrumID"]]
+        # iterate over all the spectrum identification lists
+        for sil_id in self.mzid_reader._offset_index["SpectrumIdentificationList"].keys():
+            sil = self.mzid_reader.get_by_id(sil_id, tag_id='SpectrumIdentificationList')
+            for sid_result in sil['SpectrumIdentificationResult']:
+                if self.peak_list_dir:
+                    peak_list_reader = self.peak_list_readers[sid_result['spectraData_ref']]
 
-                # convert mz and intensity numpy arrays into tightly packed binary objects
-                mz_blob = spectrum.mz_values.tolist()
-                mz_blob = struct.pack(f'{len(mz_blob)}d', *mz_blob)
-                intensity_blob = spectrum.int_values.tolist()
-                intensity_blob = struct.pack(f'{len(intensity_blob)}d', *intensity_blob)
+                    spectrum = peak_list_reader[sid_result["spectrumID"]]
 
-                spectra.append({
-                    'id': sid_result["spectrumID"],
-                    'spectra_data_ref': sid_result['spectraData_ref'],
-                    'upload_id': self.writer.upload_id,
-                    'peak_list_file_name': ntpath.basename(peak_list_reader.peak_list_path),
-                    'precursor_mz': spectrum.precursor['mz'],
-                    'precursor_charge': spectrum.precursor['charge'],
-                    'mz': mz_blob,
-                    'intensity': intensity_blob,
-                    'retention_time': spectrum.rt
-                })
+                    # convert mz and intensity numpy arrays into tightly packed binary objects
+                    mz_blob = spectrum.mz_values.tolist()
+                    mz_blob = struct.pack(f'{len(mz_blob)}d', *mz_blob)
+                    intensity_blob = spectrum.int_values.tolist()
+                    intensity_blob = struct.pack(f'{len(intensity_blob)}d', *intensity_blob)
 
-            spectrum_ident_dict = dict()
-
-            for spec_id_item in sid_result['SpectrumIdentificationItem']:
-                # get suitable id # ToDo: use accession instead of cvParam string?
-                if 'cross-link spectrum identification item' in spec_id_item.keys():
-                    self.contains_crosslinks = True
-                    crosslink_id = spec_id_item['cross-link spectrum identification item']
-                else:  # assuming linear
-                    crosslink_id = None
-
-                # check if seen it before
-                if crosslink_id in spectrum_ident_dict.keys():
-                    # do crosslink specific stuff
-                    ident_data = spectrum_ident_dict.get(crosslink_id)
-                    ident_data['pep2_id'] = spec_id_item['peptide_ref']
-                else:
-                    # do stuff common to linears and crosslinks
-                    # ToDo: refactor with MS: cvParam list of all scores
-                    scores = {
-                        k: v for k, v in spec_id_item.items()
-                        if 'score' in k.lower() or
-                           'pvalue' in k.lower() or
-                           'evalue' in k.lower() or
-                           'sequest' in k.lower() or
-                           'scaffold' in k.lower()
-                    }
-
-                    rank = spec_id_item['rank']
-                    # from mzidentML schema 1.2.0: For PMF data, the rank attribute may be
-                    # meaningless and values of rank = 0 should be given.
-                    # xiSPEC front-end expects rank = 1 as default
-                    if rank is None or int(rank) == 0:
-                        rank = 1
-
-                    calculated_mass_to_charge = None
-                    if 'calculatedMassToCharge' in spec_id_item.keys():
-                        calculated_mass_to_charge = float(spec_id_item['calculatedMassToCharge'])
-
-                    ident_data = {
-                        'id': spec_id_item['id'],
-                        'upload_id': self.writer.upload_id,
-                        'spectrum_id': sid_result['spectrumID'],
+                    spectra.append({
+                        'id': sid_result["spectrumID"],
                         'spectra_data_ref': sid_result['spectraData_ref'],
-                        'pep1_id': spec_id_item['peptide_ref'],
-                        'pep2_id': None,
-                        'charge_state': int(spec_id_item['chargeState']),
-                        'pass_threshold': spec_id_item['passThreshold'],
-                        'rank': int(rank),
-                        'scores': scores,
-                        'exp_mz': spec_id_item['experimentalMassToCharge'],
-                        'calc_mz': calculated_mass_to_charge,
-                    }
+                        'upload_id': self.writer.upload_id,
+                        'peak_list_file_name': ntpath.basename(peak_list_reader.peak_list_path),
+                        'precursor_mz': spectrum.precursor['mz'],
+                        'precursor_charge': spectrum.precursor['charge'],
+                        'mz': mz_blob,
+                        'intensity': intensity_blob,
+                        'retention_time': spectrum.rt
+                    })
 
-                    if crosslink_id:
+                spectrum_ident_dict = dict()
+                linear_index = -1  # negative index values for linear peptides
+
+                for spec_id_item in sid_result['SpectrumIdentificationItem']:
+                    cvs = cvquery(spec_id_item)
+                    if 'MS:1002511' in cvs:
+                        self.contains_crosslinks = True
+                        crosslink_id = cvs['MS:1002511']
+                    else:  # assuming linear
+                        crosslink_id = linear_index
+                        linear_index -= 1
+
+                    # check if seen it before
+                    if crosslink_id in spectrum_ident_dict.keys():
+                        # do crosslink specific stuff
+                        ident_data = spectrum_ident_dict.get(crosslink_id)
+                        ident_data['pep2_id'] = spec_id_item['peptide_ref']
+                    else:
+                        # do stuff common to linears and crosslinks
+                        # ToDo: refactor with MS: cvParam list of all scores
+                        scores = {
+                            k: v for k, v in spec_id_item.items()
+                            if 'score' in k.lower() or
+                               'pvalue' in k.lower() or
+                               'evalue' in k.lower() or
+                               'sequest' in k.lower() or
+                               'scaffold' in k.lower()
+                        }
+
+                        rank = spec_id_item['rank']
+                        # from mzidentML schema 1.2.0: For PMF data, the rank attribute may be
+                        # meaningless and values of rank = 0 should be given.
+                        # xiSPEC front-end expects rank = 1 as default
+                        if rank is None or int(rank) == 0:
+                            rank = 1
+
+                        calculated_mass_to_charge = None
+                        if 'calculatedMassToCharge' in spec_id_item.keys():
+                            calculated_mass_to_charge = float(spec_id_item['calculatedMassToCharge'])
+
+                        ident_data = {
+                            'id': spec_id_item['id'],
+                            'upload_id': self.writer.upload_id,
+                            'spectrum_id': sid_result['spectrumID'],
+                            'spectra_data_ref': sid_result['spectraData_ref'],
+                            'pep1_id': spec_id_item['peptide_ref'],
+                            'pep2_id': None,
+                            'charge_state': int(spec_id_item['chargeState']),
+                            'pass_threshold': spec_id_item['passThreshold'],
+                            'rank': int(rank),
+                            'scores': scores,
+                            'exp_mz': spec_id_item['experimentalMassToCharge'],
+                            'calc_mz': calculated_mass_to_charge,
+                            'sil_id': sil['id'],
+                        }
+
                         spectrum_ident_dict[crosslink_id] = ident_data
 
-            spectrum_identifications += spectrum_ident_dict.values()
-            spec_count += 1
+                spectrum_identifications += spectrum_ident_dict.values()
+                spec_count += 1
 
-            if spec_count % 1000 == 0:
-                self.logger.info('writing 1000 entries (1000 spectra and their idents) to DB')
-                try:
-                    if self.peak_list_dir:
-                        self.writer.write_data('Spectrum', spectra)
-                    spectra = []
-                    self.writer.write_data('SpectrumIdentification', spectrum_identifications)
-                    spectrum_identifications = []
-                except Exception as e:
-                    raise e
+                if spec_count % 1000 == 0:
+                    self.logger.debug('writing 1000 entries (1000 spectra and their idents) to DB')
+                    try:
+                        if self.peak_list_dir:
+                            self.writer.write_data('spectrum', spectra)
+                        spectra = []
+                        self.writer.write_data('spectrumidentification', spectrum_identifications)
+                        spectrum_identifications = []
+                    except Exception as e:
+                        raise e
 
         # end main loop
         self.logger.info('main loop - done Time: {} sec'.format(
@@ -668,8 +681,8 @@ class MzIdParser:
         self.logger.info('write remaining entries to DB - start')
 
         if self.peak_list_dir:
-            self.writer.write_data('Spectrum', spectra)
-        self.writer.write_data('SpectrumIdentification', spectrum_identifications)
+            self.writer.write_data('spectrum', spectra)
+        self.writer.write_data('spectrumidentification', spectrum_identifications)
 
         self.logger.info('write remaining entries to DB - done.  Time: {} sec'.format(
             round(time() - db_wrap_up_start_time, 2)))
@@ -678,12 +691,15 @@ class MzIdParser:
         upload_info_start_time = time()
         self.logger.info('parse upload info - start')
 
+        # Analysis Software
+        #analysis_software = self.mzid_reader.iterfind('AnalysisSoftware')
+
         spectra_formats = []
         for spectra_data_id in self.mzid_reader._offset_index["SpectraData"].keys():
             sp_datum = self.mzid_reader.get_by_id(spectra_data_id, tag_id='SpectraData',
                                                   detailed=True)
             spectra_formats.append(sp_datum)
-        spectra_formats = json.dumps(spectra_formats, cls=NumpyEncoder)
+        #spectra_formats = json.dumps(spectra_formats, cls=NumpyEncoder)
 
         # Provider - optional element
         try:
@@ -717,7 +733,7 @@ class MzIdParser:
         bib_refs = []
         for bib in self.mzid_reader.iterfind('BibliographicReference'):
             bib_refs.append(bib)
-        bib_refs = json.dumps(bib_refs)
+        #bib_refs = json.dumps(bib_refs)
         self.mzid_reader.reset()
 
         self.writer.write_mzid_info(spectra_formats, provider, audits, samples, bib_refs)
@@ -732,19 +748,21 @@ class MzIdParser:
         """Write new upload."""
         filename = os.path.basename(self.mzid_path)
         upload_data = {
-            'id': self.writer.upload_id,
-            'user_id': self.writer.user_id,
             'identification_file_name': filename,
             'project_id': self.writer.pxid,
             'identification_file_name_clean': re.sub(r'[^0-9a-zA-Z-]+', '-', filename)
         }
-        self.writer.write_data('Upload', upload_data)
-        # table = SATable('upload', self.writer.meta, autoload_with=self.writer.engine, quote=False)
-        # with self.writer.engine.connect() as conn:
-        #     statement = table.insert().values(upload_data).returning(table.columns[0])  #  RETURNING id AS upload_id
-        #     result = conn.execute(statement)
-        #     self.writer.upload_id = result.fetchall()[0][0]
-        #     conn.close()
+        # self.writer.write_data('Upload', upload_data)
+        try:
+            table = Table('upload', self.writer.meta, autoload_with=self.writer.engine, quote=False)
+            with self.writer.engine.connect() as conn:
+                statement = table.insert().values(upload_data).returning(table.columns[0])  # RETURNING id AS upload_id
+                result = conn.execute(statement)
+                conn.commit()
+                self.writer.upload_id = result.fetchall()[0][0]
+                conn.close()
+        except SQLAlchemyError as e:
+            print(f"Error during database insert: {e}")
 
     def write_other_info(self):
         """Write remaining information into Upload table."""
@@ -825,6 +843,7 @@ class xiSPEC_MzIdParser(MzIdParser):
 
     def write_new_upload(self):
         """Overrides base class function - not needed for xiSPEC."""
+        self.writer.upload_id = 1
         pass
 
     def upload_info(self):

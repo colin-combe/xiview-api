@@ -4,7 +4,6 @@ import logging
 from .db_pytest_fixtures import *
 from .parse_mzid import parse_mzid_into_postgresql
 
-
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(levelname)s %(name)s %(message)s')
 logger = logging.getLogger(__name__)
@@ -13,6 +12,10 @@ logger = logging.getLogger(__name__)
 def fixture_path(file):
     current_dir = os.path.dirname(__file__)
     return os.path.join(current_dir, "fixtures", file)
+
+
+def compare_spectrum_identification(results):
+    assert len(results) == 249
 
 
 def compare_db_sequence(results):
@@ -75,45 +78,44 @@ def test_psql_matrixscience_mzid_parser(tmpdir, db_info, use_database, engine):
                                            engine)
 
     with engine.connect() as conn:
+        # SpectrumIdentification
+        stmt = Table("spectrumidentification", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
+                     quote=False).select()
+        rs = conn.execute(stmt)
+        compare_spectrum_identification(rs.fetchall())
 
         # DBSequence
-        stmt = Table("DBSequence", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
+        stmt = Table("dbsequence", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
                      quote=False).select()
         rs = conn.execute(stmt)
         compare_db_sequence(rs.fetchall())
 
-        # Layout
-        stmt = Table("Layout", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
-                     quote=False).select()
-        rs = conn.execute(stmt)
-        assert len(rs.fetchall()) == 0
-
         # Modification - parsed from <SearchModification>s
-        stmt = Table("SearchModification", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
+        stmt = Table("searchmodification", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
                      quote=False).select()
         rs = conn.execute(stmt)
         compare_modification(rs.fetchall())
 
         # Enzyme - parsed from SpectrumIdentificationProtocols
-        stmt = Table("Enzyme", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
+        stmt = Table("enzyme", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
                      quote=False).select()
         rs = conn.execute(stmt)
         compare_enzyme(rs.fetchall())
 
         # PeptideEvidence
-        stmt = Table("PeptideEvidence", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
+        stmt = Table("peptideevidence", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
                      quote=False).select()
         rs = conn.execute(stmt)
         compare_peptide_evidence(rs.fetchall())
 
         # ModifiedPeptide
-        stmt = Table("ModifiedPeptide", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
+        stmt = Table("modifiedpeptide", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
                      quote=False).select()
         rs = conn.execute(stmt)
         compare_modified_peptide(rs.fetchall())
 
         # Spectrum (peak_list_folder = False)
-        stmt = Table("Spectrum", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
+        stmt = Table("spectrum", id_parser.writer.meta, autoload_with=id_parser.writer.engine,
                      quote=False).select()
         rs = conn.execute(stmt)
         assert len(rs.fetchall()) == 0
@@ -121,4 +123,3 @@ def test_psql_matrixscience_mzid_parser(tmpdir, db_info, use_database, engine):
         # ToDo: remaining Tables
 
     engine.dispose()
-

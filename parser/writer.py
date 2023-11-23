@@ -1,17 +1,7 @@
-from uuid import uuid4, UUID
 from sqlalchemy import create_engine, MetaData
-from sqlalchemy import Table as SATable
+from sqlalchemy import Table
 from create_db_schema import create_schema
 from sqlalchemy_utils import database_exists
-
-
-def Table(name, *args, **kw):
-    """Return an SQLAlchemy table but that uses the lower case table name.
-    This is a workaround for the "quote=False" argument not working properly for the postgresql
-    dialect in SQLAlchemy.
-    :param name: name of the table - will be forwarded as lower case string.
-    """
-    return SATable(name.lower(), *args, **kw)
 
 
 class Writer:
@@ -29,17 +19,8 @@ class Writer:
         # It has lazy initialisation.
         self.engine = create_engine(connection_str)
         self.meta = MetaData()
-        if upload_id:
-            self.upload_id = upload_id
-        else:
-            self.upload_id = str(uuid4())
-        # if user_id is not None and not isinstance(user_id, UUID):
-        #     raise Exception('user_id must be a uuid!')
-        if user_id is not None:
-            user_id = str(user_id)
-        self.user_id = user_id
         self.pxid = pxid
-        # Create table schema if necessary (SQLite)
+        # Create table schema if necessary (SQLite) - not working for postgresql - why?
         if not database_exists(self.engine.url):
             create_schema(self.engine.url)
 
@@ -50,10 +31,11 @@ class Writer:
         :param table: (str) Table name
         :param data: (list dict) data to insert.
         """
-        table = Table(table, self.meta, autoload_with=self.engine, quote=False)
+        table = Table(table, self.meta, autoload_with=self.engine)
         with self.engine.connect() as conn:
             statement = table.insert().values(data)
             conn.execute(statement)
+            conn.commit()
             conn.close()
 
     def write_mzid_info(self, spectra_formats,
@@ -69,16 +51,17 @@ class Writer:
         :param bib:
         :return:
         """
-        upload = Table("Upload", self.meta, autoload_with=self.engine, quote=False)
+        upload = Table("upload", self.meta, autoload_with=self.engine, quote=False)
         stmt = upload.update().where(upload.c.id == str(self.upload_id)).values(
             spectra_formats=spectra_formats,
             provider=provider,
-            audits=audits,
-            samples=samples,
+            audit_collection=audits,
+            analysis_sample_collection=samples,
             bib=bib
         )
         with self.engine.connect() as conn:
             conn.execute(stmt)
+            conn.commit()
 
     def write_other_info(self, contains_crosslinks, upload_warnings):
         """
@@ -89,13 +72,14 @@ class Writer:
         :param upload_warnings:
         :return:
         """
-        upload = Table("Upload", self.meta, autoload_with=self.engine, quote=False)
+        upload = Table("upload", self.meta, autoload_with=self.engine, quote=False)
         with self.engine.connect() as conn:
             stmt = upload.update().where(upload.c.id == str(self.upload_id)).values(
                 contains_crosslinks=contains_crosslinks,
                 upload_warnings=upload_warnings,
             )
             conn.execute(stmt)
+            conn.commit()
 
     def fill_in_missing_scores(self):
         """

@@ -2,11 +2,14 @@ import sys
 import numpy as np
 from time import time
 import pandas as pd
+import sqlalchemy
+
 from parser.peaklistReader.PeakListWrapper import PeakListWrapper
 import os
 # import pyteomics.fasta as py_fasta
 from parser import SimpleFASTA
 import abc
+from sqlalchemy import Table
 
 
 class CsvParseException(Exception):
@@ -249,11 +252,27 @@ class AbstractCsvParser:
     def write_new_upload(self):
         """Write new upload."""
         upload_data = {
-                'id': self.writer.upload_id,
-                'user_id': self.writer.user_id,
-                'identification_file_name': os.path.basename(self.csv_path),
+            # 'id': self.writer.upload_id,
+            # 'user_id': self.writer.user_id,
+            'identification_file_name': os.path.basename(self.csv_path),
         }
-        self.writer.write_data('Upload', upload_data)
+        # self.writer.write_data('Upload', upload_data)
+        table = Table('upload', self.writer.meta, autoload_with=self.writer.engine, quote=False)
+        with self.writer.engine.connect() as conn:
+            try:
+                statement = table.insert().values(upload_data).returning(table.columns[0])  # RETURNING id AS upload_id
+                result = conn.execute(statement)
+                self.writer.upload_id = result.fetchall()[0][0]
+                conn.commit()
+                conn.close()
+            except Exception as e:
+                # its SQLite
+                upload_data['id'] = 1
+                statement = table.insert().values(upload_data)
+                result = conn.execute(statement)
+                self.writer.upload_id = upload_data['id']
+                conn.commit()
+                conn.close()
 
 # class NumpyEncoder(json.JSONEncoder):
 #     def default(self, obj):

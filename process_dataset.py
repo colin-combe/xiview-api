@@ -5,16 +5,17 @@ import socket
 import requests
 import time
 import ftplib
-from urllib.parse import urlparse
-import logging
+import logging.config
 import gc
 import shutil
 from urllib.parse import urlparse
 
 from parser.MzIdParser import MzIdParser
 from parser.writer import Writer
-
 from db_config_parser import get_conn_str
+
+logging.config.fileConfig('logging.ini')
+logger = logging.getLogger(__name__)
 
 
 def main(args):
@@ -41,18 +42,18 @@ def main(args):
         if args.identifier:
             project_identifier = args.identifier
         else:
-            project_identifier = local_dir.path.rsplit("/", 1)[-1]
-        convert_dir(local_dir, project_identifier)
+            project_identifier = local_dir.rsplit("/", 1)[-1]
+        convert_dir(local_dir, project_identifier, nopeaklist=args.nopeaklist)
 
 
 def convert_pxd_accession(px_accession, temp_dir, dont_delete=False):
     # get ftp location from PX
     px_url = 'https://proteomecentral.proteomexchange.org/cgi/GetDataset?ID=' + px_accession + '&outputMode=JSON'
-    print('GET request to ProteomeExchange: ' + px_url)
+    logger.info('GET request to ProteomeExchange: ' + px_url)
     px_response = requests.get(px_url)
     r = requests.get(px_url)
     if r.status_code == 200:
-        print('ProteomeExchange returned status code 200')
+        logger.info('ProteomeExchange returned status code 200')
         px_json = px_response.json()
         ftp_url = None
         for dataSetLink in px_json['fullDatasetLinks']:
@@ -70,11 +71,11 @@ def convert_pxd_accession(px_accession, temp_dir, dont_delete=False):
 def convert_pxd_accession_from_pride(px_accession, temp_dir, dont_delete=False):
     # get ftp location from PRIDE API
     px_url = 'https://www.ebi.ac.uk/pride/ws/archive/v2/files/byProject?accession=' + px_accession
-    print('GET request to PRIDE API: ' + px_url)
+    logger.info('GET request to PRIDE API: ' + px_url)
     pride_response = requests.get(px_url)
     r = requests.get(px_url)
     if r.status_code == 200:
-        print('PRIDE API returned status code 200')
+        logger.info('PRIDE API returned status code 200')
         pride_json = pride_response.json()
         ftp_url = None
 
@@ -95,13 +96,14 @@ def convert_pxd_accession_from_pride(px_accession, temp_dir, dont_delete=False):
                         parent_folder += segment + '/'
                     ftp_url = parent_folder
 
-                    print('PRIDE FTP path : ' + parent_folder)
+                    logger.info('PRIDE FTP path : ' + parent_folder)
                     break;
         convert_from_ftp(ftp_url, temp_dir, px_accession, dont_delete)
         if not ftp_url:
             raise Exception('Error: Public File location not found in PRIDE API response')
     else:
         raise Exception('Error: PRIDE API returned status code ' + str(pride_response.status_code))
+
 
 def convert_from_ftp(ftp_url, temp_dir, project_identifier, dont_delete):
     if not ftp_url.startswith('ftp://'):
@@ -110,10 +112,10 @@ def convert_from_ftp(ftp_url, temp_dir, project_identifier, dont_delete):
         try:
             os.mkdir(temp_dir)
         except OSError as e:
-            print('Failed to create temp directory ' + temp_dir)
-            print('Error: ' + e.strerror)
+            logger.error('Failed to create temp directory ' + temp_dir)
+            logger.error('Error: ' + e.strerror)
             raise e
-    print('FTP url: ' + ftp_url)
+    logger.info('FTP url: ' + ftp_url)
     parsed_url = urlparse(ftp_url)
     path = os.path.join(temp_dir, project_identifier)
     try:
@@ -131,7 +133,7 @@ def convert_from_ftp(ftp_url, temp_dir, project_identifier, dont_delete):
                 or f.lower().endswith('all.zip')
                 or f.lower().endswith('csv')
                 or f.lower().endswith('txt')):
-            print('Downloading ' + f + ' to ' + path)
+            logger.info('Downloading ' + f + ' to ' + path)
             ftp = get_ftp_login(ftp_ip)
             try:
                 ftp.cwd(parsed_url.path)
@@ -148,8 +150,8 @@ def convert_from_ftp(ftp_url, temp_dir, project_identifier, dont_delete):
         try:
             shutil.rmtree(path)
         except OSError as e:
-            print('Failed to delete temp directory ' + path)
-            print('Error: ' + e.strerror)
+            logger.error('Failed to delete temp directory ' + path)
+            logger.error('Error: ' + e.strerror)
             raise e
 
 
@@ -160,7 +162,7 @@ def get_ftp_login(ftp_ip):
         ftp.login()  # Uses password: anonymous@
         return ftp
     except ftplib.all_errors as e:
-        print('FTP fail at ' + time.strftime("%c"))
+        logger.error('FTP fail at ' + time.strftime("%c"))
         raise e
 
 
@@ -170,36 +172,37 @@ def get_ftp_file_list(ftp_ip, ftp_dir):
         ftp.cwd(ftp_dir)
     except ftplib.error_perm as e:
         error_msg = "%s: %s" % (ftp_dir, e.args[0])
-        print(error_msg)
+        logger.error(error_msg)
         ftp.quit()
         raise e
     try:
         filelist = ftp.nlst()
     except ftplib.error_perm as resp:
         if str(resp) == "550 No files found":
-            print("FTP: No files in this directory")
+            logger.info("FTP: No files in this directory")
         else:
             error_msg = "%s: %s" % (ftp_dir, ftplib.error_perm.args[0])
-            print(error_msg)
+            logger.error(error_msg)
         raise resp
     ftp.close()
     return filelist
 
 
-def convert_dir(local_dir, project_identifier):
-    logging.basicConfig(level=logging.DEBUG,
-                        format='%(asctime)s %(levelname)s %(name)s %(message)s')
-    logger = logging.getLogger(__name__)
+def convert_dir(local_dir, project_identifier, nopeaklist=False):
+    # logging.basicConfig(level=logging.DEBUG,
+    #                     format='%(asctime)s %(levelname)s %(name)s %(message)s')
+    # logger = logging.getLogger(__name__)
+    peaklist_dir = local_dir if not nopeaklist else None
     #  iterate over files in local_dir
     for file in os.listdir(local_dir):
         if file.endswith(".mzid") or file.endswith(".mzid.gz"):
-            print("Processing " + file)
+            logger.info("Processing " + file)
             conn_str = get_conn_str()
             writer = Writer(conn_str, pxid=project_identifier)
-            id_parser = MzIdParser(os.path.join(local_dir, file), local_dir, local_dir, writer, logger)
+            id_parser = MzIdParser(os.path.join(local_dir, file), local_dir, peaklist_dir, writer, logger)
             try:
                 id_parser.parse()
-                # print(id_parser.warnings + "\n")
+                # logger.info(id_parser.warnings + "\n")
             except Exception as e:
                 print("Error parsing " + file)
                 print(type(e).__name__, e)
@@ -224,9 +227,12 @@ if __name__ == "__main__":
                              'proteome exchange accession these are always used instead and this arg is ignored)')
     parser.add_argument('--dontdelete', action='store_true', help='Do not delete downloaded data after processing')
     parser.add_argument('-t', '--temp', action='store_true', help='Temp folder to download data files into')
+    parser.add_argument('-n', '--nopeaklist',
+                        help='No peak list files available, only works in comination with --dir arg',
+                        action='store_true')
     try:
         main(parser.parse_args())
         sys.exit(0)
     except Exception as ex:
-        print(ex)
+        logger.error(ex)
         sys.exit(1)
