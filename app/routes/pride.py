@@ -322,12 +322,16 @@ GROUP BY dbref;
             if r.status_code == 200:
                 logger.info('PRIDE API returned status code 200')
                 pride_json = pride_response.json()
-                if len(pride_json['references']) > 0:
-                    pubmedId = pride_json['references'][0]['pubmedId']
-                    project_details.pubmed_id = pubmedId
                 if pride_json is not None:
-                    project_details.title = pride_json['title']
-                    project_details.description = pride_json['projectDescription']
+                    if len(pride_json['references']) > 0:
+                        project_details.pubmed_id = pride_json['references'][0]['pubmedId']
+                    if len(pride_json['title']) > 0:
+                        project_details.title = pride_json['title']
+                    if len(pride_json['projectDescription']) > 0:
+                        project_details.description = pride_json['projectDescription']
+                    if len(pride_json['organisms']) > 0:
+                        project_details.organism = pride_json['organisms'][0]['name']
+
             project_details.project_id = accession
 
             project_details.number_of_spectra = await get_number_of_counts(sql_number_of_identifications, sql_values,
@@ -375,6 +379,7 @@ GROUP BY dbref;
                 existing_record.title = project_details.title
                 existing_record.description = project_details.description
                 existing_record.pubmed_id = project_details.pubmed_id
+                existing_record.organism = project_details.organism
                 existing_record.number_of_proteins = project_details.number_of_proteins
                 existing_record.number_of_peptides = project_details.number_of_peptides
                 existing_record.number_of_spectra = project_details.number_of_spectra
@@ -385,6 +390,7 @@ GROUP BY dbref;
             session.close()
     except Exception as error:
         logger.error(error)
+        session.rollback()
 
 
 async def get_number_of_counts(sql, sql_values, session):
