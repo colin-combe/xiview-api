@@ -137,6 +137,26 @@ async def parse(session: Session = Depends(get_session)):
     return values
 
 
+@pride_router.get("/projects-per-species", tags=["Statistics"])
+async def parse(session: Session = Depends(get_session)):
+    """
+    Number of projects per species
+    :param session: session connection to the database
+    :return:  Number of projects per species as a Dictionary
+    """
+    try:
+        sql_projects_per_species = text("""
+        SELECT organism, COUNT(organism) AS organism_count
+        FROM projectdetails
+        GROUP BY organism
+        ORDER BY COUNT(organism) ASC;
+""")
+        values = await get_counts_table(sql_projects_per_species, None, session)
+    except Exception as error:
+        app_logger.error(error)
+    return values
+
+
 @pride_router.get("/health", tags=["Admin"])
 def health():
     """
@@ -153,7 +173,7 @@ async def update_project_details(session: Session = Depends(get_session), api_ke
     An endpoint to update the project details including title, description, PubmedID,
     Number of proteins, peptides and spectra identifications
     :param api_key: API KEY
-    :param session: session connection to the dataset
+    :param session: session connection to the database
     :return: None
     """
 
