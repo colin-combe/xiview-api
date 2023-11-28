@@ -1,5 +1,6 @@
 import logging
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from typing import List
 
@@ -54,6 +55,7 @@ async def parse(px_accession: str, temp_dir: str | None = None, dont_delete: boo
                 api_key: str = Security(get_api_key)):
     """
     Parse a new project which contain MzIdentML file
+    :param api_key: API KEY
     :param px_accession: ProteomXchange Project Accession
     :param temp_dir: If data needs to be saved in a temporary directory
     :param dont_delete: Boolean value to determine if the files needs to be deleted at the end
