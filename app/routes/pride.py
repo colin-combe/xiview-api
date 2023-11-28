@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends
+import logging
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from typing import List
 
@@ -10,17 +12,57 @@ from sqlalchemy.orm import Session, joinedload
 import os
 import requests
 import logging.config
+import configparser
+from fastapi import FastAPI, HTTPException, Security
+from fastapi.security import APIKeyHeader
 
-logging.config.fileConfig('logging.ini')
-logger = logging.getLogger(__name__)
-
+app_logger = logging.getLogger("uvicorn")  # unify the uvicorn logging with fast-api logging
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 pride_router = APIRouter()
+config = configparser.ConfigParser()
+
+# Read the INI file
+config.read('database.ini')
+
+# Access values from the INI file
+API_KEY = config.get('security', 'apikey')
 
 
-@pride_router.post("/parse/{px_accession}", tags=["Main"])
-async def parse(px_accession: str, temp_dir: str | None = None, dont_delete: bool = False):
+
+def get_api_key(key: str = Security(api_key_header)) -> str:
+    if key == API_KEY:
+        return key
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid or missing API Key",
+    )
+
+
+@pride_router.put("/log/{level}", tags=["Admin"])
+def change_log_level(level, api_key: str = Security(get_api_key)):
+    level_upper = str(level).upper()
+    logging.getLogger("uvicorn.error").setLevel(level_upper)
+    logging.getLogger("uvicorn.access").setLevel(level_upper)
+    logging.getLogger("uvicorn.asgi").setLevel(level_upper)
+    app_logger.setLevel(level_upper)
+
+
+def get_config(file):
+    """
+    This method read the default configuration file config.ini in the same path of the pipeline execution
+    :return:
+    """
+    config = configparser.ConfigParser()
+    config.read(file)
+    return config
+
+
+@pride_router.post("/parse", tags=["Admin"])
+async def parse(px_accession: str, temp_dir: str | None = None, dont_delete: bool = False,
+                api_key: str = Security(get_api_key)):
     """
     Parse a new project which contain MzIdentML file
+    :param api_key: API KEY
     :param px_accession: ProteomXchange Project Accession
     :param temp_dir: If data needs to be saved in a temporary directory
     :param dont_delete: Boolean value to determine if the files needs to be deleted at the end
@@ -34,43 +76,104 @@ async def parse(px_accession: str, temp_dir: str | None = None, dont_delete: boo
 
 
 @pride_router.get("/projects", tags=["Main"])
-async def list_all_projects(session: Session = Depends(get_session)) -> list[ProjectDetail]:
+async def list_all_projects(session: Session = Depends(get_session), page: int = 1, page_size: int = 10) -> list[
+    ProjectDetail]:
     """
     This gives the high-level view of list of projects
     :param session: connection to database
+    :param page: page number
+    :param page_size: number of records per page
     :return: List of ProjectDetails in JSON format
     """
-    projects = session.query(ProjectDetail).all()
-    session.close()
+    try:
+        offset = (page - 1) * page_size
+        projects = session.query(ProjectDetail).offset(offset).limit(page_size).all()
+    except Exception as e:
+        # Handle the exception here
+        logging.error(f"Error occurred: {str(e)}")
+        return []
+    if projects is None or projects == []:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Projects not found")
+
     return projects
 
 
 @pride_router.get("/projects/{px_accession}", tags=["Main"])
-async def project_detail_view(px_accession, session: Session = Depends(get_session)) -> list[ProjectDetail]:
-    project_details = session.query(ProjectDetail)\
-        .options(joinedload(ProjectDetail.project_sub_details))\
-        .filter(ProjectDetail.project_id == px_accession)\
-        .all()
-    session.close()
-    return project_details
+def project_detail_view(px_accession: str, session: Session = Depends(get_session)) -> List[ProjectDetail]:
+    """
+    Retrieve project detail by px_accession.
+    """
+    try:
+        project_detail = session.query(ProjectDetail) \
+            .options(joinedload(ProjectDetail.project_sub_details)) \
+            .filter(ProjectDetail.project_id == px_accession) \
+            .all()
+    except Exception as e:
+        logging.error(f"Error occurred: {str(e)}")
+        project_detail = None
+
+    if project_detail is None or project_detail == []:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project detail not found")
+
+    return project_detail
 
 
-@pride_router.get("/health", tags=["Main"])
-async def health():
+@pride_router.get("/statistics-count", tags=["Statistics"])
+async def parse(session: Session = Depends(get_session)):
+    try:
+        sql_statistics_count = text("""
+                      SELECT
+                          COUNT(id) AS "Number of Projects",
+                          SUM(number_of_proteins) AS "Number of proteins",
+                          SUM(number_of_peptides) AS "Number of peptides",
+                          SUM(number_of_spectra) AS "Number of spectra",
+                          COUNT(DISTINCT organism) AS "Number of species"
+                      FROM
+                          projectdetails p;
+                  """)
+        values = await get_statistics_count(sql_statistics_count, session)
+    except Exception as error:
+        app_logger.error(error)
+    return values
+
+
+@pride_router.get("/projects-per-species", tags=["Statistics"])
+async def parse(session: Session = Depends(get_session)):
+    """
+    Number of projects per species
+    :param session: session connection to the database
+    :return:  Number of projects per species as a Dictionary
+    """
+    try:
+        sql_projects_per_species = text("""
+        SELECT organism, COUNT(organism) AS organism_count
+        FROM projectdetails
+        GROUP BY organism
+        ORDER BY COUNT(organism) ASC;
+""")
+        values = await get_counts_table(sql_projects_per_species, None, session)
+    except Exception as error:
+        app_logger.error(error)
+    return values
+
+
+@pride_router.get("/health", tags=["Admin"])
+def health():
     """
     A quick simple endpoint to test the API is working
     :return: Response with OK
     """
-    logger.info('Checking the health-test')
-    return "OK"
+    app_logger.debug('Health check endpoint accessed')
+    return {'status': 'OK'}
 
 
-@pride_router.post("/update-project-details", tags=["Maintenance"])
-async def update_project_details(session: Session = Depends(get_session)):
+@pride_router.post("/update-project-details", tags=["Admin"])
+async def update_project_details(session: Session = Depends(get_session), api_key: str = Security(get_api_key)):
     """
     An endpoint to update the project details including title, description, PubmedID,
     Number of proteins, peptides and spectra identifications
-    :param session: session connection to the dataset
+    :param api_key: API KEY
+    :param session: session connection to the database
     :return: None
     """
 
@@ -285,79 +388,6 @@ GROUP BY dbref;
     );
     """)
 
-#     # number of peptides of a selected protein
-#     sql_number_of_peptides_of_selected_protein = text("""
-# SELECT COUNT(pe.peptide_ref)
-# FROM peptideevidence pe
-# WHERE
-#     pe.dbsequence_ref IN (
-#         SELECT id
-#         FROM dbsequence
-#         WHERE
-#             accession = :proteinaccession
-#             AND upload_id IN (
-#                 SELECT u.id
-#                 FROM upload u
-#                 WHERE
-#                     u.upload_time = (
-#                         SELECT MAX(upload_time)
-#                         FROM upload
-#                         WHERE
-#                             project_id = u.project_id
-#                             AND identification_file_name = u.identification_file_name
-#                     )
-#                     AND u.project_id = :projectaccession
-#             )
-#     )
-#     AND pe.is_decoy = FALSE;
-#     """)
-#
-#     # number of crosslinks of a selected protein
-#     sql_number_of_crosslinks_of_selected_protein = text("""
-#     SELECT DISTINCT crosslinker_pair_id
-# FROM modifiedpeptide mp
-# WHERE
-#     mp.upload_id IN (
-#         SELECT u.id
-#         FROM upload u
-#         WHERE
-#             u.upload_time = (
-#                 SELECT MAX(upload_time)
-#                 FROM upload
-#                 WHERE
-#                     project_id = u.project_id
-#                     AND identification_file_name = u.identification_file_name
-#             )
-#             AND u.project_id = :projectaccession
-#     )
-#     AND mp.id IN (
-#         SELECT pe.peptide_ref
-#         FROM peptideevidence pe
-#         WHERE
-#             pe.dbsequence_ref IN (
-#                 SELECT id
-#                 FROM dbsequence
-#                 WHERE
-#                     accession = :proteinaccession
-#                     AND upload_id IN (
-#                         SELECT u.id
-#                         FROM upload u
-#                         WHERE
-#                             u.upload_time = (
-#                                 SELECT MAX(upload_time)
-#                                 FROM upload
-#                                 WHERE
-#                                     project_id = u.project_id
-#                                     AND identification_file_name = u.identification_file_name
-#                             )
-#                             AND u.project_id = :projectaccession
-#                     )
-#             )
-#             AND pe.is_decoy = FALSE
-#     );
-#
-#     """)
-
     try:
         sql_values = {}
         list_of_accessions = await get_accessions(sql_project_accession_list, sql_values, session)
@@ -368,27 +398,33 @@ GROUP BY dbref;
             # get project details from PRIDE API
             # TODO: need to move URL to a configuration variable
             px_url = 'https://www.ebi.ac.uk/pride/ws/archive/v2/projects/' + accession
-            logger.debug('GET request to PRIDE API: ' + px_url)
+            app_logger.debug('GET request to PRIDE API: ' + px_url)
             pride_response = requests.get(px_url)
             r = requests.get(px_url)
             if r.status_code == 200:
-                print('PRIDE API returned status code 200')
+                app_logger.info('PRIDE API returned status code 200')
                 pride_json = pride_response.json()
-                if len(pride_json['references']) > 0:
-                    pubmedId = pride_json['references'][0]['pubmedId']
-                    project_details.pubmed_id = pubmedId
                 if pride_json is not None:
-                    project_details.title = pride_json['title']
-                    project_details.description = pride_json['projectDescription']
+                    if len(pride_json['references']) > 0:
+                        project_details.pubmed_id = pride_json['references'][0]['pubmedId']
+                    if len(pride_json['title']) > 0:
+                        project_details.title = pride_json['title']
+                    if len(pride_json['projectDescription']) > 0:
+                        project_details.description = pride_json['projectDescription']
+                    if len(pride_json['organisms']) > 0:
+                        project_details.organism = pride_json['organisms'][0]['name']
+
             project_details.project_id = accession
 
-            project_details.number_of_spectra = await get_number_of_counts(sql_number_of_identifications, sql_values, session)
+            project_details.number_of_spectra = await get_number_of_counts(sql_number_of_identifications, sql_values,
+                                                                           session)
             project_details.number_of_peptides = await get_number_of_counts(sql_number_of_peptides, sql_values, session)
             project_details.number_of_proteins = await get_number_of_counts(sql_number_of_proteins, sql_values, session)
 
             peptide_counts_by_protein = await get_counts_table(sql_peptides_per_protein, sql_values, session)
             peptide_crosslinks_by_protein = await get_counts_table(sql_crosslinks_per_protein, sql_values, session)
-            db_sequence_accession_mapping = await get_counts_table(sql_db_sequence_accession_mapping, sql_values, session)
+            db_sequence_accession_mapping = await get_counts_table(sql_db_sequence_accession_mapping, sql_values,
+                                                                   session)
 
             list_of_project_sub_details = []
 
@@ -412,7 +448,6 @@ GROUP BY dbref;
                         sub_details.protein_accession = dbseq['value']
 
             project_details.project_sub_details = list_of_project_sub_details
-            logger.info(project_details.__dict__)
 
             # Define the conditions for updating
             conditions = {'project_id': accession}
@@ -425,6 +460,7 @@ GROUP BY dbref;
                 existing_record.title = project_details.title
                 existing_record.description = project_details.description
                 existing_record.pubmed_id = project_details.pubmed_id
+                existing_record.organism = project_details.organism
                 existing_record.number_of_proteins = project_details.number_of_proteins
                 existing_record.number_of_peptides = project_details.number_of_peptides
                 existing_record.number_of_spectra = project_details.number_of_spectra
@@ -434,7 +470,8 @@ GROUP BY dbref;
             session.commit()
             session.close()
     except Exception as error:
-        logger.error(error)
+        app_logger.error(error)
+        session.rollback()
 
 
 async def get_number_of_counts(sql, sql_values, session):
@@ -450,10 +487,10 @@ async def get_number_of_counts(sql, sql_values, session):
         result = session.execute(sql, sql_values)
         number_of_counts = result.scalar()
     except Exception as error:
-        logger.error(error)
+        app_logger.error(error)
     finally:
         session.close()
-        logger.debug('Database session is closed.')
+        app_logger.debug('Database session is closed.')
     return number_of_counts
 
 
@@ -470,10 +507,10 @@ async def get_accessions(sql, sql_values, session):
         # Fetch the list of accessions
         list_of_accessions = [row[0] for row in result]
     except Exception as error:
-        logger.error(error)
+        app_logger.error(error)
     finally:
         session.close()
-        logger.debug('Database session is closed.')
+        app_logger.debug('Database session is closed.')
     return list_of_accessions
 
 
@@ -486,13 +523,40 @@ async def get_counts_table(sql, sql_values, session):
     :return: List of key value pairs
     """
     try:
-        result = session.execute(sql, sql_values)
-        result_list = [
-            {'key': row[0], 'value': row[1]} for row in result if len(row) >= 2
-        ]
+        with session:
+            result = session.execute(sql, sql_values)
+            result_list = [
+                {'key': row[0], 'value': row[1]} for row in result if len(row) >= 2
+            ]
     except Exception as error:
-        logger.error(error)
+        app_logger.error(f"Error type: {type(error)}, Error message: {str(error)}")
+    finally:
+        app_logger.debug('Database session is closed.')
+    return result_list
+
+
+async def get_statistics_count(sql, session):
+    """
+    Get all the Unique accessions(project, protein) in the database according to the SQL
+    :param sql: SQL to get project accessions
+    :param session: database session
+    :return: List of unique project accessions
+    """
+    values = None
+    try:
+        result = session.execute(sql)
+        # Fetch the values from the result
+        row = result.fetchone()
+
+        statistics_counts = {'Number of Projects': row[0],
+                             'Number of proteins': row[1],
+                             'Number of peptides': row[2],
+                             'Number of spectra': row[3],
+                             'Number of species': row[4]}
+        print(statistics_counts)
+    except Exception as error:
+        app_logger.error(error)
     finally:
         session.close()
-        logger.debug('Database session is closed.')
-    return result_list
+        app_logger.debug('Database session is closed.')
+    return statistics_counts
