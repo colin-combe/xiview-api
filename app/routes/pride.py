@@ -39,8 +39,19 @@ def change_log_level(level, api_key: str = Security(get_api_key)):
     app_logger.setLevel(level_upper)
 
 
-@pride_router.post("/parse/{px_accession}", tags=["Admin"])
-async def parse(px_accession: str, temp_dir: str | None = None, dont_delete: bool = False):
+def get_config(file):
+    """
+    This method read the default configuration file config.ini in the same path of the pipeline execution
+    :return:
+    """
+    config = configparser.ConfigParser()
+    config.read(file)
+    return config
+
+
+@pride_router.post("/parse", tags=["Admin"])
+async def parse(px_accession: str, temp_dir: str | None = None, dont_delete: bool = False,
+                api_key: str = Security(get_api_key)):
     """
     Parse a new project which contain MzIdentML file
     :param px_accession: ProteomXchange Project Accession
