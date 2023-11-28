@@ -110,6 +110,25 @@ def project_detail_view(px_accession: str, session: Session = Depends(get_sessio
     return project_detail
 
 
+@pride_router.get("/statistics-count", tags=["Statistics"])
+async def parse(session: Session = Depends(get_session)):
+    try:
+        sql_statistics_count = text("""
+                      SELECT
+                          COUNT(id) AS "Number of Projects",
+                          SUM(number_of_proteins) AS "Number of proteins",
+                          SUM(number_of_peptides) AS "Number of peptides",
+                          SUM(number_of_spectra) AS "Number of spectra",
+                          COUNT(DISTINCT organism) AS "Number of species"
+                      FROM
+                          projectdetails p;
+                  """)
+        values = await get_statistics_count(sql_statistics_count, session)
+    except Exception as error:
+        app_logger.error(error)
+    return values
+
+
 @pride_router.get("/health", tags=["Admin"])
 def health():
     """
@@ -486,3 +505,30 @@ async def get_counts_table(sql, sql_values, session):
     finally:
         app_logger.debug('Database session is closed.')
     return result_list
+
+
+async def get_statistics_count(sql, session):
+    """
+    Get all the Unique accessions(project, protein) in the database according to the SQL
+    :param sql: SQL to get project accessions
+    :param session: database session
+    :return: List of unique project accessions
+    """
+    values = None
+    try:
+        result = session.execute(sql)
+        # Fetch the values from the result
+        row = result.fetchone()
+
+        statistics_counts = {'Number of Projects': row[0],
+                             'Number of proteins': row[1],
+                             'Number of peptides': row[2],
+                             'Number of spectra': row[3],
+                             'Number of species': row[4]}
+        print(statistics_counts)
+    except Exception as error:
+        app_logger.error(error)
+    finally:
+        session.close()
+        app_logger.debug('Database session is closed.')
+    return statistics_counts
