@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.routes.pride import pride_router
 
@@ -12,5 +13,15 @@ app = FastAPI(title="Xi-MzIdentML-Converter WS",
               openapi_url="/pride/archive/xiview/ws/api/openapi.json",
               docs_url="/pride/archive/xiview/ws/api/docs")
 
+# Set up CORS middleware
+origins = ["*"]  # Update this with your allowed origins
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(pride_router, prefix="/pride/archive/xiview/ws")
