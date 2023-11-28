@@ -19,7 +19,14 @@ from fastapi.security import APIKeyHeader
 app_logger = logging.getLogger("uvicorn")  # unify the uvicorn logging with fast-api logging
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 pride_router = APIRouter()
-API_KEY = ""
+config = configparser.ConfigParser()
+
+# Read the INI file
+config.read('database.ini')
+
+# Access values from the INI file
+API_KEY = config.get('security', 'apikey')
+
 
 
 def get_api_key(key: str = Security(api_key_header)) -> str:
@@ -97,7 +104,6 @@ def project_detail_view(px_accession: str, session: Session = Depends(get_sessio
     Retrieve project detail by px_accession.
     """
     try:
-        logger.info("something")
         project_detail = session.query(ProjectDetail) \
             .options(joinedload(ProjectDetail.project_sub_details)) \
             .filter(ProjectDetail.project_id == px_accession) \
