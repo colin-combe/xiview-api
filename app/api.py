@@ -26,4 +26,4 @@ app.add_middleware(
 )
 
 app.include_router(pride_router, prefix="/pride/archive/xiview/ws")
-app.include_router(pdb_dev_router, prefix="/pride/archive/pdbdev")
+app.include_router(pdb_dev_router, prefix="/pride/archive/pdbdev/ws")

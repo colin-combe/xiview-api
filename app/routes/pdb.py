@@ -9,7 +9,7 @@ from app.routes.shared import get_db_connection
 pdb_dev_router = APIRouter()
 
 
-@pdb_dev_router.route('/ws/projects/<project_id>/sequences', methods=['GET'])
+@pdb_dev_router.route('/projects/<project_id>/sequences', methods=['GET'])
 def sequences(project_id):
     """
     Get all sequences belonging to a project.
@@ -49,7 +49,7 @@ def sequences(project_id):
         return json.dumps({"data": mzid_rows})
 
 
-@pdb_dev_router.route('/ws/projects/<project_id>/residue-pairs/psm-level/<passing_threshold>', methods=['GET'])
+@pdb_dev_router.route('/projects/<project_id>/residue-pairs/psm-level/<passing_threshold>', methods=['GET'])
 def get_psm_level_residue_pairs(project_id, passing_threshold):
     """
     Get all residue pairs (based on PSM level data) belonging to a project.
@@ -106,7 +106,7 @@ where u.project_id = %s and mp1.link_site1 > 0 and mp2.link_site1 > 0 AND pe1.is
         return json.dumps(data)
 
 
-@pdb_dev_router.route('/ws/projects/<project_id>/residue-pairs/reported', methods=['GET'])
+@pdb_dev_router.route('/projects/<project_id>/residue-pairs/reported', methods=['GET'])
 def get_reported_residue_pairs(project_id):
     """
     Get all residue-pairs reported for a project
@@ -119,7 +119,7 @@ def get_reported_residue_pairs(project_id):
     return "Not Implemented", 501
 
 
-@pdb_dev_router.route('/ws/projects/<project_id>/reported-thresholds', methods=['GET'])
+@pdb_dev_router.route('/projects/<project_id>/reported-thresholds', methods=['GET'])
 def get_reported_thresholds(project_id):
     """
     Get all reported thresholds for a project.
