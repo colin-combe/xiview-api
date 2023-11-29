@@ -256,12 +256,15 @@ def compare_spectrum_identification_protocol(results):
     assert len(results) == 1
     # parsed from <FragmentTolerance> in <SpectrumIdentificationProtocol>
     assert results[0].id == 'SearchProtocol_1_0'  # id from <SpectrumIdentificationProtocol>
-    assert results[0].frag_tol == '5.0 ppm'
+    assert results[0].frag_tol == 5.0
+    assert results[0].frag_tol_unit == 'ppm'
     # cvParams from <AdditionalSearchParams> 'ion series considered in search' (MS:1002473)
 
-    assert results[0].additional_search_params == {'MS:1001211': 'parent mass type mono', 'MS:1002494': 'cross-linking search',
-                                        'MS:1001256': 'fragment mass type mono', 'MS:1001118': 'param: b ion',
-                                        'MS:1001262': 'param: y ion'}
+    assert results[0].additional_search_params == {'MS:1001211': 'parent mass type mono',
+                                                   'MS:1002494': 'cross-linking search',
+                                                   'MS:1001256': 'fragment mass type mono',
+                                                   'MS:1001118': 'param: b ion',
+                                                   'MS:1001262': 'param: y ion'}
 
     assert results[0].analysis_software['id'] == "xiFDR_id"
 
@@ -418,19 +421,19 @@ def test_psql_mgf_mzid_parser(tmpdir, use_database, engine):
         results = rs.fetchall()
 
         assert results[0].identification_file_name == 'mgf_ecoli_dsso.mzid'
-        assert results[0].provider == (
-            '{"id": "PROVIDER", "ContactRole": ['
-            '{"contact_ref": "PERSON_DOC_OWNER", "Role": "researcher"}]}')
-        assert results[0].audit_collection == (
-            '{"Person": {"lastName": "Kolbowski", "firstName": "Lars", "id": "PERSON_DOC_OWNER", '
-            '"Affiliation": [{"organization_ref": "ORG_DOC_OWNER"}], '
-            '"contact address": "TIB 4/4-3 Geb\\u00e4ude 17, Aufgang 1, Raum 476 '
-            'Gustav-Meyer-Allee 25 13355 Berlin", '
-            '"contact email": "lars.kolbowski@tu-berlin.de"}, '
-            '"Organization": {"id": "ORG_DOC_OWNER", "name": "TU Berlin", '
-            '"contact name": "TU Berlin"}}'
-        )
-        assert results[0].analysis_sample_collection == '{}'
+        assert results[0].provider == {"id": "PROVIDER", "ContactRole": [
+            {"contact_ref": "PERSON_DOC_OWNER", "Role": "researcher"}]}
+        assert results[0].audit_collection == {'Organization': {'contact name': 'TU Berlin',
+                                                                'id': 'ORG_DOC_OWNER',
+                                                                'name': 'TU Berlin'},
+                                               'Person': {'Affiliation': [{'organization_ref': 'ORG_DOC_OWNER'}],
+                                                          'contact address': 'TIB 4/4-3 Gebäude 17, Aufgang 1, Raum 476 '
+                                                                             'Gustav-Meyer-Allee 25 13355 Berlin',
+                                                          'contact email': 'lars.kolbowski@tu-berlin.de',
+                                                          'firstName': 'Lars',
+                                                          'id': 'PERSON_DOC_OWNER',
+                                                          'lastName': 'Kolbowski'}}
+        assert results[0].analysis_sample_collection == {}
         assert results[0].bib == []
         assert results[0].spectra_formats == [{'FileFormat': 'Mascot MGF format',
                                                'SpectrumIDFormat': 'multiple peak list nativeID format',
@@ -556,19 +559,19 @@ def test_psql_mzml_mzid_parser(tmpdir, use_database, engine):
         results = rs.fetchall()
 
         assert results[0].identification_file_name == 'mzml_ecoli_dsso.mzid'
-        assert results[0].provider == (
-            '{"id": "PROVIDER", "ContactRole": ['
-            '{"contact_ref": "PERSON_DOC_OWNER", "Role": "researcher"}]}')
-        assert results[0].audit_collection == (
-            '{"Person": {"lastName": "Kolbowski", "firstName": "Lars", "id": "PERSON_DOC_OWNER", '
-            '"Affiliation": [{"organization_ref": "ORG_DOC_OWNER"}], '
-            '"contact address": "TIB 4/4-3 Geb\\u00e4ude 17, Aufgang 1, Raum 476 '
-            'Gustav-Meyer-Allee 25 13355 Berlin", '
-            '"contact email": "lars.kolbowski@tu-berlin.de"}, '
-            '"Organization": {"id": "ORG_DOC_OWNER", "name": "TU Berlin", '
-            '"contact name": "TU Berlin"}}'
-        )
-        assert results[0].analysis_sample_collection == '{}'
+        assert results[0].provider == {'ContactRole': [{'Role': 'researcher', 'contact_ref': 'PERSON_DOC_OWNER'}],
+                                       'id': 'PROVIDER'}
+        assert results[0].audit_collection == {'Organization': {'contact name': 'TU Berlin',
+                                                                'id': 'ORG_DOC_OWNER',
+                                                                'name': 'TU Berlin'},
+                                               'Person': {'Affiliation': [{'organization_ref': 'ORG_DOC_OWNER'}],
+                                                          'contact address': 'TIB 4/4-3 Gebäude 17, Aufgang 1, Raum 476 '
+                                                                             'Gustav-Meyer-Allee 25 13355 Berlin',
+                                                          'contact email': 'lars.kolbowski@tu-berlin.de',
+                                                          'firstName': 'Lars',
+                                                          'id': 'PERSON_DOC_OWNER',
+                                                          'lastName': 'Kolbowski'}}
+        assert results[0].analysis_sample_collection == {}
         assert results[0].bib == []
         assert results[0].spectra_formats == [{'FileFormat': 'mzML format',
                                                'SpectrumIDFormat': 'mzML unique identifier',

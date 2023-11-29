@@ -40,7 +40,7 @@ spec:
           image: $IMAGE
           imagePullPolicy: Always
           command: [ "uvicorn" ]
-          args: [ "app.api:app", "--port=6000", "--host", "0.0.0.0" ]
+          args: [ "app.api:app", "--port=3000", "--host", "0.0.0.0" ]
           ports:
             - containerPort: $PORT
               name: http

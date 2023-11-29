@@ -9,6 +9,7 @@ __all__ = [
     "spectrumidentification",
     "spectrumidentificationprotocol",
     "upload",
-    "projectdetails",
+    "projectdetail",
+    "projectsubdetail",
     "base"
 ]

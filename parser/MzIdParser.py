@@ -1,20 +1,19 @@
-import struct
-from pyteomics import mzid  # https://pyteomics.readthedocs.io/en/latest/data.html#controlled-vocabularies
-from pyteomics.auxiliary import cvquery
-import re
-import ntpath
+import gzip
 import json
+import ntpath
+import os
+import re
+import struct
+import zipfile
 from time import time
 
+import obonet
+from pyteomics import mzid  # https://pyteomics.readthedocs.io/en/latest/data.html#controlled-vocabularies
+from pyteomics.auxiliary import cvquery
+from sqlalchemy import Table
 from sqlalchemy.exc import SQLAlchemyError
 
 from parser.peaklistReader.PeakListWrapper import PeakListWrapper
-import zipfile
-import gzip
-import os
-from .NumpyEncoder import NumpyEncoder
-import obonet
-from sqlalchemy import Table
 
 
 class MzIdParseException(Exception):
@@ -71,11 +70,11 @@ class MzIdParser:
 
         self.logger.info('reading mzid - done. Time: {} sec'.format(round(time() - start_time, 2)))
 
-        self.upload_info()  # overridden (empty function) in xiSPEC subclass
 
     def parse(self):
         """Parse the file."""
         start_time = time()
+        self.upload_info()  # overridden (empty function) in xiSPEC subclass
         self.parse_analysis_protocol_collection()
         if self.peak_list_dir:
             self.init_peak_list_readers()
@@ -228,7 +227,9 @@ class MzIdParser:
             data = {
                 'id': sid_protocol['id'],
                 'upload_id': self.writer.upload_id,
-                'frag_tol': f'{frag_tol_value} {frag_tol_unit}',
+                'search_type': sid_protocol['SearchType'],
+                'frag_tol': frag_tol_value,
+                'frag_tol_unit': frag_tol_unit,
                 'additional_search_params': cvquery(add_sp),
                 'analysis_software': analysis_software,
                 'threshold': threshold,
@@ -689,41 +690,42 @@ class MzIdParser:
     def upload_info(self):
         upload_info_start_time = time()
         self.logger.info('parse upload info - start')
-
-        # Analysis Software
-        #analysis_software = self.mzid_reader.iterfind('AnalysisSoftware')
+        self.mzid_reader.reset()
+        # Analysis Software List - mandatory element
+        try:
+            analysis_software_list = self.mzid_reader.iterfind('AnalysisSoftwareList').next()
+        except StopIteration:
+            analysis_software_list = {}
 
         spectra_formats = []
         for spectra_data_id in self.mzid_reader._offset_index["SpectraData"].keys():
             sp_datum = self.mzid_reader.get_by_id(spectra_data_id, tag_id='SpectraData',
                                                   detailed=True)
             spectra_formats.append(sp_datum)
-        #spectra_formats = json.dumps(spectra_formats, cls=NumpyEncoder)
 
         # Provider - optional element
         try:
-            provider = json.dumps(self.mzid_reader.iterfind('Provider').next())
+            provider = self.mzid_reader.iterfind('Provider').next()
         except StopIteration:
-            provider = '{}'
+            provider = {}
         except Exception as e:
             raise MzIdParseException(type(e).__name__, e.args)
         self.mzid_reader.reset()
 
         # AuditCollection - optional element
         try:
-            audits = json.dumps(self.mzid_reader.iterfind('AuditCollection').next())
+            audits = self.mzid_reader.iterfind('AuditCollection').next()
         except StopIteration:
-            audits = '{}'
+            audits = {}
         except Exception as e:
             raise MzIdParseException(type(e).__name__, e.args)
         self.mzid_reader.reset()
 
         # AnalysisSampleCollection - optional element
         try:
-            samples = json.dumps(
-                self.mzid_reader.iterfind('AnalysisSampleCollection').next()['Sample'])
+            samples = self.mzid_reader.iterfind('AnalysisSampleCollection').next()['Sample']
         except StopIteration:
-            samples = '{}'
+            samples = {}
         except Exception as e:
             raise MzIdParseException(type(e).__name__, e.args)
         self.mzid_reader.reset()
@@ -732,10 +734,9 @@ class MzIdParser:
         bib_refs = []
         for bib in self.mzid_reader.iterfind('BibliographicReference'):
             bib_refs.append(bib)
-        #bib_refs = json.dumps(bib_refs)
         self.mzid_reader.reset()
 
-        self.writer.write_mzid_info(spectra_formats, provider, audits, samples, bib_refs)
+        self.writer.write_mzid_info(analysis_software_list, spectra_formats, provider, audits, samples, bib_refs)
 
         self.logger.info('getting upload info - done  Time: {} sec'.format(
             round(time() - upload_info_start_time, 2)))
@@ -815,6 +816,7 @@ class MzIdParser:
                     else:
                         raise IOError('unsupported file type: %s' % file_name)
 
+            # todo - looks like potential problem here
             if len(return_file_list) > 1:
                 raise BaseException("more than one mzid file found!")
 

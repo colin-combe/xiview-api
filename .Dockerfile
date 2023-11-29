@@ -25,8 +25,6 @@ RUN mkdir -p /home/appuser/logs
 # Install application into container
 COPY app ./app
 COPY dbs ./dbs
-#COPY log ./log
-#COPY logs ./logs
 COPY obo ./obo
 COPY parser ./parser
 COPY tests ./tests
@@ -34,5 +32,3 @@ COPY *.py .
 COPY default.database.ini .
 COPY logging.ini .
 COPY .kubernetes.yml .
-
-#CMD ["uvicorn", "app.api:app", "--host", "0.0.0.0", "--port", "6000"]
