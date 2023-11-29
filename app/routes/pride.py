@@ -1,5 +1,6 @@
 import logging
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from typing import List
 
@@ -11,17 +12,57 @@ from sqlalchemy.orm import Session, joinedload
 import os
 import requests
 import logging.config
+import configparser
+from fastapi import FastAPI, HTTPException, Security
+from fastapi.security import APIKeyHeader
 
-logging.config.fileConfig('logging.ini')
-logger = logging.getLogger(__name__)
-
+app_logger = logging.getLogger("uvicorn")  # unify the uvicorn logging with fast-api logging
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 pride_router = APIRouter()
+config = configparser.ConfigParser()
+
+# Read the INI file
+config.read('database.ini')
+
+# Access values from the INI file
+API_KEY = config.get('security', 'apikey')
 
 
-@pride_router.post("/parse/{px_accession}", tags=["Admin"])
-async def parse(px_accession: str, temp_dir: str | None = None, dont_delete: bool = False):
+
+def get_api_key(key: str = Security(api_key_header)) -> str:
+    if key == API_KEY:
+        return key
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid or missing API Key",
+    )
+
+
+@pride_router.put("/log/{level}", tags=["Admin"])
+def change_log_level(level, api_key: str = Security(get_api_key)):
+    level_upper = str(level).upper()
+    logging.getLogger("uvicorn.error").setLevel(level_upper)
+    logging.getLogger("uvicorn.access").setLevel(level_upper)
+    logging.getLogger("uvicorn.asgi").setLevel(level_upper)
+    app_logger.setLevel(level_upper)
+
+
+def get_config(file):
+    """
+    This method read the default configuration file config.ini in the same path of the pipeline execution
+    :return:
+    """
+    config = configparser.ConfigParser()
+    config.read(file)
+    return config
+
+
+@pride_router.post("/parse", tags=["Admin"])
+async def parse(px_accession: str, temp_dir: str | None = None, dont_delete: bool = False,
+                api_key: str = Security(get_api_key)):
     """
     Parse a new project which contain MzIdentML file
+    :param api_key: API KEY
     :param px_accession: ProteomXchange Project Accession
     :param temp_dir: If data needs to be saved in a temporary directory
     :param dont_delete: Boolean value to determine if the files needs to be deleted at the end
@@ -35,7 +76,8 @@ async def parse(px_accession: str, temp_dir: str | None = None, dont_delete: boo
 
 
 @pride_router.get("/projects", tags=["Main"])
-async def list_all_projects(session: Session = Depends(get_session), page: int = 1, page_size: int = 10) -> list[ProjectDetail]:
+async def list_all_projects(session: Session = Depends(get_session), page: int = 1, page_size: int = 10) -> list[
+    ProjectDetail]:
     """
     This gives the high-level view of list of projects
     :param session: connection to database
@@ -62,7 +104,6 @@ def project_detail_view(px_accession: str, session: Session = Depends(get_sessio
     Retrieve project detail by px_accession.
     """
     try:
-        logger.info("something")
         project_detail = session.query(ProjectDetail) \
             .options(joinedload(ProjectDetail.project_sub_details)) \
             .filter(ProjectDetail.project_id == px_accession) \
@@ -77,21 +118,62 @@ def project_detail_view(px_accession: str, session: Session = Depends(get_sessio
     return project_detail
 
 
+@pride_router.get("/statistics-count", tags=["Statistics"])
+async def parse(session: Session = Depends(get_session)):
+    try:
+        sql_statistics_count = text("""
+                      SELECT
+                          COUNT(id) AS "Number of Projects",
+                          SUM(number_of_proteins) AS "Number of proteins",
+                          SUM(number_of_peptides) AS "Number of peptides",
+                          SUM(number_of_spectra) AS "Number of spectra",
+                          COUNT(DISTINCT organism) AS "Number of species"
+                      FROM
+                          projectdetails p;
+                  """)
+        values = await get_statistics_count(sql_statistics_count, session)
+    except Exception as error:
+        app_logger.error(error)
+    return values
+
+
+@pride_router.get("/projects-per-species", tags=["Statistics"])
+async def parse(session: Session = Depends(get_session)):
+    """
+    Number of projects per species
+    :param session: session connection to the database
+    :return:  Number of projects per species as a Dictionary
+    """
+    try:
+        sql_projects_per_species = text("""
+        SELECT organism, COUNT(organism) AS organism_count
+        FROM projectdetails
+        GROUP BY organism
+        ORDER BY COUNT(organism) ASC;
+""")
+        values = await get_counts_table(sql_projects_per_species, None, session)
+    except Exception as error:
+        app_logger.error(error)
+    return values
+
+
 @pride_router.get("/health", tags=["Admin"])
 def health():
     """
     A quick simple endpoint to test the API is working
     :return: Response with OK
     """
-    logger.debug('Health check endpoint accessed')
+    app_logger.debug('Health check endpoint accessed')
     return {'status': 'OK'}
 
+
 @pride_router.post("/update-project-details", tags=["Admin"])
-async def update_project_details(session: Session = Depends(get_session)):
+async def update_project_details(session: Session = Depends(get_session), api_key: str = Security(get_api_key)):
     """
     An endpoint to update the project details including title, description, PubmedID,
     Number of proteins, peptides and spectra identifications
-    :param session: session connection to the dataset
+    :param api_key: API KEY
+    :param session: session connection to the database
     :return: None
     """
 
@@ -316,11 +398,11 @@ GROUP BY dbref;
             # get project details from PRIDE API
             # TODO: need to move URL to a configuration variable
             px_url = 'https://www.ebi.ac.uk/pride/ws/archive/v2/projects/' + accession
-            logger.debug('GET request to PRIDE API: ' + px_url)
+            app_logger.debug('GET request to PRIDE API: ' + px_url)
             pride_response = requests.get(px_url)
             r = requests.get(px_url)
             if r.status_code == 200:
-                logger.info('PRIDE API returned status code 200')
+                app_logger.info('PRIDE API returned status code 200')
                 pride_json = pride_response.json()
                 if pride_json is not None:
                     if len(pride_json['references']) > 0:
@@ -366,7 +448,6 @@ GROUP BY dbref;
                         sub_details.protein_accession = dbseq['value']
 
             project_details.project_sub_details = list_of_project_sub_details
-            logger.info(project_details.__dict__)
 
             # Define the conditions for updating
             conditions = {'project_id': accession}
@@ -389,7 +470,7 @@ GROUP BY dbref;
             session.commit()
             session.close()
     except Exception as error:
-        logger.error(error)
+        app_logger.error(error)
         session.rollback()
 
 
@@ -406,10 +487,10 @@ async def get_number_of_counts(sql, sql_values, session):
         result = session.execute(sql, sql_values)
         number_of_counts = result.scalar()
     except Exception as error:
-        logger.error(error)
+        app_logger.error(error)
     finally:
         session.close()
-        logger.debug('Database session is closed.')
+        app_logger.debug('Database session is closed.')
     return number_of_counts
 
 
@@ -426,10 +507,10 @@ async def get_accessions(sql, sql_values, session):
         # Fetch the list of accessions
         list_of_accessions = [row[0] for row in result]
     except Exception as error:
-        logger.error(error)
+        app_logger.error(error)
     finally:
         session.close()
-        logger.debug('Database session is closed.')
+        app_logger.debug('Database session is closed.')
     return list_of_accessions
 
 
@@ -448,7 +529,34 @@ async def get_counts_table(sql, sql_values, session):
                 {'key': row[0], 'value': row[1]} for row in result if len(row) >= 2
             ]
     except Exception as error:
-        logger.error(f"Error type: {type(error)}, Error message: {str(error)}")
+        app_logger.error(f"Error type: {type(error)}, Error message: {str(error)}")
     finally:
-        logger.debug('Database session is closed.')
+        app_logger.debug('Database session is closed.')
     return result_list
+
+
+async def get_statistics_count(sql, session):
+    """
+    Get all the Unique accessions(project, protein) in the database according to the SQL
+    :param sql: SQL to get project accessions
+    :param session: database session
+    :return: List of unique project accessions
+    """
+    values = None
+    try:
+        result = session.execute(sql)
+        # Fetch the values from the result
+        row = result.fetchone()
+
+        statistics_counts = {'Number of Projects': row[0],
+                             'Number of proteins': row[1],
+                             'Number of peptides': row[2],
+                             'Number of spectra': row[3],
+                             'Number of species': row[4]}
+        print(statistics_counts)
+    except Exception as error:
+        app_logger.error(error)
+    finally:
+        session.close()
+        app_logger.debug('Database session is closed.')
+    return statistics_counts

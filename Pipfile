@@ -18,6 +18,11 @@ psycopg2-binary = "*"
 sqlalchemy = "2.0.21"
 sqlalchemy-utils = "*"
 obonet = "*"
+#Security modules
+python-multipart = "*"
+python-jose = "*"
+passlib = "*"
+jose = "*"
 
 [dev-packages]
 

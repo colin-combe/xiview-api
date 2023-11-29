@@ -27,6 +27,5 @@ def get_conn_str():
     username = db_info.get("user")
     password = db_info.get("password")
     port = db_info.get("port")
-    # port = db_info.get("port")
     conn_str = f"postgresql://{username}:{password}@{hostname}:{port}/{database}"
     return conn_str
