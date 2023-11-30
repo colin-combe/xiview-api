@@ -11,12 +11,12 @@ from process_dataset import convert_pxd_accession_from_pride
 from sqlalchemy.orm import Session, joinedload
 import os
 import requests
-import logging.config
+from app.config.logging import logging
 import configparser
 from fastapi import FastAPI, HTTPException, Security
 from fastapi.security import APIKeyHeader
 
-app_logger = logging.getLogger("uvicorn")  # unify the uvicorn logging with fast-api logging
+app_logger = logging.getLogger(__name__)
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 pride_router = APIRouter()
 config = configparser.ConfigParser()
@@ -26,7 +26,6 @@ config.read('database.ini')
 
 # Access values from the INI file
 API_KEY = config.get('security', 'apikey')
-
 
 
 def get_api_key(key: str = Security(api_key_header)) -> str:
@@ -243,7 +242,7 @@ def health():
     A quick simple endpoint to test the API is working
     :return: Response with OK
     """
-    app_logger.debug('Health check endpoint accessed')
+    app_logger.info('Health check endpoint accessed')
     return {'status': 'OK'}
 
 
