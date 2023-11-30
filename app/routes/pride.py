@@ -118,7 +118,7 @@ def project_detail_view(px_accession: str, session: Session = Depends(get_sessio
 
 
 @pride_router.get("/statistics-count", tags=["Statistics"])
-async def parse(session: Session = Depends(get_session)):
+async def statistics_count(session: Session = Depends(get_session)):
     try:
         sql_statistics_count = text("""
                       SELECT
@@ -137,7 +137,7 @@ async def parse(session: Session = Depends(get_session)):
 
 
 @pride_router.get("/projects-per-species", tags=["Statistics"])
-async def parse(session: Session = Depends(get_session)):
+async def project_per_species(session: Session = Depends(get_session)):
     """
     Number of projects per species
     :param session: session connection to the database
