@@ -1,12 +1,15 @@
-import psycopg2
-from flask import jsonify
-from psycopg2.extras import RealDictCursor
 import json
-from xi_web_api import get_db_connection
-from xi_web_api.pdbdev import bp
+
+import psycopg2
+from fastapi import APIRouter
+from psycopg2.extras import RealDictCursor
+
+from app.routes.shared import get_db_connection, get_most_recent_upload_ids
+
+pdb_dev_router = APIRouter()
 
 
-@bp.route('/ws/projects/<project_id>/sequences', methods=['GET'])
+@pdb_dev_router.get('/projects/{project_id}/sequences')
 def sequences(project_id):
     """
     Get all sequences belonging to a project.
@@ -15,6 +18,9 @@ def sequences(project_id):
         for ProteomeXchange projects this is the PXD****** accession
     :return: JSON object with all dbref id, mzIdentML file it came from and sequences
     """
+
+    most_recent_upload_ids = get_most_recent_upload_ids(project_id)
+
     conn = None
     mzid_rows = []
     try:
@@ -26,12 +32,12 @@ def sequences(project_id):
                     FROM upload AS u
                     JOIN dbsequence AS dbseq ON u.id = dbseq.upload_id
                     INNER JOIN peptideevidence pe ON dbseq.id = pe.dbsequence_ref AND dbseq.upload_id = pe.upload_id
-                 WHERE u.project_id = %s
+                 WHERE u.id = ANY (%s)
                  AND pe.is_decoy = false
                  GROUP by dbseq.id, dbseq.sequence, u.identification_file_name;"""
 
         print(sql)
-        cur.execute(sql, [project_id])
+        cur.execute(sql, [most_recent_upload_ids])
         mzid_rows = cur.fetchall()
 
         print("finished")
@@ -43,10 +49,10 @@ def sequences(project_id):
         if conn is not None:
             conn.close()
             print('Database connection closed.')
-        return jsonify({"data": mzid_rows})
+        return {"data": mzid_rows}
 
 
-@bp.route('/ws/projects/<project_id>/residue-pairs/psm-level/<passing_threshold>', methods=['GET'])
+@pdb_dev_router.get('/projects/{project_id}/residue-pairs/psm-level/{passing_threshold}')
 def get_psm_level_residue_pairs(project_id, passing_threshold):
     """
     Get all residue pairs (based on PSM level data) belonging to a project.
@@ -63,6 +69,9 @@ def get_psm_level_residue_pairs(project_id, passing_threshold):
     if passing_threshold not in ['passing', 'all']:
         return f"Invalid value for passing_threshold: {passing_threshold}. " \
                f"Valid values are: passing, all", 400
+
+    most_recent_upload_ids = get_most_recent_upload_ids(project_id)
+
     conn = None
     data = {}
     try:
@@ -79,15 +88,15 @@ peptideevidence pe1 ON mp1.id = pe1.peptide_ref AND mp1.upload_id = pe1.upload_i
 modifiedpeptide mp2 ON si.pep2_id = mp2.id AND si.upload_id = mp2.upload_id INNER JOIN
 peptideevidence pe2 ON mp2.id = pe2.peptide_ref AND mp2.upload_id = pe2.upload_id INNER JOIN
 upload u on u.id = si.upload_id
-where u.project_id = %s and mp1.link_site1 > 0 and mp2.link_site1 > 0 AND pe1.is_decoy = false AND pe2.is_decoy = false
+where u.id = ANY (%s) and mp1.link_site1 > 0 and mp2.link_site1 > 0 AND pe1.is_decoy = false AND pe2.is_decoy = false
 """
-        # prob above in u.project_id
+        # problem above in u.project_id
 
         if passing_threshold.lower() == 'passing':
             sql += " AND si.pass_threshold = true"
         sql += ";"
         print(sql)
-        cur.execute(sql, [project_id])
+        cur.execute(sql, [most_recent_upload_ids])
         mzid_rows = cur.fetchall()
         data["data"] = mzid_rows
 
@@ -100,10 +109,10 @@ where u.project_id = %s and mp1.link_site1 > 0 and mp2.link_site1 > 0 AND pe1.is
         if conn is not None:
             conn.close()
             print('Database connection closed.')
-        return json.dumps(data)
+        return data
 
 
-@bp.route('/ws/projects/<project_id>/residue-pairs/reported', methods=['GET'])
+@pdb_dev_router.get('/projects/{project_id}/residue-pairs/reported')
 def get_reported_residue_pairs(project_id):
     """
     Get all residue-pairs reported for a project
@@ -116,7 +125,7 @@ def get_reported_residue_pairs(project_id):
     return "Not Implemented", 501
 
 
-@bp.route('/ws/projects/<project_id>/reported-thresholds', methods=['GET'])
+@pdb_dev_router.get('/projects/{project_id}/reported-thresholds')
 def get_reported_thresholds(project_id):
     """
     Get all reported thresholds for a project.
