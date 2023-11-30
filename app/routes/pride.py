@@ -157,6 +157,86 @@ async def parse(session: Session = Depends(get_session)):
     return values
 
 
+@pride_router.get("/peptide-per-protein", tags=["Statistics"])
+async def peptide_per_protein(session: Session = Depends(get_session)):
+    """
+    Get the number of peptides per protein frequency
+    :param session: session connection to the database
+    :return:  Number of peptides per protein frequency as a dictionary
+    """
+    try:
+        sql_peptides_per_protein = text("""
+        WITH frequencytable AS (
+    WITH result AS (
+        SELECT
+            pe1.dbsequence_ref AS dbref1,
+            pe1.peptide_ref AS pepref1,
+            pe2.dbsequence_ref AS dbref2,
+            pe2.peptide_ref AS pepref2
+        FROM
+            spectrumidentification si
+            INNER JOIN modifiedpeptide mp1 ON si.pep1_id = mp1.id AND si.upload_id = mp1.upload_id
+            INNER JOIN peptideevidence pe1 ON mp1.id = pe1.peptide_ref AND mp1.upload_id = pe1.upload_id
+            INNER JOIN modifiedpeptide mp2 ON si.pep2_id = mp2.id AND si.upload_id = mp2.upload_id
+            INNER JOIN peptideevidence pe2 ON mp2.id = pe2.peptide_ref AND mp2.upload_id = pe2.upload_id
+            INNER JOIN upload u ON u.id = si.upload_id
+        WHERE
+            u.id IN (
+                SELECT
+                    u.id
+                FROM
+                    upload u
+                WHERE
+                    u.upload_time = (
+                        SELECT
+                            MAX(upload_time)
+                        FROM
+                            upload
+                        WHERE
+                            project_id = u.project_id
+                            AND identification_file_name = u.identification_file_name
+                    )
+            )
+            AND pe1.is_decoy = FALSE
+            AND pe2.is_decoy = FALSE
+            AND si.pass_threshold = TRUE
+    )
+    SELECT
+        dbref,
+        COUNT(pepref) AS peptide_count
+    FROM
+        (
+            SELECT
+                dbref1 AS dbref,
+                pepref1 AS pepref
+            FROM
+                result
+            UNION
+            SELECT
+                dbref2 AS dbref,
+                pepref2 AS pepref
+            FROM
+                result
+        ) AS inner_result
+    GROUP BY
+        dbref
+)
+SELECT
+    frequencytable.peptide_count,
+    COUNT(*)
+FROM
+    frequencytable
+GROUP BY
+    frequencytable.peptide_count
+ORDER BY
+    frequencytable.peptide_count;
+
+""")
+        values = await get_counts_table(sql_peptides_per_protein, None, session)
+    except Exception as error:
+        app_logger.error(error)
+    return values
+
 @pride_router.get("/health", tags=["Admin"])
 def health():
     """
