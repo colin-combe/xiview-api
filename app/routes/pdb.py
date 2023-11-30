@@ -4,7 +4,9 @@ from psycopg2.extras import RealDictCursor
 import json
 from xi_web_api import get_db_connection
 from xi_web_api.pdbdev import bp
+from app.config.logging import logging
 
+app_logger = logging.getLogger(__name__)
 
 @bp.route('/ws/projects/<project_id>/sequences', methods=['GET'])
 def sequences(project_id):

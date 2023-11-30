@@ -11,12 +11,12 @@ from process_dataset import convert_pxd_accession_from_pride
 from sqlalchemy.orm import Session, joinedload
 import os
 import requests
-import logging.config
+from app.config.logging import logging
 import configparser
 from fastapi import FastAPI, HTTPException, Security
 from fastapi.security import APIKeyHeader
 
-app_logger = logging.getLogger("uvicorn")  # unify the uvicorn logging with fast-api logging
+app_logger = logging.getLogger(__name__)
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 pride_router = APIRouter()
 config = configparser.ConfigParser()
@@ -26,7 +26,6 @@ config.read('database.ini')
 
 # Access values from the INI file
 API_KEY = config.get('security', 'apikey')
-
 
 
 def get_api_key(key: str = Security(api_key_header)) -> str:
@@ -119,7 +118,7 @@ def project_detail_view(px_accession: str, session: Session = Depends(get_sessio
 
 
 @pride_router.get("/statistics-count", tags=["Statistics"])
-async def parse(session: Session = Depends(get_session)):
+async def statistics_count(session: Session = Depends(get_session)):
     try:
         sql_statistics_count = text("""
                       SELECT
@@ -138,7 +137,7 @@ async def parse(session: Session = Depends(get_session)):
 
 
 @pride_router.get("/projects-per-species", tags=["Statistics"])
-async def parse(session: Session = Depends(get_session)):
+async def project_per_species(session: Session = Depends(get_session)):
     """
     Number of projects per species
     :param session: session connection to the database
@@ -157,13 +156,93 @@ async def parse(session: Session = Depends(get_session)):
     return values
 
 
+@pride_router.get("/peptide-per-protein", tags=["Statistics"])
+async def peptide_per_protein(session: Session = Depends(get_session)):
+    """
+    Get the number of peptides per protein frequency
+    :param session: session connection to the database
+    :return:  Number of peptides per protein frequency as a dictionary
+    """
+    try:
+        sql_peptides_per_protein = text("""
+        WITH frequencytable AS (
+    WITH result AS (
+        SELECT
+            pe1.dbsequence_ref AS dbref1,
+            pe1.peptide_ref AS pepref1,
+            pe2.dbsequence_ref AS dbref2,
+            pe2.peptide_ref AS pepref2
+        FROM
+            spectrumidentification si
+            INNER JOIN modifiedpeptide mp1 ON si.pep1_id = mp1.id AND si.upload_id = mp1.upload_id
+            INNER JOIN peptideevidence pe1 ON mp1.id = pe1.peptide_ref AND mp1.upload_id = pe1.upload_id
+            INNER JOIN modifiedpeptide mp2 ON si.pep2_id = mp2.id AND si.upload_id = mp2.upload_id
+            INNER JOIN peptideevidence pe2 ON mp2.id = pe2.peptide_ref AND mp2.upload_id = pe2.upload_id
+            INNER JOIN upload u ON u.id = si.upload_id
+        WHERE
+            u.id IN (
+                SELECT
+                    u.id
+                FROM
+                    upload u
+                WHERE
+                    u.upload_time = (
+                        SELECT
+                            MAX(upload_time)
+                        FROM
+                            upload
+                        WHERE
+                            project_id = u.project_id
+                            AND identification_file_name = u.identification_file_name
+                    )
+            )
+            AND pe1.is_decoy = FALSE
+            AND pe2.is_decoy = FALSE
+            AND si.pass_threshold = TRUE
+    )
+    SELECT
+        dbref,
+        COUNT(pepref) AS peptide_count
+    FROM
+        (
+            SELECT
+                dbref1 AS dbref,
+                pepref1 AS pepref
+            FROM
+                result
+            UNION
+            SELECT
+                dbref2 AS dbref,
+                pepref2 AS pepref
+            FROM
+                result
+        ) AS inner_result
+    GROUP BY
+        dbref
+)
+SELECT
+    frequencytable.peptide_count,
+    COUNT(*)
+FROM
+    frequencytable
+GROUP BY
+    frequencytable.peptide_count
+ORDER BY
+    frequencytable.peptide_count;
+
+""")
+        values = await get_counts_table(sql_peptides_per_protein, None, session)
+    except Exception as error:
+        app_logger.error(error)
+    return values
+
 @pride_router.get("/health", tags=["Admin"])
 def health():
     """
     A quick simple endpoint to test the API is working
     :return: Response with OK
     """
-    app_logger.debug('Health check endpoint accessed')
+    app_logger.info('Health check endpoint accessed')
     return {'status': 'OK'}
 
 
