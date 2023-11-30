@@ -1,13 +1,13 @@
-import json
-
 import psycopg2
 from fastapi import APIRouter
 from psycopg2.extras import RealDictCursor
+from app.config.logging import logging
 
 from app.routes.shared import get_db_connection, get_most_recent_upload_ids
 
 pdb_dev_router = APIRouter()
 
+app_logger = logging.getLogger(__name__)
 
 @pdb_dev_router.get('/projects/{project_id}/sequences')
 def sequences(project_id):
