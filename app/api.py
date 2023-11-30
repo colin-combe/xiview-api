@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.routes.pride import pride_router
 from app.routes.pdb import pdb_dev_router
+from app.routes.xiview import xiview_data_router
 
 app = FastAPI(title="Xi-MzIdentML-Converter WS",
               description="This is an API to crosslinking archive",
@@ -27,3 +28,4 @@ app.add_middleware(
 
 app.include_router(pride_router, prefix="/pride/archive/xiview/ws")
 app.include_router(pdb_dev_router, prefix="/pride/archive/pdbdev/ws")
+app.include_router(xiview_data_router, prefix="/pride/archive/xiview/data")
