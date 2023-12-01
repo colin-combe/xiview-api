@@ -38,7 +38,7 @@ class Writer:
             conn.commit()
             conn.close()
 
-    def write_mzid_info(self, spectra_formats,
+    def write_mzid_info(self, analysis_software_list, spectra_formats,
                         provider, audits, samples, bib):
         """
         Update Upload row with mzid info.
@@ -53,6 +53,7 @@ class Writer:
         """
         upload = Table("upload", self.meta, autoload_with=self.engine, quote=False)
         stmt = upload.update().where(upload.c.id == str(self.upload_id)).values(
+            analysis_software_list=analysis_software_list,
             spectra_formats=spectra_formats,
             provider=provider,
             audit_collection=audits,
