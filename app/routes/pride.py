@@ -127,6 +127,31 @@ def project_detail_view(px_accession: str, session: Session = Depends(get_sessio
     return project_detail
 
 
+@pride_router.get("/projects/{px_accession}/proteins", tags=["Main"])
+def project_detail_view(px_accession: str, session: Session = Depends(get_session), page: int = 1, page_size: int = 10) -> list[
+    ProjectSubDetail]:
+    """
+    Retrieve protein detail by px_accession.
+    """
+    try:
+        project_detail = session.query(ProjectDetail) \
+            .options(joinedload(ProjectDetail.project_sub_details)) \
+            .filter(ProjectDetail.project_id == px_accession).scalar()
+
+        offset = (page - 1) * page_size
+        project_sub_details = session.query(ProjectSubDetail).filter(ProjectSubDetail.project_detail_id == project_detail.id)\
+            .offset(offset).limit(page_size).all()
+
+    except Exception as e:
+        logging.error(f"Error occurred: {str(e)}")
+        project_sub_details = None
+
+    if project_sub_details is None or project_sub_details == []:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project detail not found")
+
+    return project_sub_details
+
+
 @pride_router.get("/statistics-count", tags=["Statistics"])
 async def statistics_count(session: Session = Depends(get_session)):
     try:
@@ -160,7 +185,7 @@ async def project_per_species(session: Session = Depends(get_session)):
         GROUP BY organism
         ORDER BY COUNT(organism) ASC;
 """)
-        values = await get_counts_table(sql_projects_per_species, None, session)
+        values = await project_per_species_counts(sql_projects_per_species, None, session)
     except Exception as error:
         app_logger.error(error)
     return values
@@ -241,7 +266,7 @@ ORDER BY
     frequencytable.peptide_count;
 
 """)
-        values = await get_counts_table(sql_peptides_per_protein, None, session)
+        values = await peptide_per_protein_counts(sql_peptides_per_protein, None, session)
     except Exception as error:
         app_logger.error(error)
     return values
@@ -689,6 +714,48 @@ async def get_counts_table(sql, sql_values, session):
             result = session.execute(sql, sql_values)
             result_list = [
                 {'key': row[0], 'value': row[1]} for row in result if len(row) >= 2
+            ]
+    except Exception as error:
+        app_logger.error(f"Error type: {type(error)}, Error message: {str(error)}")
+    finally:
+        app_logger.debug('Database session is closed.')
+    return result_list
+
+
+async def project_per_species_counts(sql, sql_values, session):
+    """
+    Get table of data in the database according to the SQL
+    :param sql_values: SQl Values
+    :param sql: SQL to get project accessions
+    :param session: database session
+    :return: List of key value pairs
+    """
+    try:
+        with session:
+            result = session.execute(sql, sql_values)
+            result_list = [
+                {'organism': row[0], 'count': row[1]} for row in result if len(row) >= 2
+            ]
+    except Exception as error:
+        app_logger.error(f"Error type: {type(error)}, Error message: {str(error)}")
+    finally:
+        app_logger.debug('Database session is closed.')
+    return result_list
+
+
+async def peptide_per_protein_counts(sql, sql_values, session):
+    """
+    Get table of data in the database according to the SQL
+    :param sql_values: SQl Values
+    :param sql: SQL to get project accessions
+    :param session: database session
+    :return: List of key value pairs
+    """
+    try:
+        with session:
+            result = session.execute(sql, sql_values)
+            result_list = [
+                {'protein_frequency': row[0], 'peptide_count': row[1]} for row in result if len(row) >= 2
             ]
     except Exception as error:
         app_logger.error(f"Error type: {type(error)}, Error message: {str(error)}")
