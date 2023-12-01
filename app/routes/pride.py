@@ -510,6 +510,7 @@ GROUP BY dbref;
             # fill number of peptides
             for protein in peptide_counts_by_protein:
                 project_sub_detail = ProjectSubDetail()
+                project_sub_detail.project_detail = project_details
                 project_sub_detail.protein_db_ref = protein['key']
                 project_sub_detail.number_of_peptides = protein['value']
                 list_of_project_sub_details.append(project_sub_detail)
@@ -526,7 +527,7 @@ GROUP BY dbref;
                     if sub_details.protein_db_ref == dbseq['key']:
                         sub_details.protein_accession = dbseq['value']
 
-            project_details.project_sub_details = list_of_project_sub_details
+            await update_uniprot_data(list_of_project_sub_details)
 
             # Define the conditions for updating
             conditions = {'project_id': accession}
@@ -536,22 +537,55 @@ GROUP BY dbref;
 
             # If the record exists, update its attributes
             if existing_record:
-                existing_record.title = project_details.title
-                existing_record.description = project_details.description
-                existing_record.pubmed_id = project_details.pubmed_id
-                existing_record.organism = project_details.organism
-                existing_record.number_of_proteins = project_details.number_of_proteins
-                existing_record.number_of_peptides = project_details.number_of_peptides
-                existing_record.number_of_spectra = project_details.number_of_spectra
-                existing_record.project_sub_details = list_of_project_sub_details
-            else:
-                session.add(project_details)
+                # Delete ProjectDetail and associated ProjectSubDetail records based on project_detail_id
+                session.query(ProjectSubDetail).filter_by(project_detail_id=existing_record.id).delete()
+                session.query(ProjectDetail).filter_by(**conditions).delete()
+                session.commit()
+
+            # add new record
+            session.add(project_details)
             session.commit()
-            session.close()
+        session.close()
     except Exception as error:
         app_logger.error(error)
         session.rollback()
 
+
+async def update_uniprot_data(list_of_project_sub_details):
+    try:
+        i = 1
+        batch_size = 10
+        base_in_URL = "https://rest.uniprot.org/uniprotkb/search?query=accession:"
+        fields_in_URL = "&fields=protein_name,gene_primary"
+        seperator = "%20OR%20"
+        accessions = []
+        uniprot_records = []
+        for sub_details in list_of_project_sub_details:
+            accessions.append(sub_details.protein_accession)
+            if i % batch_size == 0:
+                accessions_in_URL = seperator.join(accessions)
+                complete_URL = base_in_URL + accessions_in_URL + fields_in_URL
+                logging.debug("Calling Uniprot API: " + complete_URL)
+                uniprot_response = requests.get(complete_URL).json()
+                if uniprot_response is not None:
+                    for result in uniprot_response["results"]:
+                        uniprot_records.append(result)
+                accessions = []
+            print(sub_details.protein_accession)
+            i += 1
+
+        for sub_details in list_of_project_sub_details:
+            for uniprot_result in uniprot_records:
+                if sub_details.protein_accession == uniprot_result["primaryAccession"]:
+                    sub_details.protein_name = uniprot_result["proteinDescription"]["recommendedName"]["fullName"]["value"]
+                    print(uniprot_result["primaryAccession"] + " protein name: " + sub_details.protein_name)
+                    if len(uniprot_result["genes"]) > 0:
+                        sub_details.gene_name = uniprot_result["genes"][0]["geneName"]["value"]
+                        print(uniprot_result["primaryAccession"] + " gene name   : " + sub_details.gene_name)
+
+        print("Protein and gene data from Uniprot API fetched successfully!")
+    except Exception as error:
+        app_logger.error(error)
 
 async def get_number_of_counts(sql, sql_values, session):
     """
