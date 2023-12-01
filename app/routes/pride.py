@@ -11,7 +11,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session, joinedload
 
 from app.config.logging import logging
-from app.models import Upload
+from app.models.upload import Upload
 from app.models.analysiscollection import AnalysisCollection
 from app.models.dbsequence import DBSequence
 from app.models.enzyme import Enzyme
