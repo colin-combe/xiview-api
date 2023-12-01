@@ -5,7 +5,7 @@ from app.models.base import Base
 
 class PeptideEvidence(Base):
     __tablename__ = "peptideevidence"
-    upload_id: Mapped[str] = mapped_column(Integer, ForeignKey("upload.id"), index=True, primary_key=True,
+    upload_id: Mapped[int] = mapped_column(Integer, ForeignKey("upload.id"), index=True, primary_key=True,
            nullable=False)
     peptide_ref: Mapped[str] = mapped_column(Text, primary_key=True, nullable=False, index=True)
     dbsequence_ref: Mapped[str] = mapped_column(Text, primary_key=True, nullable=False)

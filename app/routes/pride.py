@@ -1,20 +1,30 @@
+import configparser
 import logging
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import JSONResponse
-from sqlalchemy import text
+import os
 from typing import List
 
+import requests
+from fastapi import APIRouter, Depends, status
+from fastapi import HTTPException, Security
+from fastapi.security import APIKeyHeader
+from sqlalchemy import text
+from sqlalchemy.orm import Session, joinedload
+
+from app.config.logging import logging
+from app.models import Upload
+from app.models.analysiscollection import AnalysisCollection
+from app.models.dbsequence import DBSequence
+from app.models.enzyme import Enzyme
+from app.models.modifiedpeptide import ModifiedPeptide
+from app.models.peptideevidence import PeptideEvidence
 from app.models.projectdetail import ProjectDetail
 from app.models.projectsubdetail import ProjectSubDetail
+from app.models.searchmodification import SearchModification
+from app.models.spectrum import Spectrum
+from app.models.spectrumidentification import SpectrumIdentification
+from app.models.spectrumidentificationprotocol import SpectrumIdentificationProtocol
 from index import get_session
 from process_dataset import convert_pxd_accession_from_pride
-from sqlalchemy.orm import Session, joinedload
-import os
-import requests
-from app.config.logging import logging
-import configparser
-from fastapi import FastAPI, HTTPException, Security
-from fastapi.security import APIKeyHeader
 
 app_logger = logging.getLogger(__name__)
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
@@ -235,6 +245,43 @@ ORDER BY
     except Exception as error:
         app_logger.error(error)
     return values
+
+
+@pride_router.delete("/delete/{px_accession}", tags=["Admin"])
+async def delete_dataset(px_accession: str, session: Session = Depends(get_session),
+                         api_key: str = Security(get_api_key)):
+    app_logger.info("Deleting dataset: " + px_accession)
+
+    try:
+        # Define the conditions for updating
+        conditions = {'project_id': px_accession}
+
+        # Query for an existing record based on conditions
+        existing_upload_record = session.query(Upload).filter_by(**conditions).first()
+
+        # If the record exists, update its attributes
+        if existing_upload_record:
+            # Delete ProjectDetail and associated ProjectSubDetail records based on project_detail_id
+            session.query(ProjectSubDetail).filter_by(project_detail_id=existing_upload_record.id).delete()
+            session.query(ProjectDetail).filter_by(project_id=px_accession).delete()
+            session.query(SpectrumIdentification).filter_by(upload_id=existing_upload_record.id).delete()
+            session.query(SearchModification).filter_by(upload_id=existing_upload_record.id).delete()
+            session.query(Enzyme).filter_by(upload_id=existing_upload_record.id).delete()
+            session.query(SpectrumIdentificationProtocol).filter_by(upload_id=existing_upload_record.id).delete()
+            session.query(ModifiedPeptide).filter_by(upload_id=existing_upload_record.id).delete()
+            session.query(DBSequence).filter_by(upload_id=existing_upload_record.id).delete()
+            session.query(Spectrum).filter_by(upload_id=existing_upload_record.id).delete()
+            session.query(PeptideEvidence).filter_by(upload_id=existing_upload_record.id).delete()
+            session.query(AnalysisCollection).filter_by(upload_id=existing_upload_record.id).delete()
+            session.query(Upload).filter_by(**conditions).delete()
+            session.commit()
+    except Exception as error:
+        app_logger.error(error)
+        session.rollback()
+    finally:
+        # This is the same as the `get_db` method below
+        session.close()
+
 
 @pride_router.get("/health", tags=["Admin"])
 def health():
@@ -577,7 +624,8 @@ async def update_uniprot_data(list_of_project_sub_details):
         for sub_details in list_of_project_sub_details:
             for uniprot_result in uniprot_records:
                 if sub_details.protein_accession == uniprot_result["primaryAccession"]:
-                    sub_details.protein_name = uniprot_result["proteinDescription"]["recommendedName"]["fullName"]["value"]
+                    sub_details.protein_name = uniprot_result["proteinDescription"]["recommendedName"]["fullName"][
+                        "value"]
                     print(uniprot_result["primaryAccession"] + " protein name: " + sub_details.protein_name)
                     if len(uniprot_result["genes"]) > 0:
                         sub_details.gene_name = uniprot_result["genes"][0]["geneName"]["value"]
@@ -586,6 +634,7 @@ async def update_uniprot_data(list_of_project_sub_details):
         print("Protein and gene data from Uniprot API fetched successfully!")
     except Exception as error:
         app_logger.error(error)
+
 
 async def get_number_of_counts(sql, sql_values, session):
     """
