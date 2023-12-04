@@ -9,7 +9,7 @@ logging.config.fileConfig('logging.ini')
 logger = logging.getLogger(__name__)
 
 
-def get_most_recent_upload_ids(pxid, file=None):
+async def get_most_recent_upload_ids(pxid, file=None):
     """
     Get the most recent upload ids for a project/file.
 

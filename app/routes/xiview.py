@@ -1,4 +1,5 @@
 import json
+import logging
 import logging.config
 import struct
 
@@ -14,8 +15,8 @@ xiview_data_router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-@xiview_data_router.route('/get_data', methods=['GET'])
-def get_data(project, file=None):
+@xiview_data_router.get('/get_xiview_data', tags=["xiVIEW"])
+async def get_xiview_data(project, file=None):
     """
     Get the data for the network visualisation.
     URLs have following structure:
@@ -25,17 +26,17 @@ def get_data(project, file=None):
 
     :return: json with the data
     """
-    most_recent_upload_ids = get_most_recent_upload_ids(project, file)
+    most_recent_upload_ids = await get_most_recent_upload_ids(project, file)
     try:
-        data_object = get_data_object(most_recent_upload_ids)
+        data_object = await get_data_object(most_recent_upload_ids, project)
     except psycopg2.DatabaseError as e:
         logger.error(e)
+        print(e)
         return {"error": "Database error"}, 500
 
-    return json.dumps(data_object)  # more efficient than jsonify as it doesn't pretty print
+    return data_object
 
-
-@xiview_data_router.route('/get_peaklist', methods=['GET'])
+@xiview_data_router.get('/get_peaklist', tags=["xiVIEW"])
 def get_peaklist(id, sd_ref, upload_id):
     conn = None
     data = {}
@@ -61,7 +62,7 @@ def get_peaklist(id, sd_ref, upload_id):
         return data
 
 
-def get_data_object(ids):
+async def get_data_object(ids, pxid):
     """ Connect to the PostgreSQL database server """
     conn = None
     data = {}
@@ -69,24 +70,37 @@ def get_data_object(ids):
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        data["metadata"] = get_results_metadata(cur, ids)
-        data["matches"] = get_matches(cur, ids)
-        data["peptides"] = get_peptides(cur, data["matches"])
-        data["proteins"] = get_proteins(cur, data["peptides"])
-        logger.info("finished")
+        # data["project"] = get_pride_api_info(cur, pxid)
+        data["meta"] = await get_results_metadata(cur, ids)
+        # data["matches"] = get_matches(cur, ids)
+        # data["peptides"] = get_peptides(cur, data["matches"])
+        # data["proteins"] = get_proteins(cur, data["peptides"])
+        # logger.info("finished")
         cur.close()
     except (Exception, psycopg2.DatabaseError) as e:
         error = e
+        # logger.error(e)
+        raise e
     finally:
         if conn is not None:
             conn.close()
-            logger.debug('Database connection closed.')
+            # logger.debug('Database connection closed.')
         if error is not None:
             raise error
         return data
 
+def get_pride_api_info(cur, pxid):
+    """ Get the PRIDE API info for the projects """
+    query = """SELECT p.id AS id,
+                p.id,
+                p.title,
+                p.description
+                FROM projectdetails p
+                WHERE p.project_id = (%s);"""
+    cur.execute(query, [pxid])
+    return cur.fetchall()
 
-def get_results_metadata(cur, ids):
+async def get_results_metadata(cur, ids):
     """ Get the metadata for the results """
     metadata = {}
 
@@ -95,8 +109,8 @@ def get_results_metadata(cur, ids):
                 u.project_id,
                 u.identification_file_name,
                 u.provider,
-                u.audits,
-                u.samples,
+                u.audit_collection,
+                u.analysis_sample_collection,
                 u.bib,
                 u.spectra_formats,
                 u.contains_crosslinks,
@@ -104,11 +118,11 @@ def get_results_metadata(cur, ids):
             FROM upload u
             WHERE u.id = ANY(%s);"""
     cur.execute(query, [ids])
-    metadata["mzIdentML_files"] = cur.fetchall()
+    metadata["mzidentml_files"] = cur.fetchall()
 
     # get AnalysisCollection(s) for each id
-    query = """SELECT ac.upload_id, 
-                ac.spectrum_identification_list_ref, 
+    query = """SELECT ac.upload_id,
+                ac.spectrum_identification_list_ref,
                 ac.spectrum_identification_protocol_ref,
                 ac.spectra_data_ref
             FROM analysiscollection ac
@@ -120,13 +134,32 @@ def get_results_metadata(cur, ids):
     query = """SELECT sip.id AS id,
                 sip.upload_id,
                 sip.frag_tol,
-                sip.search_params,
+                sip.frag_tol_unit,
+                sip.additional_search_params,
                 sip.analysis_software,
                 sip.threshold
             FROM spectrumidentificationprotocol sip
             WHERE sip.upload_id = ANY(%s);"""
     cur.execute(query, [ids])
     metadata["spectrum_identification_protocols"] = cur.fetchall()
+
+    # enzymes
+    query = """SELECT *
+            FROM enzyme e
+            WHERE e.upload_id = ANY(%s);"""
+    cur.execute(query, [ids])
+    metadata["enzymes"] = cur.fetchall()
+
+    # search modifications
+    try:
+        query = """SELECT *
+                FROM searchmodification sm
+                WHERE sm.upload_id = ANY(%s);"""
+        cur.execute(query, [ids])
+        metadata["search_modifications"] = cur.fetchall()
+        print(metadata["search_modifications"])
+    except Exception as e:
+        print(e)
 
     return metadata
 
@@ -197,7 +230,7 @@ def get_peptides(cur, match_rows):
                 GROUP BY mp.id, mp.upload_id, mp.base_sequence;""").format(
         peptide_clause
     )
-    logger.debug(query.as_string(cur))
+    # logger.debug(query.as_string(cur))
     cur.execute(query)
     return cur.fetchall()
 
@@ -230,6 +263,6 @@ def get_proteins(cur, peptide_rows):
                      cast(upload_id as text) AS search_id, description FROM dbsequence WHERE ({});""").format(
         protein_clause
     )
-    logger.debug(query.as_string(cur))
+    # logger.debug(query.as_string(cur))
     cur.execute(query)
     return cur.fetchall()
