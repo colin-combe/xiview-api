@@ -660,10 +660,6 @@ async def update_uniprot_data(list_of_project_sub_details):
     for sub_details in list_of_project_sub_details:
         for uniprot_result in uniprot_records:
             try:
-                if sub_details.protein_accession == "G1TG89":
-                    print("G1TG89")
-                    if uniprot_result["primaryAccession"] == "G1TG89":
-                        print("Both matches")
                 if sub_details.protein_accession == uniprot_result["primaryAccession"]:
                     sub_details.protein_name = uniprot_result["proteinDescription"]["recommendedName"]["fullName"][
                         "value"]
