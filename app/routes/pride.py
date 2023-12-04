@@ -25,7 +25,9 @@ from app.models.spectrumidentification import SpectrumIdentification
 from app.models.spectrumidentificationprotocol import SpectrumIdentificationProtocol
 from index import get_session
 from process_dataset import convert_pxd_accession_from_pride
+import logging.config
 
+logging.config.fileConfig("logging.ini")
 app_logger = logging.getLogger(__name__)
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 pride_router = APIRouter()
@@ -47,15 +49,6 @@ def get_api_key(key: str = Security(api_key_header)) -> str:
     )
 
 
-@pride_router.put("/log/{level}", tags=["Admin"])
-def change_log_level(level, api_key: str = Security(get_api_key)):
-    level_upper = str(level).upper()
-    logging.getLogger("uvicorn.error").setLevel(level_upper)
-    logging.getLogger("uvicorn.access").setLevel(level_upper)
-    logging.getLogger("uvicorn.asgi").setLevel(level_upper)
-    app_logger.setLevel(level_upper)
-
-
 def get_config(file):
     """
     This method read the default configuration file config.ini in the same path of the pipeline execution
@@ -64,6 +57,16 @@ def get_config(file):
     config = configparser.ConfigParser()
     config.read(file)
     return config
+
+
+@pride_router.get("/health", tags=["Admin"])
+def health():
+    """
+    A quick simple endpoint to test the API is working
+    :return: Response with OK
+    """
+    app_logger.info('Health check endpoint accessed')
+    return {'status': 'OK'}
 
 
 @pride_router.post("/parse", tags=["Admin"])
@@ -84,242 +87,8 @@ async def parse(px_accession: str, temp_dir: str | None = None, dont_delete: boo
     convert_pxd_accession_from_pride(px_accession, temp_dir, dont_delete)
 
 
-@pride_router.get("/projects", tags=["Main"])
-async def list_all_projects(session: Session = Depends(get_session), page: int = 1, page_size: int = 10) -> list[
-    ProjectDetail]:
-    """
-    This gives the high-level view of list of projects
-    :param session: connection to database
-    :param page: page number
-    :param page_size: number of records per page
-    :return: List of ProjectDetails in JSON format
-    """
-    try:
-        offset = (page - 1) * page_size
-        projects = session.query(ProjectDetail).offset(offset).limit(page_size).all()
-    except Exception as e:
-        # Handle the exception here
-        logging.error(f"Error occurred: {str(e)}")
-        return []
-    if projects is None or projects == []:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Projects not found")
-
-    return projects
-
-
-@pride_router.get("/projects/{px_accession}", tags=["Main"])
-def project_detail_view(px_accession: str, session: Session = Depends(get_session)) -> List[ProjectDetail]:
-    """
-    Retrieve project detail by px_accession.
-    """
-    try:
-        project_detail = session.query(ProjectDetail) \
-            .options(joinedload(ProjectDetail.project_sub_details)) \
-            .filter(ProjectDetail.project_id == px_accession) \
-            .all()
-    except Exception as e:
-        logging.error(f"Error occurred: {str(e)}")
-        project_detail = None
-
-    if project_detail is None or project_detail == []:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project detail not found")
-
-    return project_detail
-
-
-@pride_router.get("/projects/{px_accession}/proteins", tags=["Main"])
-def project_detail_view(px_accession: str, session: Session = Depends(get_session), page: int = 1, page_size: int = 10) -> list[
-    ProjectSubDetail]:
-    """
-    Retrieve protein detail by px_accession.
-    """
-    try:
-        project_detail = session.query(ProjectDetail) \
-            .options(joinedload(ProjectDetail.project_sub_details)) \
-            .filter(ProjectDetail.project_id == px_accession).scalar()
-
-        offset = (page - 1) * page_size
-        project_sub_details = session.query(ProjectSubDetail).filter(ProjectSubDetail.project_detail_id == project_detail.id)\
-            .offset(offset).limit(page_size).all()
-
-    except Exception as e:
-        logging.error(f"Error occurred: {str(e)}")
-        project_sub_details = None
-
-    if project_sub_details is None or project_sub_details == []:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project detail not found")
-
-    return project_sub_details
-
-
-@pride_router.get("/statistics-count", tags=["Statistics"])
-async def statistics_count(session: Session = Depends(get_session)):
-    try:
-        sql_statistics_count = text("""
-                      SELECT
-                          COUNT(id) AS "Number of Projects",
-                          SUM(number_of_proteins) AS "Number of proteins",
-                          SUM(number_of_peptides) AS "Number of peptides",
-                          SUM(number_of_spectra) AS "Number of spectra",
-                          COUNT(DISTINCT organism) AS "Number of species"
-                      FROM
-                          projectdetails p;
-                  """)
-        values = await get_statistics_count(sql_statistics_count, session)
-    except Exception as error:
-        app_logger.error(error)
-    return values
-
-
-@pride_router.get("/projects-per-species", tags=["Statistics"])
-async def project_per_species(session: Session = Depends(get_session)):
-    """
-    Number of projects per species
-    :param session: session connection to the database
-    :return:  Number of projects per species as a Dictionary
-    """
-    try:
-        sql_projects_per_species = text("""
-        SELECT organism, COUNT(organism) AS organism_count
-        FROM projectdetails
-        GROUP BY organism
-        ORDER BY COUNT(organism) ASC;
-""")
-        values = await project_per_species_counts(sql_projects_per_species, None, session)
-    except Exception as error:
-        app_logger.error(error)
-    return values
-
-
-@pride_router.get("/peptide-per-protein", tags=["Statistics"])
-async def peptide_per_protein(session: Session = Depends(get_session)):
-    """
-    Get the number of peptides per protein frequency
-    :param session: session connection to the database
-    :return:  Number of peptides per protein frequency as a dictionary
-    """
-    try:
-        sql_peptides_per_protein = text("""
-        WITH frequencytable AS (
-    WITH result AS (
-        SELECT
-            pe1.dbsequence_ref AS dbref1,
-            pe1.peptide_ref AS pepref1,
-            pe2.dbsequence_ref AS dbref2,
-            pe2.peptide_ref AS pepref2
-        FROM
-            spectrumidentification si
-            INNER JOIN modifiedpeptide mp1 ON si.pep1_id = mp1.id AND si.upload_id = mp1.upload_id
-            INNER JOIN peptideevidence pe1 ON mp1.id = pe1.peptide_ref AND mp1.upload_id = pe1.upload_id
-            INNER JOIN modifiedpeptide mp2 ON si.pep2_id = mp2.id AND si.upload_id = mp2.upload_id
-            INNER JOIN peptideevidence pe2 ON mp2.id = pe2.peptide_ref AND mp2.upload_id = pe2.upload_id
-            INNER JOIN upload u ON u.id = si.upload_id
-        WHERE
-            u.id IN (
-                SELECT
-                    u.id
-                FROM
-                    upload u
-                WHERE
-                    u.upload_time = (
-                        SELECT
-                            MAX(upload_time)
-                        FROM
-                            upload
-                        WHERE
-                            project_id = u.project_id
-                            AND identification_file_name = u.identification_file_name
-                    )
-            )
-            AND pe1.is_decoy = FALSE
-            AND pe2.is_decoy = FALSE
-            AND si.pass_threshold = TRUE
-    )
-    SELECT
-        dbref,
-        COUNT(pepref) AS peptide_count
-    FROM
-        (
-            SELECT
-                dbref1 AS dbref,
-                pepref1 AS pepref
-            FROM
-                result
-            UNION
-            SELECT
-                dbref2 AS dbref,
-                pepref2 AS pepref
-            FROM
-                result
-        ) AS inner_result
-    GROUP BY
-        dbref
-)
-SELECT
-    frequencytable.peptide_count,
-    COUNT(*)
-FROM
-    frequencytable
-GROUP BY
-    frequencytable.peptide_count
-ORDER BY
-    frequencytable.peptide_count;
-
-""")
-        values = await peptide_per_protein_counts(sql_peptides_per_protein, None, session)
-    except Exception as error:
-        app_logger.error(error)
-    return values
-
-
-@pride_router.delete("/delete/{px_accession}", tags=["Admin"])
-async def delete_dataset(px_accession: str, session: Session = Depends(get_session),
-                         api_key: str = Security(get_api_key)):
-    app_logger.info("Deleting dataset: " + px_accession)
-
-    try:
-        # Define the conditions for updating
-        conditions = {'project_id': px_accession}
-
-        # Query for an existing record based on conditions
-        existing_upload_record = session.query(Upload).filter_by(**conditions).first()
-
-        # If the record exists, update its attributes
-        if existing_upload_record:
-            # Delete ProjectDetail and associated ProjectSubDetail records based on project_detail_id
-            session.query(ProjectSubDetail).filter_by(project_detail_id=existing_upload_record.id).delete()
-            session.query(ProjectDetail).filter_by(project_id=px_accession).delete()
-            session.query(SpectrumIdentification).filter_by(upload_id=existing_upload_record.id).delete()
-            session.query(SearchModification).filter_by(upload_id=existing_upload_record.id).delete()
-            session.query(Enzyme).filter_by(upload_id=existing_upload_record.id).delete()
-            session.query(SpectrumIdentificationProtocol).filter_by(upload_id=existing_upload_record.id).delete()
-            session.query(ModifiedPeptide).filter_by(upload_id=existing_upload_record.id).delete()
-            session.query(DBSequence).filter_by(upload_id=existing_upload_record.id).delete()
-            session.query(Spectrum).filter_by(upload_id=existing_upload_record.id).delete()
-            session.query(PeptideEvidence).filter_by(upload_id=existing_upload_record.id).delete()
-            session.query(AnalysisCollection).filter_by(upload_id=existing_upload_record.id).delete()
-            session.query(Upload).filter_by(**conditions).delete()
-            session.commit()
-    except Exception as error:
-        app_logger.error(error)
-        session.rollback()
-    finally:
-        # This is the same as the `get_db` method below
-        session.close()
-
-
-@pride_router.get("/health", tags=["Admin"])
-def health():
-    """
-    A quick simple endpoint to test the API is working
-    :return: Response with OK
-    """
-    app_logger.info('Health check endpoint accessed')
-    return {'status': 'OK'}
-
-
-@pride_router.post("/update-project-details", tags=["Admin"])
-async def update_project_details(session: Session = Depends(get_session), api_key: str = Security(get_api_key)):
+@pride_router.post("/update-metadata", tags=["Admin"])
+async def update_metadata(session: Session = Depends(get_session), api_key: str = Security(get_api_key)):
     """
     An endpoint to update the project details including title, description, PubmedID,
     Number of proteins, peptides and spectra identifications
@@ -621,6 +390,242 @@ GROUP BY dbref;
     except Exception as error:
         app_logger.error(error)
         session.rollback()
+
+
+@pride_router.put("/log/{level}", tags=["Admin"])
+def change_log_level(level, api_key: str = Security(get_api_key)):
+    level_upper = str(level).upper()
+    logging.getLogger("uvicorn.error").setLevel(level_upper)
+    logging.getLogger("uvicorn.access").setLevel(level_upper)
+    logging.getLogger("uvicorn.asgi").setLevel(level_upper)
+    app_logger.setLevel(level_upper)
+
+
+@pride_router.delete("/delete/{px_accession}", tags=["Admin"])
+async def delete_dataset(px_accession: str, session: Session = Depends(get_session),
+                         api_key: str = Security(get_api_key)):
+    app_logger.info("Deleting dataset: " + px_accession)
+
+    try:
+        # Define the conditions for updating
+        conditions = {'project_id': px_accession}
+
+        # Query for an existing record based on conditions
+        existing_upload_record = session.query(Upload).filter_by(**conditions).first()
+
+        # If the record exists, update its attributes
+        if existing_upload_record:
+            # Delete ProjectDetail and associated ProjectSubDetail records based on project_detail_id
+            session.query(ProjectSubDetail).filter_by(project_detail_id=existing_upload_record.id).delete()
+            session.query(ProjectDetail).filter_by(project_id=px_accession).delete()
+            session.query(SpectrumIdentification).filter_by(upload_id=existing_upload_record.id).delete()
+            session.query(SearchModification).filter_by(upload_id=existing_upload_record.id).delete()
+            session.query(Enzyme).filter_by(upload_id=existing_upload_record.id).delete()
+            session.query(SpectrumIdentificationProtocol).filter_by(upload_id=existing_upload_record.id).delete()
+            session.query(ModifiedPeptide).filter_by(upload_id=existing_upload_record.id).delete()
+            session.query(DBSequence).filter_by(upload_id=existing_upload_record.id).delete()
+            session.query(Spectrum).filter_by(upload_id=existing_upload_record.id).delete()
+            session.query(PeptideEvidence).filter_by(upload_id=existing_upload_record.id).delete()
+            session.query(AnalysisCollection).filter_by(upload_id=existing_upload_record.id).delete()
+            session.query(Upload).filter_by(**conditions).delete()
+            session.commit()
+    except Exception as error:
+        app_logger.error(error)
+        session.rollback()
+    finally:
+        # This is the same as the `get_db` method below
+        session.close()
+
+
+@pride_router.get("/projects", tags=["Projects"])
+async def list_all_projects(session: Session = Depends(get_session), page: int = 1, page_size: int = 10) -> list[
+    ProjectDetail]:
+    """
+    This gives the high-level view of list of projects
+    :param session: connection to database
+    :param page: page number
+    :param page_size: number of records per page
+    :return: List of ProjectDetails in JSON format
+    """
+    try:
+        offset = (page - 1) * page_size
+        projects = session.query(ProjectDetail).offset(offset).limit(page_size).all()
+    except Exception as e:
+        # Handle the exception here
+        logging.error(f"Error occurred: {str(e)}")
+        return []
+    if projects is None or projects == []:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Projects not found")
+
+    return projects
+
+
+@pride_router.get("/projects/{px_accession}", tags=["Projects"])
+def project_detail_view(px_accession: str, session: Session = Depends(get_session)) -> List[ProjectDetail]:
+    """
+    Retrieve project detail by px_accession.
+    :param px_accession: identifier of a project, for ProteomeXchange projects this is the PXD****** accession
+    :param session:
+    :return:
+    """
+    try:
+        project_detail = session.query(ProjectDetail) \
+            .options(joinedload(ProjectDetail.project_sub_details)) \
+            .filter(ProjectDetail.project_id == px_accession) \
+            .all()
+    except Exception as e:
+        logging.error(f"Error occurred: {str(e)}")
+        project_detail = None
+
+    if project_detail is None or project_detail == []:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project detail not found")
+
+    return project_detail
+
+
+@pride_router.get("/projects/{px_accession}/proteins", tags=["Projects"])
+def project_detail_view(px_accession: str, session: Session = Depends(get_session), page: int = 1, page_size: int = 10) -> list[
+    ProjectSubDetail]:
+    """
+    Retrieve protein detail by px_accession.
+    """
+    try:
+        project_detail = session.query(ProjectDetail) \
+            .options(joinedload(ProjectDetail.project_sub_details)) \
+            .filter(ProjectDetail.project_id == px_accession).scalar()
+
+        offset = (page - 1) * page_size
+        project_sub_details = session.query(ProjectSubDetail).filter(ProjectSubDetail.project_detail_id == project_detail.id)\
+            .offset(offset).limit(page_size).all()
+
+    except Exception as e:
+        logging.error(f"Error occurred: {str(e)}")
+        project_sub_details = None
+
+    if project_sub_details is None or project_sub_details == []:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project detail not found")
+
+    return project_sub_details
+
+
+@pride_router.get("/statistics-count", tags=["Statistics"])
+async def statistics_count(session: Session = Depends(get_session)):
+    try:
+        sql_statistics_count = text("""
+                      SELECT
+                          COUNT(id) AS "Number of Projects",
+                          SUM(number_of_proteins) AS "Number of proteins",
+                          SUM(number_of_peptides) AS "Number of peptides",
+                          SUM(number_of_spectra) AS "Number of spectra",
+                          COUNT(DISTINCT organism) AS "Number of species"
+                      FROM
+                          projectdetails p;
+                  """)
+        values = await get_statistics_count(sql_statistics_count, session)
+    except Exception as error:
+        app_logger.error(error)
+    return values
+
+
+@pride_router.get("/projects-per-species", tags=["Statistics"])
+async def project_per_species(session: Session = Depends(get_session)):
+    """
+    Number of projects per species
+    :param session: session connection to the database
+    :return:  Number of projects per species as a Dictionary
+    """
+    try:
+        sql_projects_per_species = text("""
+        SELECT organism, COUNT(organism) AS organism_count
+        FROM projectdetails
+        GROUP BY organism
+        ORDER BY COUNT(organism) ASC;
+""")
+        values = await project_per_species_counts(sql_projects_per_species, None, session)
+    except Exception as error:
+        app_logger.error(error)
+    return values
+
+
+@pride_router.get("/peptide-per-protein", tags=["Statistics"])
+async def peptide_per_protein(session: Session = Depends(get_session)):
+    """
+    Get the number of peptides per protein frequency
+    :param session: session connection to the database
+    :return:  Number of peptides per protein frequency as a dictionary
+    """
+    try:
+        sql_peptides_per_protein = text("""
+        WITH frequencytable AS (
+    WITH result AS (
+        SELECT
+            pe1.dbsequence_ref AS dbref1,
+            pe1.peptide_ref AS pepref1,
+            pe2.dbsequence_ref AS dbref2,
+            pe2.peptide_ref AS pepref2
+        FROM
+            spectrumidentification si
+            INNER JOIN modifiedpeptide mp1 ON si.pep1_id = mp1.id AND si.upload_id = mp1.upload_id
+            INNER JOIN peptideevidence pe1 ON mp1.id = pe1.peptide_ref AND mp1.upload_id = pe1.upload_id
+            INNER JOIN modifiedpeptide mp2 ON si.pep2_id = mp2.id AND si.upload_id = mp2.upload_id
+            INNER JOIN peptideevidence pe2 ON mp2.id = pe2.peptide_ref AND mp2.upload_id = pe2.upload_id
+            INNER JOIN upload u ON u.id = si.upload_id
+        WHERE
+            u.id IN (
+                SELECT
+                    u.id
+                FROM
+                    upload u
+                WHERE
+                    u.upload_time = (
+                        SELECT
+                            MAX(upload_time)
+                        FROM
+                            upload
+                        WHERE
+                            project_id = u.project_id
+                            AND identification_file_name = u.identification_file_name
+                    )
+            )
+            AND pe1.is_decoy = FALSE
+            AND pe2.is_decoy = FALSE
+            AND si.pass_threshold = TRUE
+    )
+    SELECT
+        dbref,
+        COUNT(pepref) AS peptide_count
+    FROM
+        (
+            SELECT
+                dbref1 AS dbref,
+                pepref1 AS pepref
+            FROM
+                result
+            UNION
+            SELECT
+                dbref2 AS dbref,
+                pepref2 AS pepref
+            FROM
+                result
+        ) AS inner_result
+    GROUP BY
+        dbref
+)
+SELECT
+    frequencytable.peptide_count,
+    COUNT(*)
+FROM
+    frequencytable
+GROUP BY
+    frequencytable.peptide_count
+ORDER BY
+    frequencytable.peptide_count;
+
+""")
+        values = await peptide_per_protein_counts(sql_peptides_per_protein, None, session)
+    except Exception as error:
+        app_logger.error(error)
+    return values
 
 
 async def update_uniprot_data(list_of_project_sub_details):
