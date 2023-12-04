@@ -16,4 +16,4 @@ class ProjectDetail(Base):
     number_of_spectra: Mapped[int] = mapped_column(Integer, nullable=True)
     xiview_url: Mapped[str] = mapped_column(Text, nullable=True)
 
-    project_sub_details = relationship('ProjectSubDetail', back_populates='project_detail')
+    project_sub_details = relationship('ProjectSubDetail', back_populates='project_detail', cascade='all, delete-orphan', single_parent=True)

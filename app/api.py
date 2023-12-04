@@ -12,8 +12,8 @@ app = FastAPI(title="Xi-MzIdentML-Converter WS",
                   "name": "Apache 2.0",
                   "url": "https://www.apache.org/licenses/LICENSE-2.0.html",
               },
-              openapi_url="/pride/archive/xiview/ws/api/openapi.json",
-              docs_url="/pride/archive/xiview/ws/api/docs")
+              openapi_url="/pride/archive/xiview/ws/openapi.json",
+              docs_url="/pride/archive/xiview/ws/docs")
 
 # Set up CORS middleware
 origins = ["*"]  # Update this with your allowed origins
