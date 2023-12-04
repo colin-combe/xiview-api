@@ -484,7 +484,8 @@ def project_detail_view(project_id: str, session: Session = Depends(get_session)
 
 
 @pride_router.get("/projects/{project_id}/proteins", tags=["Projects"])
-def project_detail_view(project_id: str, session: Session = Depends(get_session), page: int = 1, page_size: int = 10) -> list[
+def project_detail_view(project_id: str, session: Session = Depends(get_session), page: int = 1, page_size: int = 10) -> \
+list[
     ProjectSubDetail]:
     """
     Retrieve protein detail by px_accession.
@@ -495,7 +496,8 @@ def project_detail_view(project_id: str, session: Session = Depends(get_session)
             .filter(ProjectDetail.project_id == project_id).scalar()
 
         offset = (page - 1) * page_size
-        project_sub_details = session.query(ProjectSubDetail).filter(ProjectSubDetail.project_detail_id == project_detail.id)\
+        project_sub_details = session.query(ProjectSubDetail).filter(
+            ProjectSubDetail.project_detail_id == project_detail.id) \
             .offset(offset).limit(page_size).all()
 
     except Exception as e:
@@ -629,17 +631,18 @@ ORDER BY
 
 
 async def update_uniprot_data(list_of_project_sub_details):
-    try:
-        i = 1
-        batch_size = 10
-        base_in_URL = "https://rest.uniprot.org/uniprotkb/search?query=accession:"
-        fields_in_URL = "&fields=protein_name,gene_primary"
-        seperator = "%20OR%20"
-        accessions = []
-        uniprot_records = []
-        for sub_details in list_of_project_sub_details:
-            accessions.append(sub_details.protein_accession)
-            if i % batch_size == 0:
+    i = 1
+    batch_size = 10
+    base_in_URL = "https://rest.uniprot.org/uniprotkb/search?query=accession:"
+    fields_in_URL = "&fields=protein_name,gene_primary"
+    seperator = "%20OR%20"
+    accessions = []
+    uniprot_records = []
+    for sub_details in list_of_project_sub_details:
+        accessions.append(sub_details.protein_accession)
+        # batch size or last one in the list
+        if i % batch_size == 0 or i == len(list_of_project_sub_details):
+            try:
                 accessions_in_URL = seperator.join(accessions)
                 complete_URL = base_in_URL + accessions_in_URL + fields_in_URL
                 logging.debug("Calling Uniprot API: " + complete_URL)
@@ -648,22 +651,36 @@ async def update_uniprot_data(list_of_project_sub_details):
                     for result in uniprot_response["results"]:
                         uniprot_records.append(result)
                 accessions = []
-            print(sub_details.protein_accession)
-            i += 1
+            except Exception as error:
+                app_logger.error(error)
+                print(complete_URL + " failed to get data from Uniprot:" + error)
+        print(sub_details.protein_accession)
+        i += 1
 
-        for sub_details in list_of_project_sub_details:
-            for uniprot_result in uniprot_records:
+    for sub_details in list_of_project_sub_details:
+        for uniprot_result in uniprot_records:
+            try:
+                if sub_details.protein_accession == "G1TG89":
+                    print("G1TG89")
+                    if uniprot_result["primaryAccession"] == "G1TG89":
+                        print("Both matches")
                 if sub_details.protein_accession == uniprot_result["primaryAccession"]:
                     sub_details.protein_name = uniprot_result["proteinDescription"]["recommendedName"]["fullName"][
                         "value"]
                     print(uniprot_result["primaryAccession"] + " protein name: " + sub_details.protein_name)
-                    if len(uniprot_result["genes"]) > 0:
+                    if uniprot_result["genes"] is None:
+                        print(sub_details.protein_accession + " has no genes section")
+                    elif len(uniprot_result["genes"]) > 0:
                         sub_details.gene_name = uniprot_result["genes"][0]["geneName"]["value"]
                         print(uniprot_result["primaryAccession"] + " gene name   : " + sub_details.gene_name)
+                    else:
+                        print("Error")
+                        raise Exception("Error in matching genes section of uniprot response")
+            except Exception as error:
+                app_logger.error(error)
+                print(sub_details.protein_accession + " has an error when trying to match uniprot response:" + error)
 
-        print("Protein and gene data from Uniprot API fetched successfully!")
-    except Exception as error:
-        app_logger.error(error)
+    print("Protein and gene data from Uniprot API fetched successfully!")
 
 
 async def get_number_of_counts(sql, sql_values, session):
