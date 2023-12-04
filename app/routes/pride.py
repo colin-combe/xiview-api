@@ -401,14 +401,14 @@ def change_log_level(level, api_key: str = Security(get_api_key)):
     app_logger.setLevel(level_upper)
 
 
-@pride_router.delete("/delete/{px_accession}", tags=["Admin"])
-async def delete_dataset(px_accession: str, session: Session = Depends(get_session),
+@pride_router.delete("/delete/{project_id}", tags=["Admin"])
+async def delete_dataset(project_id: str, session: Session = Depends(get_session),
                          api_key: str = Security(get_api_key)):
-    app_logger.info("Deleting dataset: " + px_accession)
+    app_logger.info("Deleting dataset: " + project_id)
 
     try:
         # Define the conditions for updating
-        conditions = {'project_id': px_accession}
+        conditions = {'project_id': project_id}
 
         # Query for an existing record based on conditions
         existing_upload_record = session.query(Upload).filter_by(**conditions).first()
@@ -417,7 +417,7 @@ async def delete_dataset(px_accession: str, session: Session = Depends(get_sessi
         if existing_upload_record:
             # Delete ProjectDetail and associated ProjectSubDetail records based on project_detail_id
             session.query(ProjectSubDetail).filter_by(project_detail_id=existing_upload_record.id).delete()
-            session.query(ProjectDetail).filter_by(project_id=px_accession).delete()
+            session.query(ProjectDetail).filter_by(project_id=project_id).delete()
             session.query(SpectrumIdentification).filter_by(upload_id=existing_upload_record.id).delete()
             session.query(SearchModification).filter_by(upload_id=existing_upload_record.id).delete()
             session.query(Enzyme).filter_by(upload_id=existing_upload_record.id).delete()
@@ -460,18 +460,18 @@ async def list_all_projects(session: Session = Depends(get_session), page: int =
     return projects
 
 
-@pride_router.get("/projects/{px_accession}", tags=["Projects"])
-def project_detail_view(px_accession: str, session: Session = Depends(get_session)) -> List[ProjectDetail]:
+@pride_router.get("/projects/{project_id}", tags=["Projects"])
+def project_detail_view(project_id: str, session: Session = Depends(get_session)) -> List[ProjectDetail]:
     """
     Retrieve project detail by px_accession.
-    :param px_accession: identifier of a project, for ProteomeXchange projects this is the PXD****** accession
+    :param project_id: identifier of a project, for ProteomeXchange projects this is the PXD****** accession
     :param session:
     :return:
     """
     try:
         project_detail = session.query(ProjectDetail) \
             .options(joinedload(ProjectDetail.project_sub_details)) \
-            .filter(ProjectDetail.project_id == px_accession) \
+            .filter(ProjectDetail.project_id == project_id) \
             .all()
     except Exception as e:
         logging.error(f"Error occurred: {str(e)}")
@@ -483,8 +483,8 @@ def project_detail_view(px_accession: str, session: Session = Depends(get_sessio
     return project_detail
 
 
-@pride_router.get("/projects/{px_accession}/proteins", tags=["Projects"])
-def project_detail_view(px_accession: str, session: Session = Depends(get_session), page: int = 1, page_size: int = 10) -> list[
+@pride_router.get("/projects/{project_id}/proteins", tags=["Projects"])
+def project_detail_view(project_id: str, session: Session = Depends(get_session), page: int = 1, page_size: int = 10) -> list[
     ProjectSubDetail]:
     """
     Retrieve protein detail by px_accession.
@@ -492,7 +492,7 @@ def project_detail_view(px_accession: str, session: Session = Depends(get_sessio
     try:
         project_detail = session.query(ProjectDetail) \
             .options(joinedload(ProjectDetail.project_sub_details)) \
-            .filter(ProjectDetail.project_id == px_accession).scalar()
+            .filter(ProjectDetail.project_id == project_id).scalar()
 
         offset = (page - 1) * page_size
         project_sub_details = session.query(ProjectSubDetail).filter(ProjectSubDetail.project_detail_id == project_detail.id)\
