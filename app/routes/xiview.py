@@ -70,26 +70,26 @@ async def get_data_object(ids, pxid):
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        # data["project"] = get_pride_api_info(cur, pxid)
+        data["project"] = await get_pride_api_info(cur, pxid)
         data["meta"] = await get_results_metadata(cur, ids)
-        # data["matches"] = get_matches(cur, ids)
-        # data["peptides"] = get_peptides(cur, data["matches"])
-        # data["proteins"] = get_proteins(cur, data["peptides"])
-        # logger.info("finished")
+        data["matches"] = await get_matches(cur, ids)
+        data["peptides"] = await get_peptides(cur, data["matches"])
+        data["proteins"] = await get_proteins(cur, data["peptides"])
+        logger.info("finished")
         cur.close()
     except (Exception, psycopg2.DatabaseError) as e:
         error = e
-        # logger.error(e)
+        logger.error(e)
         raise e
     finally:
         if conn is not None:
             conn.close()
-            # logger.debug('Database connection closed.')
+            logger.debug('Database connection closed.')
         if error is not None:
             raise error
         return data
 
-def get_pride_api_info(cur, pxid):
+async def get_pride_api_info(cur, pxid):
     """ Get the PRIDE API info for the projects """
     query = """SELECT p.id AS id,
                 p.id,
@@ -164,7 +164,7 @@ async def get_results_metadata(cur, ids):
     return metadata
 
 
-def get_matches(cur, ids):
+async def get_matches(cur, ids):
     query = """SELECT si.id AS id, si.pep1_id AS pi1, si.pep2_id AS pi2,
                 si.scores AS sc,
                 cast (si.upload_id as text) AS si,
@@ -188,7 +188,7 @@ def get_matches(cur, ids):
     return cur.fetchall()
 
 
-def get_peptides(cur, match_rows):
+async def get_peptides(cur, match_rows):
     search_peptide_ids = {}
     for match_row in match_rows:
         if match_row['si'] in search_peptide_ids:
@@ -235,7 +235,7 @@ def get_peptides(cur, match_rows):
     return cur.fetchall()
 
 
-def get_proteins(cur, peptide_rows):
+async def get_proteins(cur, peptide_rows):
     search_protein_ids = {}
     for peptide_row in peptide_rows:
         if peptide_row['u_id'] in search_protein_ids:
