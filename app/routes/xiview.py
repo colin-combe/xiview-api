@@ -37,7 +37,7 @@ async def get_xiview_data(project, file=None):
     return data_object
 
 @xiview_data_router.get('/get_peaklist', tags=["xiVIEW"])
-def get_peaklist(id, sd_ref, upload_id):
+async def get_peaklist(id, sd_ref, upload_id):
     conn = None
     data = {}
     error = None
