@@ -23,6 +23,7 @@ from app.models.spectrumidentification import SpectrumIdentification
 from app.models.spectrumidentificationprotocol import SpectrumIdentificationProtocol
 from index import get_session
 from process_dataset import convert_pxd_accession_from_pride
+from db_config_parser import security_API_key
 
 import logging
 import logging.config
@@ -35,18 +36,7 @@ config = configparser.ConfigParser()
 
 
 def get_api_key(key: str = Security(api_key_header)) -> str:
-    # Get the path to the mounted config directory from the environment variable, if not get default
-    database_ini_path = os.environ.get('DATABASE_INI_PATH', 'database.ini')
-    logger.info("database_ini_path: " + database_ini_path)
-    API_KEY = ""
-    if database_ini_path:
-        config.read(database_ini_path)
-        API_KEY = config.get('security', 'apikey')
-        logger.info(API_KEY)
-    else:
-        print("Error: DATABASE_INI_PATH environment variable not set.")
-
-    if key == API_KEY:
+    if key == security_API_key():
         return key
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
