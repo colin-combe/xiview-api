@@ -1,7 +1,7 @@
 import configparser
-import logging
 import os
 from typing import List
+import sys
 
 import requests
 from fastapi import APIRouter, Depends, status
@@ -9,8 +9,6 @@ from fastapi import HTTPException, Security
 from fastapi.security import APIKeyHeader
 from sqlalchemy import text
 from sqlalchemy.orm import Session, joinedload
-
-from app.config.logging import logging
 from app.models.upload import Upload
 from app.models.analysiscollection import AnalysisCollection
 from app.models.dbsequence import DBSequence
@@ -25,38 +23,25 @@ from app.models.spectrumidentification import SpectrumIdentification
 from app.models.spectrumidentificationprotocol import SpectrumIdentificationProtocol
 from index import get_session
 from process_dataset import convert_pxd_accession_from_pride
+from db_config_parser import security_API_key
+
+import logging
 import logging.config
 
-logging.config.fileConfig("logging.ini")
-app_logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
+
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 pride_router = APIRouter()
 config = configparser.ConfigParser()
 
-# Read the INI file
-config.read('database.ini')
-
-# Access values from the INI file
-API_KEY = config.get('security', 'apikey')
-
 
 def get_api_key(key: str = Security(api_key_header)) -> str:
-    if key == API_KEY:
+    if key == security_API_key():
         return key
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid or missing API Key",
     )
-
-
-def get_config(file):
-    """
-    This method read the default configuration file config.ini in the same path of the pipeline execution
-    :return:
-    """
-    config = configparser.ConfigParser()
-    config.read(file)
-    return config
 
 
 @pride_router.get("/health", tags=["Admin"])
@@ -65,7 +50,8 @@ def health():
     A quick simple endpoint to test the API is working
     :return: Response with OK
     """
-    app_logger.info('Health check endpoint accessed')
+    logger.info('Health check endpoint accessed')
+    logger.debug('Health check endpoint accessed - debug')
     return {'status': 'OK'}
 
 
@@ -318,11 +304,11 @@ GROUP BY dbref;
             # get project details from PRIDE API
             # TODO: need to move URL to a configuration variable
             px_url = 'https://www.ebi.ac.uk/pride/ws/archive/v2/projects/' + accession
-            app_logger.debug('GET request to PRIDE API: ' + px_url)
+            logger.debug('GET request to PRIDE API: ' + px_url)
             pride_response = requests.get(px_url)
             r = requests.get(px_url)
             if r.status_code == 200:
-                app_logger.info('PRIDE API returned status code 200')
+                logger.info('PRIDE API returned status code 200')
                 pride_json = pride_response.json()
                 if pride_json is not None:
                     if len(pride_json['references']) > 0:
@@ -388,7 +374,7 @@ GROUP BY dbref;
             session.commit()
         session.close()
     except Exception as error:
-        app_logger.error(error)
+        logger.error(error)
         session.rollback()
 
 
@@ -398,13 +384,13 @@ def change_log_level(level, api_key: str = Security(get_api_key)):
     logging.getLogger("uvicorn.error").setLevel(level_upper)
     logging.getLogger("uvicorn.access").setLevel(level_upper)
     logging.getLogger("uvicorn.asgi").setLevel(level_upper)
-    app_logger.setLevel(level_upper)
+    logger.setLevel(level_upper)
 
 
 @pride_router.delete("/delete/{project_id}", tags=["Admin"])
 async def delete_dataset(project_id: str, session: Session = Depends(get_session),
                          api_key: str = Security(get_api_key)):
-    app_logger.info("Deleting dataset: " + project_id)
+    logger.info("Deleting dataset: " + project_id)
 
     try:
         # Define the conditions for updating
@@ -430,7 +416,7 @@ async def delete_dataset(project_id: str, session: Session = Depends(get_session
             session.query(Upload).filter_by(**conditions).delete()
             session.commit()
     except Exception as error:
-        app_logger.error(error)
+        logger.error(error)
         session.rollback()
     finally:
         # This is the same as the `get_db` method below
@@ -525,7 +511,7 @@ async def statistics_count(session: Session = Depends(get_session)):
                   """)
         values = await get_statistics_count(sql_statistics_count, session)
     except Exception as error:
-        app_logger.error(error)
+        logger.error(error)
     return values
 
 
@@ -545,7 +531,7 @@ async def project_per_species(session: Session = Depends(get_session)):
 """)
         values = await project_per_species_counts(sql_projects_per_species, None, session)
     except Exception as error:
-        app_logger.error(error)
+        logger.error(error)
     return values
 
 
@@ -626,7 +612,7 @@ ORDER BY
 """)
         values = await peptide_per_protein_counts(sql_peptides_per_protein, None, session)
     except Exception as error:
-        app_logger.error(error)
+        logger.error(error)
     return values
 
 
@@ -652,7 +638,7 @@ async def update_uniprot_data(list_of_project_sub_details):
                         uniprot_records.append(result)
                 accessions = []
             except Exception as error:
-                app_logger.error(error)
+                logger.error(error)
                 print(complete_URL + " failed to get data from Uniprot:" + error)
         print(sub_details.protein_accession)
         i += 1
@@ -670,10 +656,9 @@ async def update_uniprot_data(list_of_project_sub_details):
                         sub_details.gene_name = uniprot_result["genes"][0]["geneName"]["value"]
                         print(uniprot_result["primaryAccession"] + " gene name   : " + sub_details.gene_name)
                     else:
-                        print("Error")
                         raise Exception("Error in matching genes section of uniprot response")
             except Exception as error:
-                app_logger.error(error)
+                logger.error(error)
                 print(sub_details.protein_accession + " has an error when trying to match uniprot response:" + error)
 
     print("Protein and gene data from Uniprot API fetched successfully!")
@@ -692,10 +677,10 @@ async def get_number_of_counts(sql, sql_values, session):
         result = session.execute(sql, sql_values)
         number_of_counts = result.scalar()
     except Exception as error:
-        app_logger.error(error)
+        logger.error(error)
     finally:
         session.close()
-        app_logger.debug('Database session is closed.')
+        logger.debug('Database session is closed.')
     return number_of_counts
 
 
@@ -712,10 +697,10 @@ async def get_accessions(sql, sql_values, session):
         # Fetch the list of accessions
         list_of_accessions = [row[0] for row in result]
     except Exception as error:
-        app_logger.error(error)
+        logger.error(error)
     finally:
         session.close()
-        app_logger.debug('Database session is closed.')
+        logger.debug('Database session is closed.')
     return list_of_accessions
 
 
@@ -734,9 +719,9 @@ async def get_counts_table(sql, sql_values, session):
                 {'key': row[0], 'value': row[1]} for row in result if len(row) >= 2
             ]
     except Exception as error:
-        app_logger.error(f"Error type: {type(error)}, Error message: {str(error)}")
+        logger.error(f"Error type: {type(error)}, Error message: {str(error)}")
     finally:
-        app_logger.debug('Database session is closed.')
+        logger.debug('Database session is closed.')
     return result_list
 
 
@@ -755,9 +740,9 @@ async def project_per_species_counts(sql, sql_values, session):
                 {'organism': row[0], 'count': row[1]} for row in result if len(row) >= 2
             ]
     except Exception as error:
-        app_logger.error(f"Error type: {type(error)}, Error message: {str(error)}")
+        logger.error(f"Error type: {type(error)}, Error message: {str(error)}")
     finally:
-        app_logger.debug('Database session is closed.')
+        logger.debug('Database session is closed.')
     return result_list
 
 
@@ -776,9 +761,9 @@ async def peptide_per_protein_counts(sql, sql_values, session):
                 {'protein_frequency': row[0], 'peptide_count': row[1]} for row in result if len(row) >= 2
             ]
     except Exception as error:
-        app_logger.error(f"Error type: {type(error)}, Error message: {str(error)}")
+        logger.error(f"Error type: {type(error)}, Error message: {str(error)}")
     finally:
-        app_logger.debug('Database session is closed.')
+        logger.debug('Database session is closed.')
     return result_list
 
 
@@ -802,8 +787,8 @@ async def get_statistics_count(sql, session):
                              'Number of species': row[4]}
         print(statistics_counts)
     except Exception as error:
-        app_logger.error(error)
+        logger.error(error)
     finally:
         session.close()
-        app_logger.debug('Database session is closed.')
+        logger.debug('Database session is closed.')
     return statistics_counts

@@ -13,8 +13,8 @@ from urllib.parse import urlparse
 from parser.MzIdParser import MzIdParser
 from parser.writer import Writer
 from db_config_parser import get_conn_str
+import logging.config
 
-logging.config.fileConfig('logging.ini')
 logger = logging.getLogger(__name__)
 
 

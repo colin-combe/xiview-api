@@ -1,7 +1,7 @@
 import psycopg2
 from fastapi import APIRouter
 from psycopg2.extras import RealDictCursor
-from app.config.logging import logging
+import logging
 
 from app.routes.shared import get_db_connection, get_most_recent_upload_ids
 
