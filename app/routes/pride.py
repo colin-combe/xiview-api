@@ -286,7 +286,7 @@ async def update_metadata_by_project(project_id: str, session: Session = Depends
     sql_values = {"projectaccession": project_id}
 
     # get project details from PRIDE API
-    # TODO: need to move URL to a configuration variable
+    logger.info("Updating project level metadata")
     px_url = 'https://www.ebi.ac.uk/pride/ws/archive/v2/projects/' + project_id
     logger.debug('GET request to PRIDE API: ' + px_url)
     pride_response = requests.get(px_url)
@@ -338,12 +338,11 @@ async def update_metadata_by_project(project_id: str, session: Session = Depends
             if sub_details.protein_db_ref == dbseq['key']:
                 sub_details.protein_accession = dbseq['value']
 
+    logger.info("Updating protein level metadata")
     await update_protein_metadata(list_of_project_sub_details)
 
-    # Define the conditions for updating
+    logger.info("Saving medatadata...")
     conditions = {'project_id': project_id}
-
-    # Query for an existing record based on conditions
     existing_record = session.query(ProjectDetail).filter_by(**conditions).first()
 
     # If the record exists, update its attributes
@@ -356,6 +355,7 @@ async def update_metadata_by_project(project_id: str, session: Session = Depends
     # add new record
     session.add(project_details)
     session.commit()
+    logger.info("Saving medatadata COMPLETED")
     return 0
 
 
@@ -422,7 +422,7 @@ async def delete_dataset(project_id: str, session: Session = Depends(get_session
             session.query(Upload).filter_by(**conditions).delete()
             session.commit()
     except Exception as error:
-        logger.error(error)
+        logger.error(str(error))
         session.rollback()
     finally:
         # This is the same as the `get_db` method below
@@ -623,17 +623,23 @@ ORDER BY
 
 async def update_protein_metadata(list_of_project_sub_details):
     # 1. metadata from Uniprot
+    logger.info("Updating protein level metadata from Uniprot API...")
     uniprot_records = await find_uniprot_data(list_of_project_sub_details)
     list_of_project_sub_details = await extract_uniprot_data(list_of_project_sub_details, uniprot_records)
+    logger.info("Updating protein level metadata from Uniprot API COMPLETED")
 
     # 2. metadata from PDBe
+    logger.info("Updating protein level metadata from PDBe API...")
     base_in_URL = "https://www.ebi.ac.uk/pdbe/api/mappings/best_structures/"
     list_of_project_sub_details = await find_data_availability(list_of_project_sub_details, base_in_URL, "PDBe")
+    logger.info("Updating protein level metadata from PDBe API COMPLETED")
 
     # 3. metadata from AlphaFold
+    logger.info("Updating protein level metadata from AlphaFold API...")
     base_in_URL = "https://alphafold.ebi.ac.uk/api/prediction/"
     list_of_project_sub_details = await find_data_availability(list_of_project_sub_details, base_in_URL, "AlphaFold")
-    logger.info("Protein and gene data from Uniprot API fetched successfully!")
+    logger.info("Updating protein level metadata from AlphaFold API COMPLETED")
+    logger.info("Updating protein level metadata COMPLETED 100%")
     return list_of_project_sub_details
 
 
