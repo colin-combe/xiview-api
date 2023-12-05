@@ -39,8 +39,8 @@ spec:
         - name: $app_name
           image: $IMAGE
           imagePullPolicy: Always
-          command: [ "uvicorn" ]
-          args: [ "app.api:app", "--port=3000", "--host", "0.0.0.0" ]
+          command: [ "python3" ]
+          args: [ "main.py" ]
           ports:
             - containerPort: $PORT
               name: http

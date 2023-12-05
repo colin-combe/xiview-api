@@ -1,13 +1,8 @@
-import logging.config
 import os
 import re
 from configparser import ConfigParser
 
 import psycopg2
-
-logging.config.fileConfig('logging.ini')
-logger = logging.getLogger(__name__)
-
 
 def get_most_recent_upload_ids(pxid, file=None):
     """
@@ -58,11 +53,11 @@ def get_most_recent_upload_ids(pxid, file=None):
             cur.close()
 
     except (Exception, psycopg2.DatabaseError) as e:
-        logger.error(e)
+        print(e)
     finally:
         if conn is not None:
             conn.close()
-            logger.debug('Database connection closed.')
+            print('Database connection closed.')
 
     return upload_ids
 
