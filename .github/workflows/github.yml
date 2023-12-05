@@ -57,7 +57,7 @@ jobs:
       DB_USER : ${{ vars.DB_USER }}
       DB_PASSWORD : ${{ secrets.DB_PASSWORD }}
       DB_PORT : ${{ vars.DB_PORT }}
-      API_KEY : ${{ vars.API_KEY }}
+      API_KEY : ${{ secrets.API_KEY }}
       PORT: ${{ vars.PORT }}
       node_port: ${{ vars.NODE_PORT }}
       app_name: ${{ vars.APP_NAME }}
