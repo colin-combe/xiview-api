@@ -33,17 +33,14 @@ api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 pride_router = APIRouter()
 config = configparser.ConfigParser()
 
-# Get the absolute path to the root directory
-root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
+# Get the path to the mounted config directory from the environment variable, if not get default
+database_ini_path = os.environ.get('DATABASE_INI_PATH', 'database.ini')
 
-# Specify the absolute path to the INI file
-ini_path = os.path.join(root_path, 'database.ini')
-
-# Read the INI file
-config.read(ini_path)
-
-# Access values from the INI file
-API_KEY = config.get('security', 'apikey')
+if database_ini_path:
+    config.read(database_ini_path)
+    API_KEY = config.get('security', 'apikey')
+else:
+    print("Error: DATABASE_INI_PATH environment variable not set.")
 
 
 def get_api_key(key: str = Security(api_key_header)) -> str:
