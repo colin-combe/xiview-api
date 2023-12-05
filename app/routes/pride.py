@@ -638,9 +638,8 @@ async def update_uniprot_data(list_of_project_sub_details):
                         uniprot_records.append(result)
                 accessions = []
             except Exception as error:
-                logger.error(error)
-                print(complete_URL + " failed to get data from Uniprot:" + error)
-        print(sub_details.protein_accession)
+                logger.error(str(error))
+                logger.error(complete_URL + " failed to get data from Uniprot:" + str(error))
         i += 1
 
     for sub_details in list_of_project_sub_details:
@@ -649,17 +648,17 @@ async def update_uniprot_data(list_of_project_sub_details):
                 if sub_details.protein_accession == uniprot_result["primaryAccession"]:
                     sub_details.protein_name = uniprot_result["proteinDescription"]["recommendedName"]["fullName"][
                         "value"]
-                    print(uniprot_result["primaryAccession"] + " protein name: " + sub_details.protein_name)
-                    if uniprot_result["genes"] is None:
-                        print(sub_details.protein_accession + " has no genes section")
+                    logger.info(uniprot_result["primaryAccession"] + " protein name: " + sub_details.protein_name)
+                    if uniprot_result["genes"] is None or len(uniprot_result["genes"]) == 0:
+                        logger.error("\t" + sub_details.protein_accession + " has no genes section")
                     elif len(uniprot_result["genes"]) > 0:
                         sub_details.gene_name = uniprot_result["genes"][0]["geneName"]["value"]
-                        print(uniprot_result["primaryAccession"] + " gene name   : " + sub_details.gene_name)
+                        logger.error(uniprot_result["primaryAccession"] + " gene name   : " + sub_details.gene_name)
                     else:
                         raise Exception("Error in matching genes section of uniprot response")
             except Exception as error:
-                logger.error(error)
-                print(sub_details.protein_accession + " has an error when trying to match uniprot response:" + error)
+                logger.error(str(error))
+                logger.error(sub_details.protein_accession + " has an error when trying to match uniprot response:" + str(error))
 
     print("Protein and gene data from Uniprot API fetched successfully!")
 

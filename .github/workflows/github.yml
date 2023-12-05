@@ -57,12 +57,14 @@ jobs:
       DB_USER : ${{ vars.DB_USER }}
       DB_PASSWORD : ${{ secrets.DB_PASSWORD }}
       DB_PORT : ${{ vars.DB_PORT }}
+      API_KEY : ${{ secrets.API_KEY }}
       PORT: ${{ vars.PORT }}
       node_port: ${{ vars.NODE_PORT }}
       app_name: ${{ vars.APP_NAME }}
       k8s_replicas: ${{ vars.K8S_REPLICAS }}
       K8S_NAMESPACE: ${{ vars.K8S_NAMESPACE }}
       DATABASE_INI: ${{ vars.DATABASE_INI }}
+      LOGGING_INI: ${{ vars.LOGGING_INI }}
       IMAGE: ghcr.io/${{ vars.API_GITHUB_REPOSITORY }}:latest
 
     steps:
