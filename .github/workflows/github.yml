@@ -63,6 +63,7 @@ jobs:
       k8s_replicas: ${{ vars.K8S_REPLICAS }}
       K8S_NAMESPACE: ${{ vars.K8S_NAMESPACE }}
       DATABASE_INI: ${{ vars.DATABASE_INI }}
+      LOGGING_INI: ${{ vars.LOGGING_INI }}
       IMAGE: ghcr.io/${{ vars.API_GITHUB_REPOSITORY }}:latest
 
     steps:
