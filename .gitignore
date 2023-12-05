@@ -10,7 +10,7 @@ dbs/tmp/*
 !dbs/tmp/.gitkeep
 dbs/saved/*
 !dbs/saved/.gitkeep
-log/*
+logs/*
 logs/xi_mzidentml_converter.log
 !logs/.gitkeep
 .DS_Store

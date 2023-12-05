@@ -5,13 +5,12 @@ import logging
 
 from app.routes.shared import get_db_connection, get_most_recent_upload_ids
 
-pdb_dev_router = APIRouter()
+pdbdev_router = APIRouter()
 
 app_logger = logging.getLogger(__name__)
 
-
-@pdb_dev_router.get('/projects/{project_id}/sequences')
-def sequences(project_id):
+@pdbdev_router.get('/projects/{project_id}/sequences', tags=["PDB-Dev"])
+async def sequences(project_id):
     """
     Get all sequences belonging to a project.
 
@@ -26,7 +25,7 @@ def sequences(project_id):
     mzid_rows = []
     try:
         # connect to the PostgreSQL server and create a cursor
-        conn = get_db_connection()
+        conn = await get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
         sql = """SELECT dbseq.id, u.identification_file_name, dbseq.sequence
@@ -53,8 +52,8 @@ def sequences(project_id):
         return {"data": mzid_rows}
 
 
-@pdb_dev_router.get('/projects/{project_id}/residue-pairs/psm-level/{passing_threshold}')
-def get_psm_level_residue_pairs(project_id, passing_threshold):
+@pdbdev_router.get('/projects/{project_id}/residue-pairs/psm-level/{passing_threshold}', tags=["PDB-Dev"])
+async def get_psm_level_residue_pairs(project_id, passing_threshold):
     """
     Get all residue pairs (based on PSM level data) belonging to a project.
 
@@ -77,7 +76,7 @@ def get_psm_level_residue_pairs(project_id, passing_threshold):
     data = {}
     try:
         # connect to the PostgreSQL server and create a cursor
-        conn = get_db_connection()
+        conn = await get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
         sql = """SELECT si.id, u.identification_file_name as file, si.pass_threshold as pass,
@@ -112,22 +111,22 @@ where u.id = ANY (%s) and mp1.link_site1 > 0 and mp2.link_site1 > 0 AND pe1.is_d
             print('Database connection closed.')
         return data
 
+#
+# @pdb_dev_router.get('/projects/{project_id}/residue-pairs/reported')
+# def get_reported_residue_pairs(project_id):
+#     """
+#     Get all residue-pairs reported for a project
+#     from the ProteinDetectionList element(s).
+#
+#     :param project_id: identifier of a project,
+#         for ProteomeXchange projects this is the PXD****** accession
+#     :return:
+#     """
+#     return "Not Implemented", 501
 
-@pdb_dev_router.get('/projects/{project_id}/residue-pairs/reported')
-def get_reported_residue_pairs(project_id):
-    """
-    Get all residue-pairs reported for a project
-    from the ProteinDetectionList element(s).
 
-    :param project_id: identifier of a project,
-        for ProteomeXchange projects this is the PXD****** accession
-    :return:
-    """
-    return "Not Implemented", 501
-
-
-@pdb_dev_router.get('/projects/{project_id}/reported-thresholds')
-def get_reported_thresholds(project_id):
+@pdbdev_router.get('/projects/{project_id}/reported-thresholds', tags=["PDB-Dev"])
+async def get_reported_thresholds(project_id):
     """
     Get all reported thresholds for a project.
 

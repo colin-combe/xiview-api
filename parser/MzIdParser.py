@@ -52,7 +52,7 @@ class MzIdParser:
 
         self.contains_crosslinks = False
 
-        self.warnings = []
+        self.warnings = set()
         self.write_new_upload()  # overridden (empty function) in xiSPEC subclass
 
         # init self.mzid_reader (pyteomics mzid reader)
@@ -206,10 +206,7 @@ class MzIdParser:
                                              "and minus value are not yet supported.")
 
             except KeyError:
-                self.warnings.append({
-                    "type": "mzidParseError",
-                    "message": "could not parse ms2tolerance. Falling back to default: 10 ppm.",
-                })
+                self.warnings.add("could not parse ms2tolerance. Falling back to default: 10 ppm.")
                 frag_tol_value = '10'
                 frag_tol_unit = 'ppm'
 
@@ -217,7 +214,7 @@ class MzIdParser:
                 analysis_software = self.mzid_reader.get_by_id(sid_protocol['analysisSoftware_ref'])
             except KeyError:
                 analysis_software = None
-                self.warnings.append(
+                self.warnings.add(
                     f'No analysis software given for SpectrumIdentificationProtocol {sid_protocol}.')
 
             # Additional search parameters
@@ -285,12 +282,17 @@ class MzIdParser:
                 if crosslinker_id:  # it's a string but don't want to convert null to word 'None'
                     crosslinker_id = str(crosslinker_id)
 
+                mass_delta = mod['massDelta']
+                if mass_delta == float('inf') or mass_delta == float('-inf'):
+                    mass_delta = None
+                    self.warnings.add("SearchModification with massDelta of +/- infinity found.")
+
                 search_modifications.append({
                     'id': mod_index,
                     'upload_id': self.writer.upload_id,
                     'protocol_id': sid_protocol['id'],
                     'mod_name': mod_name,
-                    'mass': mod['massDelta'],
+                    'mass': mass_delta,
                     'residues': ''.join([r for r in mod['residues'] if r != ' ']),
                     'specificity_rules': spec_rule_accessions,
                     'fixed_mod': mod['fixedMod'],
@@ -766,7 +768,7 @@ class MzIdParser:
 
     def write_other_info(self):
         """Write remaining information into Upload table."""
-        self.writer.write_other_info(self.contains_crosslinks, self.warnings)
+        self.writer.write_other_info(self.contains_crosslinks, list(self.warnings))
 
     def get_cv_params(self, element, super_cls_accession=None):
         """
