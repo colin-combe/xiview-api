@@ -29,6 +29,12 @@ spec:
             items:
               - key: database.ini
                 path: database.ini
+        - name: application-logging-config
+          configMap:
+            name: $LOGGING_INI
+            items:
+              - key: logging.ini
+                path: logging.ini
         - name: cache-volume
           emptyDir:
               sizeLimit: 100Gi
@@ -52,6 +58,10 @@ spec:
             - name: application-db-config
               mountPath: /home/appuser/database.ini
               subPath: database.ini
+              readOnly: true
+            - name: application-logging-config
+              mountPath: /home/appuser/logging.ini
+              subPath: logging.ini
               readOnly: true
             - name: cache-volume
               mountPath: /home/appuser/mzId_convertor_temp
