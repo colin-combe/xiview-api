@@ -42,7 +42,7 @@ def get_peaklist(id, sd_ref, upload_id):
     data = {}
     error = None
     try:
-        conn = get_db_connection()
+        conn = await get_db_connection()
         cur = conn.cursor()
         query = "SELECT intensity, mz FROM spectrum WHERE id = %s AND spectra_data_ref = %s AND upload_id = %s"
         cur.execute(query, [id, sd_ref, upload_id])
@@ -68,7 +68,7 @@ async def get_data_object(ids, pxid):
     data = {}
     error = None
     try:
-        conn = get_db_connection()
+        conn = await get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         data["project"] = await get_pride_api_info(cur, pxid)
         data["meta"] = await get_results_metadata(cur, ids)

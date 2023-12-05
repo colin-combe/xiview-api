@@ -25,7 +25,7 @@ async def sequences(project_id):
     mzid_rows = []
     try:
         # connect to the PostgreSQL server and create a cursor
-        conn = get_db_connection()
+        conn = await get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
         sql = """SELECT dbseq.id, u.identification_file_name, dbseq.sequence
@@ -76,7 +76,7 @@ async def get_psm_level_residue_pairs(project_id, passing_threshold):
     data = {}
     try:
         # connect to the PostgreSQL server and create a cursor
-        conn = get_db_connection()
+        conn = await get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
         sql = """SELECT si.id, u.identification_file_name as file, si.pass_threshold as pass,
