@@ -73,6 +73,292 @@ async def parse(px_accession: str, temp_dir: str | None = None, dont_delete: boo
     convert_pxd_accession_from_pride(px_accession, temp_dir, dont_delete)
 
 
+@pride_router.post("/update-protein-metadata/{project_id}", tags=["Admin"])
+async def update_metadata_by_project(project_id: str, session: Session = Depends(get_session),
+                                     api_key: str = Security(get_api_key)):
+    # Get total number of identifications (not spectra) passing Threshold including decoy identification
+    sql_number_of_identifications = text("""
+                        SELECT count(*)
+                        FROM spectrumidentification
+                        WHERE upload_id IN (
+                            SELECT u.id
+                            FROM upload u
+                            WHERE u.upload_time = (
+                                SELECT max(upload_time)
+                                FROM upload
+                                WHERE project_id = u.project_id AND identification_file_name = u.identification_file_name
+                            )
+                            AND u.project_id = :projectaccession
+                        )
+                        AND pass_threshold = True
+                    """)
+
+    # Get Total number of peptides identified passing Threshold including decoy identification(including non-crosslink)
+    sql_number_of_peptides = text("""
+                                SELECT COUNT(DISTINCT pep_id)
+                                FROM (
+                                    SELECT pep1_id AS pep_id
+                                    FROM spectrumidentification si
+                                    WHERE si.upload_id IN (
+                                            SELECT u.id
+                                            FROM upload u
+                                            where u.upload_time =
+                                                (select max(upload_time) from upload
+                                                where project_id = u.project_id
+                                                and identification_file_name = u.identification_file_name )
+                                                and u.project_id = :projectaccession
+                                    ) AND si.pass_threshold = TRUE
+
+                                    UNION
+
+                                    SELECT pep2_id AS pep_id
+                                    FROM spectrumidentification si
+                                    WHERE si.upload_id IN (
+                                            SELECT u.id
+                                            FROM upload u
+                                            where u.upload_time =
+                                                (select max(upload_time) from upload
+                                                where project_id = u.project_id
+                                                and identification_file_name = u.identification_file_name )
+                                                and u.project_id = :projectaccession
+                                    ) AND si.pass_threshold = TRUE
+                                ) AS result;    
+            """)
+
+    # Total number of crosslinked proteins identified passing Threshold excluding decoy identification
+    sql_number_of_proteins = text("""
+                            SELECT COUNT(*) 
+                            FROM (
+                                SELECT DISTINCT dbs.accession 
+                                FROM (
+                                    SELECT pe1.dbsequence_ref AS protein_id
+                                    FROM spectrumidentification si
+                                    INNER JOIN modifiedpeptide mp1 ON si.pep1_id = mp1.id AND si.upload_id = mp1.upload_id
+                                    INNER JOIN peptideevidence pe1 ON mp1.id = pe1.peptide_ref AND mp1.upload_id = pe1.upload_id
+                                    INNER JOIN modifiedpeptide mp2 ON si.pep2_id = mp2.id AND si.upload_id = mp2.upload_id
+                                    INNER JOIN peptideevidence pe2 ON mp2.id = pe2.peptide_ref AND mp2.upload_id = pe2.upload_id
+                                    INNER JOIN upload u ON u.id = si.upload_id
+                                    WHERE u.id IN (
+                                        SELECT u.id
+                                        FROM upload u
+                                        WHERE u.upload_time = (
+                                            SELECT MAX(upload_time)
+                                            FROM upload
+                                            WHERE project_id = u.project_id
+                                            AND identification_file_name = u.identification_file_name
+                                        ) AND u.project_id = :projectaccession
+                                    ) AND mp1.link_site1 > 0 AND mp2.link_site1 > 0 AND pe1.is_decoy = FALSE AND pe2.is_decoy = FALSE
+                                    AND si.pass_threshold = TRUE
+
+                                    UNION
+
+                                    SELECT pe2.dbsequence_ref AS protein_id
+                                    FROM spectrumidentification si
+                                    INNER JOIN modifiedpeptide mp1 ON si.pep1_id = mp1.id AND si.upload_id = mp1.upload_id
+                                    INNER JOIN peptideevidence pe1 ON mp1.id = pe1.peptide_ref AND mp1.upload_id = pe1.upload_id
+                                    INNER JOIN modifiedpeptide mp2 ON si.pep2_id = mp2.id AND si.upload_id = mp2.upload_id
+                                    INNER JOIN peptideevidence pe2 ON mp2.id = pe2.peptide_ref AND mp2.upload_id = pe2.upload_id
+                                    INNER JOIN upload u ON u.id = si.upload_id
+                                    WHERE u.id IN (
+                                        SELECT u.id
+                                        FROM upload u
+                                        WHERE u.upload_time = (
+                                            SELECT MAX(upload_time)
+                                            FROM upload
+                                            WHERE project_id = u.project_id
+                                            AND identification_file_name = u.identification_file_name
+                                        ) AND u.project_id = :projectaccession
+                                    ) AND mp1.link_site1 > 0 AND mp2.link_site1 > 0 AND pe1.is_decoy = FALSE AND pe2.is_decoy = FALSE
+                                    AND si.pass_threshold = TRUE
+                                ) AS protein_id 
+                                INNER JOIN dbsequence AS dbs ON protein_id = id
+                            ) AS accessions;
+
+            """)
+
+    # total number of peptides(crosslink and non crosslink) per protein
+    sql_peptides_per_protein = text("""
+        WITH result AS (
+        SELECT
+            pe1.dbsequence_ref AS dbref1,
+            pe1.peptide_ref AS pepref1,
+            pe2.dbsequence_ref AS dbref2,
+            pe2.peptide_ref AS pepref2
+        FROM
+            spectrumidentification si
+            INNER JOIN modifiedpeptide mp1 ON si.pep1_id = mp1.id AND si.upload_id = mp1.upload_id
+            INNER JOIN peptideevidence pe1 ON mp1.id = pe1.peptide_ref AND mp1.upload_id = pe1.upload_id
+            INNER JOIN modifiedpeptide mp2 ON si.pep2_id = mp2.id AND si.upload_id = mp2.upload_id
+            INNER JOIN peptideevidence pe2 ON mp2.id = pe2.peptide_ref AND mp2.upload_id = pe2.upload_id
+            INNER JOIN upload u ON u.id = si.upload_id
+        WHERE
+            u.id IN (
+                SELECT u.id
+                FROM upload u
+                WHERE u.upload_time = (
+                    SELECT MAX(upload_time)
+                    FROM upload
+                    WHERE project_id = u.project_id
+                    AND identification_file_name = u.identification_file_name
+                ) AND u.project_id = :projectaccession
+            )
+            AND pe1.is_decoy = FALSE
+            AND pe2.is_decoy = FALSE
+            AND si.pass_threshold = TRUE
+    )
+    SELECT
+        dbref,
+        COUNT(pepref) AS peptide_count
+    FROM (
+        SELECT dbref1 AS dbref, pepref1 AS pepref FROM result
+        UNION
+        SELECT dbref2 AS dbref, pepref2 AS pepref FROM result
+    ) AS inner_result
+    GROUP BY dbref;
+
+        """)
+
+    # Proteins and crosslink peptide counts
+    sql_crosslinks_per_protein = text("""
+     WITH result AS (
+        SELECT
+            pe1.dbsequence_ref AS dbref1,
+            pe1.peptide_ref AS pepref1,
+            pe2.dbsequence_ref AS dbref2,
+            pe2.peptide_ref AS pepref2
+        FROM
+            spectrumidentification si
+            INNER JOIN modifiedpeptide mp1 ON si.pep1_id = mp1.id AND si.upload_id = mp1.upload_id
+            INNER JOIN peptideevidence pe1 ON mp1.id = pe1.peptide_ref AND mp1.upload_id = pe1.upload_id
+            INNER JOIN modifiedpeptide mp2 ON si.pep2_id = mp2.id AND si.upload_id = mp2.upload_id
+            INNER JOIN peptideevidence pe2 ON mp2.id = pe2.peptide_ref AND mp2.upload_id = pe2.upload_id
+            INNER JOIN upload u ON u.id = si.upload_id
+        WHERE
+            u.id IN (
+                SELECT u.id
+                FROM upload u
+                WHERE u.upload_time = (
+                    SELECT MAX(upload_time)
+                    FROM upload
+                    WHERE project_id = u.project_id
+                    AND identification_file_name = u.identification_file_name
+                ) AND u.project_id = :projectaccession
+            )
+            AND mp1.link_site1 > 0
+            AND mp2.link_site1 > 0
+            AND pe1.is_decoy = FALSE
+            AND pe2.is_decoy = FALSE
+            AND si.pass_threshold = TRUE
+    )
+    SELECT
+        dbref,
+        COUNT(pepref) AS peptide_count
+    FROM (
+        SELECT DISTINCT *
+        FROM (
+            SELECT dbref1 AS dbref, pepref1 AS pepref FROM result
+            UNION
+            SELECT dbref2 AS dbref, pepref2 AS pepref FROM result
+        ) AS inner_inner_result
+    ) AS inner_result
+    GROUP BY dbref;
+
+           """)
+
+    # Protein dbref to protein accession mapping
+    sql_db_sequence_accession_mapping = text("""
+        SELECT id, accession
+        FROM dbsequence
+        WHERE upload_id IN (
+            SELECT u.id
+            FROM upload u
+            WHERE u.upload_time = (
+                SELECT MAX(upload_time)
+                FROM upload
+                WHERE project_id = u.project_id
+                AND identification_file_name = u.identification_file_name
+            )
+            AND u.project_id = :projectaccession
+        );
+        """)
+
+    project_details = ProjectDetail()
+    sql_values = {"projectaccession": project_id}
+
+    # get project details from PRIDE API
+    # TODO: need to move URL to a configuration variable
+    px_url = 'https://www.ebi.ac.uk/pride/ws/archive/v2/projects/' + project_id
+    logger.debug('GET request to PRIDE API: ' + px_url)
+    pride_response = requests.get(px_url)
+    r = requests.get(px_url)
+    if r.status_code == 200:
+        logger.info('PRIDE API returned status code 200')
+        pride_json = pride_response.json()
+        if pride_json is not None:
+            if len(pride_json['references']) > 0:
+                project_details.pubmed_id = pride_json['references'][0]['pubmedId']
+            if len(pride_json['title']) > 0:
+                project_details.title = pride_json['title']
+            if len(pride_json['projectDescription']) > 0:
+                project_details.description = pride_json['projectDescription']
+            if len(pride_json['organisms']) > 0:
+                project_details.organism = pride_json['organisms'][0]['name']
+
+    project_details.project_id = project_id
+
+    project_details.number_of_spectra = await get_number_of_counts(sql_number_of_identifications, sql_values,
+                                                                   session)
+    project_details.number_of_peptides = await get_number_of_counts(sql_number_of_peptides, sql_values, session)
+    project_details.number_of_proteins = await get_number_of_counts(sql_number_of_proteins, sql_values, session)
+
+    peptide_counts_by_protein = await get_counts_table(sql_peptides_per_protein, sql_values, session)
+    peptide_crosslinks_by_protein = await get_counts_table(sql_crosslinks_per_protein, sql_values, session)
+    db_sequence_accession_mapping = await get_counts_table(sql_db_sequence_accession_mapping, sql_values,
+                                                           session)
+
+    list_of_project_sub_details = []
+
+    # fill number of peptides
+    for protein in peptide_counts_by_protein:
+        project_sub_detail = ProjectSubDetail()
+        project_sub_detail.project_detail = project_details
+        project_sub_detail.protein_db_ref = protein['key']
+        project_sub_detail.number_of_peptides = protein['value']
+        list_of_project_sub_details.append(project_sub_detail)
+
+    # fill number of crosslink
+    for crosslinks in peptide_crosslinks_by_protein:
+        for sub_details in list_of_project_sub_details:
+            if sub_details.protein_db_ref == crosslinks['key']:
+                sub_details.number_of_cross_links = crosslinks['value']
+
+    # fill protein accessions
+    for sub_details in list_of_project_sub_details:
+        for dbseq in db_sequence_accession_mapping:
+            if sub_details.protein_db_ref == dbseq['key']:
+                sub_details.protein_accession = dbseq['value']
+
+    await update_protein_metadata(list_of_project_sub_details)
+
+    # Define the conditions for updating
+    conditions = {'project_id': project_id}
+
+    # Query for an existing record based on conditions
+    existing_record = session.query(ProjectDetail).filter_by(**conditions).first()
+
+    # If the record exists, update its attributes
+    if existing_record:
+        # Delete ProjectDetail and associated ProjectSubDetail records based on project_detail_id
+        session.query(ProjectSubDetail).filter_by(project_detail_id=existing_record.id).delete()
+        session.query(ProjectDetail).filter_by(**conditions).delete()
+        session.commit()
+
+    # add new record
+    session.add(project_details)
+    session.commit()
+    return 0
+
+
 @pride_router.post("/update-metadata", tags=["Admin"])
 async def update_metadata(session: Session = Depends(get_session), api_key: str = Security(get_api_key)):
     """
@@ -83,295 +369,15 @@ async def update_metadata(session: Session = Depends(get_session), api_key: str 
     :return: None
     """
 
-    # Get project accession List
     sql_project_accession_list = text("""
     SELECT DISTINCT u.project_id FROM upload u
     """)
 
-    # Get total number of identifications (not spectra) passing Threshold including decoy identification
-    sql_number_of_identifications = text("""
-                    SELECT count(*)
-                    FROM spectrumidentification
-                    WHERE upload_id IN (
-                        SELECT u.id
-                        FROM upload u
-                        WHERE u.upload_time = (
-                            SELECT max(upload_time)
-                            FROM upload
-                            WHERE project_id = u.project_id AND identification_file_name = u.identification_file_name
-                        )
-                        AND u.project_id = :projectaccession
-                    )
-                    AND pass_threshold = True
-                """)
-
-    # Get Total number of peptides identified passing Threshold including decoy identification(including non-crosslink)
-    sql_number_of_peptides = text("""
-                            SELECT COUNT(DISTINCT pep_id)
-                            FROM (
-                                SELECT pep1_id AS pep_id
-                                FROM spectrumidentification si
-                                WHERE si.upload_id IN (
-                                        SELECT u.id
-                                        FROM upload u
-                                        where u.upload_time =
-                                            (select max(upload_time) from upload
-                                            where project_id = u.project_id
-                                            and identification_file_name = u.identification_file_name )
-                                            and u.project_id = :projectaccession
-                                ) AND si.pass_threshold = TRUE
-
-                                UNION
-
-                                SELECT pep2_id AS pep_id
-                                FROM spectrumidentification si
-                                WHERE si.upload_id IN (
-                                        SELECT u.id
-                                        FROM upload u
-                                        where u.upload_time =
-                                            (select max(upload_time) from upload
-                                            where project_id = u.project_id
-                                            and identification_file_name = u.identification_file_name )
-                                            and u.project_id = :projectaccession
-                                ) AND si.pass_threshold = TRUE
-                            ) AS result;    
-        """)
-
-    # Total number of crosslinked proteins identified passing Threshold excluding decoy identification
-    sql_number_of_proteins = text("""
-                        SELECT COUNT(*) 
-                        FROM (
-                            SELECT DISTINCT dbs.accession 
-                            FROM (
-                                SELECT pe1.dbsequence_ref AS protein_id
-                                FROM spectrumidentification si
-                                INNER JOIN modifiedpeptide mp1 ON si.pep1_id = mp1.id AND si.upload_id = mp1.upload_id
-                                INNER JOIN peptideevidence pe1 ON mp1.id = pe1.peptide_ref AND mp1.upload_id = pe1.upload_id
-                                INNER JOIN modifiedpeptide mp2 ON si.pep2_id = mp2.id AND si.upload_id = mp2.upload_id
-                                INNER JOIN peptideevidence pe2 ON mp2.id = pe2.peptide_ref AND mp2.upload_id = pe2.upload_id
-                                INNER JOIN upload u ON u.id = si.upload_id
-                                WHERE u.id IN (
-                                    SELECT u.id
-                                    FROM upload u
-                                    WHERE u.upload_time = (
-                                        SELECT MAX(upload_time)
-                                        FROM upload
-                                        WHERE project_id = u.project_id
-                                        AND identification_file_name = u.identification_file_name
-                                    ) AND u.project_id = :projectaccession
-                                ) AND mp1.link_site1 > 0 AND mp2.link_site1 > 0 AND pe1.is_decoy = FALSE AND pe2.is_decoy = FALSE
-                                AND si.pass_threshold = TRUE
-
-                                UNION
-
-                                SELECT pe2.dbsequence_ref AS protein_id
-                                FROM spectrumidentification si
-                                INNER JOIN modifiedpeptide mp1 ON si.pep1_id = mp1.id AND si.upload_id = mp1.upload_id
-                                INNER JOIN peptideevidence pe1 ON mp1.id = pe1.peptide_ref AND mp1.upload_id = pe1.upload_id
-                                INNER JOIN modifiedpeptide mp2 ON si.pep2_id = mp2.id AND si.upload_id = mp2.upload_id
-                                INNER JOIN peptideevidence pe2 ON mp2.id = pe2.peptide_ref AND mp2.upload_id = pe2.upload_id
-                                INNER JOIN upload u ON u.id = si.upload_id
-                                WHERE u.id IN (
-                                    SELECT u.id
-                                    FROM upload u
-                                    WHERE u.upload_time = (
-                                        SELECT MAX(upload_time)
-                                        FROM upload
-                                        WHERE project_id = u.project_id
-                                        AND identification_file_name = u.identification_file_name
-                                    ) AND u.project_id = :projectaccession
-                                ) AND mp1.link_site1 > 0 AND mp2.link_site1 > 0 AND pe1.is_decoy = FALSE AND pe2.is_decoy = FALSE
-                                AND si.pass_threshold = TRUE
-                            ) AS protein_id 
-                            INNER JOIN dbsequence AS dbs ON protein_id = id
-                        ) AS accessions;
-
-        """)
-
-    # total number of peptides(crosslink and non crosslink) per protein
-    sql_peptides_per_protein = text("""
-    WITH result AS (
-    SELECT
-        pe1.dbsequence_ref AS dbref1,
-        pe1.peptide_ref AS pepref1,
-        pe2.dbsequence_ref AS dbref2,
-        pe2.peptide_ref AS pepref2
-    FROM
-        spectrumidentification si
-        INNER JOIN modifiedpeptide mp1 ON si.pep1_id = mp1.id AND si.upload_id = mp1.upload_id
-        INNER JOIN peptideevidence pe1 ON mp1.id = pe1.peptide_ref AND mp1.upload_id = pe1.upload_id
-        INNER JOIN modifiedpeptide mp2 ON si.pep2_id = mp2.id AND si.upload_id = mp2.upload_id
-        INNER JOIN peptideevidence pe2 ON mp2.id = pe2.peptide_ref AND mp2.upload_id = pe2.upload_id
-        INNER JOIN upload u ON u.id = si.upload_id
-    WHERE
-        u.id IN (
-            SELECT u.id
-            FROM upload u
-            WHERE u.upload_time = (
-                SELECT MAX(upload_time)
-                FROM upload
-                WHERE project_id = u.project_id
-                AND identification_file_name = u.identification_file_name
-            ) AND u.project_id = :projectaccession
-        )
-        AND pe1.is_decoy = FALSE
-        AND pe2.is_decoy = FALSE
-        AND si.pass_threshold = TRUE
-)
-SELECT
-    dbref,
-    COUNT(pepref) AS peptide_count
-FROM (
-    SELECT dbref1 AS dbref, pepref1 AS pepref FROM result
-    UNION
-    SELECT dbref2 AS dbref, pepref2 AS pepref FROM result
-) AS inner_result
-GROUP BY dbref;
-
-    """)
-
-    # Proteins and crosslink peptide counts
-    sql_crosslinks_per_protein = text("""
- WITH result AS (
-    SELECT
-        pe1.dbsequence_ref AS dbref1,
-        pe1.peptide_ref AS pepref1,
-        pe2.dbsequence_ref AS dbref2,
-        pe2.peptide_ref AS pepref2
-    FROM
-        spectrumidentification si
-        INNER JOIN modifiedpeptide mp1 ON si.pep1_id = mp1.id AND si.upload_id = mp1.upload_id
-        INNER JOIN peptideevidence pe1 ON mp1.id = pe1.peptide_ref AND mp1.upload_id = pe1.upload_id
-        INNER JOIN modifiedpeptide mp2 ON si.pep2_id = mp2.id AND si.upload_id = mp2.upload_id
-        INNER JOIN peptideevidence pe2 ON mp2.id = pe2.peptide_ref AND mp2.upload_id = pe2.upload_id
-        INNER JOIN upload u ON u.id = si.upload_id
-    WHERE
-        u.id IN (
-            SELECT u.id
-            FROM upload u
-            WHERE u.upload_time = (
-                SELECT MAX(upload_time)
-                FROM upload
-                WHERE project_id = u.project_id
-                AND identification_file_name = u.identification_file_name
-            ) AND u.project_id = :projectaccession
-        )
-        AND mp1.link_site1 > 0
-        AND mp2.link_site1 > 0
-        AND pe1.is_decoy = FALSE
-        AND pe2.is_decoy = FALSE
-        AND si.pass_threshold = TRUE
-)
-SELECT
-    dbref,
-    COUNT(pepref) AS peptide_count
-FROM (
-    SELECT DISTINCT *
-    FROM (
-        SELECT dbref1 AS dbref, pepref1 AS pepref FROM result
-        UNION
-        SELECT dbref2 AS dbref, pepref2 AS pepref FROM result
-    ) AS inner_inner_result
-) AS inner_result
-GROUP BY dbref;
-
-       """)
-
-    # Protein dbref to protein accession mapping
-    sql_db_sequence_accession_mapping = text("""
-    SELECT id, accession
-    FROM dbsequence
-    WHERE upload_id IN (
-        SELECT u.id
-        FROM upload u
-        WHERE u.upload_time = (
-            SELECT MAX(upload_time)
-            FROM upload
-            WHERE project_id = u.project_id
-            AND identification_file_name = u.identification_file_name
-        )
-        AND u.project_id = :projectaccession
-    );
-    """)
-
     try:
         sql_values = {}
-        list_of_accessions = await get_accessions(sql_project_accession_list, sql_values, session)
-        for accession in list_of_accessions:
-            project_details = ProjectDetail()
-            sql_values = {"projectaccession": accession}
-
-            # get project details from PRIDE API
-            # TODO: need to move URL to a configuration variable
-            px_url = 'https://www.ebi.ac.uk/pride/ws/archive/v2/projects/' + accession
-            logger.debug('GET request to PRIDE API: ' + px_url)
-            pride_response = requests.get(px_url)
-            r = requests.get(px_url)
-            if r.status_code == 200:
-                logger.info('PRIDE API returned status code 200')
-                pride_json = pride_response.json()
-                if pride_json is not None:
-                    if len(pride_json['references']) > 0:
-                        project_details.pubmed_id = pride_json['references'][0]['pubmedId']
-                    if len(pride_json['title']) > 0:
-                        project_details.title = pride_json['title']
-                    if len(pride_json['projectDescription']) > 0:
-                        project_details.description = pride_json['projectDescription']
-                    if len(pride_json['organisms']) > 0:
-                        project_details.organism = pride_json['organisms'][0]['name']
-
-            project_details.project_id = accession
-
-            project_details.number_of_spectra = await get_number_of_counts(sql_number_of_identifications, sql_values,
-                                                                           session)
-            project_details.number_of_peptides = await get_number_of_counts(sql_number_of_peptides, sql_values, session)
-            project_details.number_of_proteins = await get_number_of_counts(sql_number_of_proteins, sql_values, session)
-
-            peptide_counts_by_protein = await get_counts_table(sql_peptides_per_protein, sql_values, session)
-            peptide_crosslinks_by_protein = await get_counts_table(sql_crosslinks_per_protein, sql_values, session)
-            db_sequence_accession_mapping = await get_counts_table(sql_db_sequence_accession_mapping, sql_values,
-                                                                   session)
-
-            list_of_project_sub_details = []
-
-            # fill number of peptides
-            for protein in peptide_counts_by_protein:
-                project_sub_detail = ProjectSubDetail()
-                project_sub_detail.project_detail = project_details
-                project_sub_detail.protein_db_ref = protein['key']
-                project_sub_detail.number_of_peptides = protein['value']
-                list_of_project_sub_details.append(project_sub_detail)
-
-            # fill number of crosslink
-            for crosslinks in peptide_crosslinks_by_protein:
-                for sub_details in list_of_project_sub_details:
-                    if sub_details.protein_db_ref == crosslinks['key']:
-                        sub_details.number_of_cross_links = crosslinks['value']
-
-            # fill protein accessions
-            for sub_details in list_of_project_sub_details:
-                for dbseq in db_sequence_accession_mapping:
-                    if sub_details.protein_db_ref == dbseq['key']:
-                        sub_details.protein_accession = dbseq['value']
-
-            await update_uniprot_data(list_of_project_sub_details)
-
-            # Define the conditions for updating
-            conditions = {'project_id': accession}
-
-            # Query for an existing record based on conditions
-            existing_record = session.query(ProjectDetail).filter_by(**conditions).first()
-
-            # If the record exists, update its attributes
-            if existing_record:
-                # Delete ProjectDetail and associated ProjectSubDetail records based on project_detail_id
-                session.query(ProjectSubDetail).filter_by(project_detail_id=existing_record.id).delete()
-                session.query(ProjectDetail).filter_by(**conditions).delete()
-                session.commit()
-
-            # add new record
-            session.add(project_details)
-            session.commit()
+        list_of_project_id = await get_accessions(sql_project_accession_list, sql_values, session)
+        for project_id in list_of_project_id:
+            await update_metadata_by_project(project_id, session, api_key)
         session.close()
     except Exception as error:
         logger.error(error)
@@ -471,8 +477,7 @@ def project_detail_view(project_id: str, session: Session = Depends(get_session)
 
 @pride_router.get("/projects/{project_id}/proteins", tags=["Projects"])
 def project_detail_view(project_id: str, session: Session = Depends(get_session), page: int = 1, page_size: int = 10) -> \
-list[
-    ProjectSubDetail]:
+        list[ProjectSubDetail]:
     """
     Retrieve protein detail by px_accession.
     """
@@ -616,11 +621,27 @@ ORDER BY
     return values
 
 
-async def update_uniprot_data(list_of_project_sub_details):
+async def update_protein_metadata(list_of_project_sub_details):
+    # 1. metadata from Uniprot
+    uniprot_records = await find_uniprot_data(list_of_project_sub_details)
+    list_of_project_sub_details = await extract_uniprot_data(list_of_project_sub_details, uniprot_records)
+
+    # 2. metadata from PDBe
+    base_in_URL = "https://www.ebi.ac.uk/pdbe/api/mappings/best_structures/"
+    list_of_project_sub_details = await find_data_availability(list_of_project_sub_details, base_in_URL, "PDBe")
+
+    # 3. metadata from AlphaFold
+    base_in_URL = "https://alphafold.ebi.ac.uk/api/prediction/"
+    list_of_project_sub_details = await find_data_availability(list_of_project_sub_details, base_in_URL, "AlphaFold")
+    logger.info("Protein and gene data from Uniprot API fetched successfully!")
+    return list_of_project_sub_details
+
+
+async def find_uniprot_data(list_of_project_sub_details):
     i = 1
     batch_size = 10
     base_in_URL = "https://rest.uniprot.org/uniprotkb/search?query=accession:"
-    fields_in_URL = "&fields=protein_name,gene_primary"
+    fields_in_URL = "&fields=protein_name,gene_primary&size=50"
     seperator = "%20OR%20"
     accessions = []
     uniprot_records = []
@@ -628,12 +649,14 @@ async def update_uniprot_data(list_of_project_sub_details):
         accessions.append(sub_details.protein_accession)
         # batch size or last one in the list
         if i % batch_size == 0 or i == len(list_of_project_sub_details):
+            complete_URL = ""
             try:
                 accessions_in_URL = seperator.join(accessions)
                 complete_URL = base_in_URL + accessions_in_URL + fields_in_URL
-                logging.debug("Calling Uniprot API: " + complete_URL)
+                logging.info("Calling Uniprot API: " + complete_URL)
                 uniprot_response = requests.get(complete_URL).json()
                 if uniprot_response is not None:
+                    logging.info("Number of results found for the query: " + str(len(uniprot_response["results"])))
                     for result in uniprot_response["results"]:
                         uniprot_records.append(result)
                 accessions = []
@@ -641,26 +664,46 @@ async def update_uniprot_data(list_of_project_sub_details):
                 logger.error(str(error))
                 logger.error(complete_URL + " failed to get data from Uniprot:" + str(error))
         i += 1
+    return uniprot_records
 
+
+async def extract_uniprot_data(list_of_project_sub_details, uniprot_records):
     for sub_details in list_of_project_sub_details:
         for uniprot_result in uniprot_records:
             try:
                 if sub_details.protein_accession == uniprot_result["primaryAccession"]:
                     sub_details.protein_name = uniprot_result["proteinDescription"]["recommendedName"]["fullName"][
                         "value"]
-                    logger.info(uniprot_result["primaryAccession"] + " protein name: " + sub_details.protein_name)
+                    logger.debug(uniprot_result["primaryAccession"] + " protein name: " + sub_details.protein_name)
                     if uniprot_result["genes"] is None or len(uniprot_result["genes"]) == 0:
                         logger.error("\t" + sub_details.protein_accession + " has no genes section")
                     elif len(uniprot_result["genes"]) > 0:
                         sub_details.gene_name = uniprot_result["genes"][0]["geneName"]["value"]
-                        logger.error(uniprot_result["primaryAccession"] + " gene name   : " + sub_details.gene_name)
+                        logger.debug(uniprot_result["primaryAccession"] + " gene name   : " + sub_details.gene_name)
                     else:
                         raise Exception("Error in matching genes section of uniprot response")
             except Exception as error:
                 logger.error(str(error))
-                logger.error(sub_details.protein_accession + " has an error when trying to match uniprot response:" + str(error))
+                logger.error(
+                    sub_details.protein_accession + " has an error when trying to match uniprot response:" + str(error))
+    return list_of_project_sub_details
 
-    print("Protein and gene data from Uniprot API fetched successfully!")
+
+async def find_data_availability(list_of_project_sub_details, base_in_URL, resourse):
+    for sub_details in list_of_project_sub_details:
+        try:
+            accession_in_URL = sub_details.protein_accession
+            complete_URL = base_in_URL + accession_in_URL
+            logging.debug("Calling API: " + complete_URL)
+            response = requests.get(complete_URL).json()
+            if resourse == "PDBe":
+                sub_details.in_pdbe_kb = response is not None and len(response) > 0
+            elif resourse == "AlphaFold":
+                sub_details.in_alpha_fold_db = response is not None and len(response) > 0
+        except Exception as error:
+            logger.error(str(error))
+            logger.error(complete_URL + " failed to get data from Uniprot:" + str(error))
+    return list_of_project_sub_details
 
 
 async def get_number_of_counts(sql, sql_values, session):
