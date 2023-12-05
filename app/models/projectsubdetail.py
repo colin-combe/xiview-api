@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import ForeignKey, Text, Integer
+from sqlalchemy import ForeignKey, Text, Integer, Boolean
 from app.models.base import Base
 
 
@@ -13,7 +13,8 @@ class ProjectSubDetail(Base):
     protein_accession: Mapped[str] = mapped_column(Text, nullable=False)
     number_of_peptides: Mapped[int] = mapped_column(Integer, default=0, nullable=True)
     number_of_cross_links: Mapped[int] = mapped_column(Integer, default=0, nullable=True)
-    link_to_pdbe: Mapped[str] = mapped_column(Text, nullable=True)
+    in_pdbe_kb: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    in_alpha_fold_db: Mapped[bool] = mapped_column(Boolean, nullable=False)
     quote = False
 
     project_detail = relationship('ProjectDetail', back_populates='project_sub_details')
