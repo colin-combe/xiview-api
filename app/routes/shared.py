@@ -63,7 +63,7 @@ async def get_most_recent_upload_ids(pxid, file=None):
     return upload_ids
 
 
-def get_db_connection():
+async def get_db_connection():
     config = os.environ.get('DB_CONFIG', 'database.ini')
 
     # https://www.postgresqltutorial.com/postgresql-python/connect/
