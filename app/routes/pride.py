@@ -45,14 +45,31 @@ def get_api_key(key: str = Security(api_key_header)) -> str:
 
 
 @pride_router.get("/health", tags=["Admin"])
-def health():
+async def health(session: Session = Depends(get_session)):
     """
     A quick simple endpoint to test the API is working
     :return: Response with OK
     """
+
+    sql_projects_count = text("""
+                          SELECT
+                              COUNT(id) AS "Number of Projects"
+                          FROM
+                              projectdetails p;
+                      """)
+    try:
+        count = await get_projects_count(sql_projects_count, session)
+        if count[0] is not None:
+            db_status = "OK"
+        else:
+            db_status = "Failed"
+    except Exception as error:
+        logger.error(error)
+        db_status = "Failed"
     logger.info('Health check endpoint accessed')
     logger.debug('Health check endpoint accessed - debug')
-    return {'status': 'OK'}
+    return {'status': "OK",
+            'db_status': db_status}
 
 
 @pride_router.post("/parse", tags=["Admin"])
@@ -646,6 +663,7 @@ async def update_protein_metadata(list_of_project_sub_details):
 async def find_uniprot_data(list_of_project_sub_details):
     i = 1
     batch_size = 4
+    logging.info("Uniprot Batch size: " + str(batch_size))
     base_in_URL = "https://rest.uniprot.org/uniprotkb/search?query=accession:"
     fields_in_URL = "&fields=protein_name,gene_primary&size=50"
     seperator = "%20OR%20"
@@ -848,3 +866,23 @@ async def get_statistics_count(sql, session):
         session.close()
         logger.debug('Database session is closed.')
     return statistics_counts
+
+
+async def get_projects_count(sql, session):
+    """
+    Get project counts for health check
+    :param sql: SQL to get project accessions
+    :param session: database session
+    :return: count
+    """
+    try:
+        result = session.execute(sql)
+        # Fetch the values from the result
+        count = result.fetchone()
+    except Exception as error:
+        logger.error(error)
+    finally:
+        session.close()
+        logger.debug('Database session is closed.')
+    return count
+
