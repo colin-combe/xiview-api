@@ -38,7 +38,7 @@ spec:
         - name: cache-volume
           emptyDir:
               sizeLimit: 100Gi
-        - name: log-volume-converter
+        - name: xi-converter-logs-volume
           persistentVolumeClaim:
             claimName: xi-converter-logs-pvc
       containers:
@@ -65,7 +65,7 @@ spec:
               readOnly: true
             - name: cache-volume
               mountPath: /home/appuser/mzId_convertor_temp
-            - name: log-volume-converter
+            - name: xi-converter-logs-volume
               mountPath: /home/appuser/logs/$app_name
 
 ---
