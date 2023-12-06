@@ -5,7 +5,7 @@ from app.routes.pride import pride_router
 from app.routes.pdbdev import pdbdev_router
 from app.routes.xiview import xiview_data_router
 
-app = FastAPI(title="Xi-MzIdentML-Converter WS",
+app = FastAPI(title="xi-mzidentml-converter WS",
               description="This is an API to crosslinking archive",
               version="0.0.1",
               license_info={

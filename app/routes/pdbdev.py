@@ -52,7 +52,7 @@ async def sequences(project_id):
         return {"data": mzid_rows}
 
 
-@pdbdev_router.get('/projects/{project_id}/residue-pairs/psm-level/{passing_threshold}', tags=["PDB-Dev"])
+@pdbdev_router.get('/projects/{project_id}/residue-pairs/based-on-psm-level/{passing_threshold}', tags=["PDB-Dev"])
 async def get_psm_level_residue_pairs(project_id, passing_threshold):
     """
     Get all residue pairs (based on PSM level data) belonging to a project.
