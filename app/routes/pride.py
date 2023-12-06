@@ -678,16 +678,24 @@ async def extract_uniprot_data(list_of_project_sub_details, uniprot_records):
         for uniprot_result in uniprot_records:
             try:
                 if sub_details.protein_accession == uniprot_result["primaryAccession"]:
-                    sub_details.protein_name = uniprot_result["proteinDescription"]["recommendedName"]["fullName"][
-                        "value"]
-                    logger.debug(uniprot_result["primaryAccession"] + " protein name: " + sub_details.protein_name)
-                    if uniprot_result["genes"] is None or len(uniprot_result["genes"]) == 0:
-                        logger.error("\t" + sub_details.protein_accession + " has no genes section")
-                    elif len(uniprot_result["genes"]) > 0:
-                        sub_details.gene_name = uniprot_result["genes"][0]["geneName"]["value"]
-                        logger.debug(uniprot_result["primaryAccession"] + " gene name   : " + sub_details.gene_name)
+                    if not uniprot_result["entryType"] == "Inactive":
+                        if uniprot_result["proteinDescription"]["recommendedName"] is not None:
+                            sub_details.protein_name = \
+                                uniprot_result["proteinDescription"]["recommendedName"]["fullName"]["value"]
+                        elif uniprot_result["proteinDescription"]["submissionNames"] is not None \
+                                and len(uniprot_result["proteinDescription"]["submissionNames"]) > 0:
+                            sub_details.protein_name = \
+                                uniprot_result["proteinDescription"]["submissionNames"][0]["fullName"]["value"]
+                        logger.debug(uniprot_result["primaryAccession"] + " protein name: " + sub_details.protein_name)
+                        if uniprot_result["genes"] is None or len(uniprot_result["genes"]) == 0:
+                            logger.error("\t" + sub_details.protein_accession + " has no genes section")
+                        elif len(uniprot_result["genes"]) > 0:
+                            sub_details.gene_name = uniprot_result["genes"][0]["geneName"]["value"]
+                            logger.debug(uniprot_result["primaryAccession"] + " gene name   : " + sub_details.gene_name)
+                        else:
+                            raise Exception("Error in matching genes section of uniprot response")
                     else:
-                        raise Exception("Error in matching genes section of uniprot response")
+                        logger.warn(uniprot_result["primaryAccession"] + "is Inactive")
             except Exception as error:
                 logger.error(str(error))
                 logger.error(
