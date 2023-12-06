@@ -679,8 +679,13 @@ async def extract_uniprot_data(list_of_project_sub_details, uniprot_records):
             try:
                 if sub_details.protein_accession == uniprot_result["primaryAccession"]:
                     if not uniprot_result["entryType"] == "Inactive":
-                        sub_details.protein_name = uniprot_result["proteinDescription"]["recommendedName"]["fullName"][
-                            "value"]
+                        if uniprot_result["proteinDescription"]["recommendedName"] is not None:
+                            sub_details.protein_name = \
+                                uniprot_result["proteinDescription"]["recommendedName"]["fullName"]["value"]
+                        elif uniprot_result["proteinDescription"]["submissionNames"] is not None \
+                                and len(uniprot_result["proteinDescription"]["submissionNames"]) > 0:
+                            sub_details.protein_name = \
+                                uniprot_result["proteinDescription"]["submissionNames"][0]["fullName"]["value"]
                         logger.debug(uniprot_result["primaryAccession"] + " protein name: " + sub_details.protein_name)
                         if uniprot_result["genes"] is None or len(uniprot_result["genes"]) == 0:
                             logger.error("\t" + sub_details.protein_accession + " has no genes section")
