@@ -675,18 +675,23 @@ async def find_uniprot_data(list_of_project_sub_details):
         if i % batch_size == 0 or i == len(list_of_project_sub_details):
             complete_URL = ""
             try:
-                accessions_in_URL = seperator.join(accessions)
-                complete_URL = base_in_URL + accessions_in_URL + fields_in_URL
-                logging.info("Calling Uniprot API: " + complete_URL)
-                uniprot_response = requests.get(complete_URL).json()
-                if uniprot_response is not None:
-                    logging.info("Number of results found for the query: " + str(len(uniprot_response["results"])))
-                    for result in uniprot_response["results"]:
-                        uniprot_records.append(result)
-                accessions = []
+                # extra check not to submit plenty of accessions
+                if len(accessions) <= batch_size:
+                    accessions_in_URL = seperator.join(accessions)
+                    complete_URL = base_in_URL + accessions_in_URL + fields_in_URL
+                    logging.info("Calling Uniprot API: " + complete_URL)
+                    uniprot_response = requests.get(complete_URL).json()
+                    if uniprot_response is not None:
+                        logging.info("Number of results found for the query: " + str(len(uniprot_response["results"])))
+                        for result in uniprot_response["results"]:
+                            uniprot_records.append(result)
+                else:
+                    raise Exception("Number of accessions are greater than the batch size!")
             except Exception as error:
                 logger.error(str(error))
                 logger.error(complete_URL + " failed to get data from Uniprot:" + str(error))
+            finally:
+                accessions = []
         i += 1
     return uniprot_records
 
