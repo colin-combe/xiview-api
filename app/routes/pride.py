@@ -645,7 +645,7 @@ async def update_protein_metadata(list_of_project_sub_details):
 
 async def find_uniprot_data(list_of_project_sub_details):
     i = 1
-    batch_size = 10
+    batch_size = 4
     base_in_URL = "https://rest.uniprot.org/uniprotkb/search?query=accession:"
     fields_in_URL = "&fields=protein_name,gene_primary&size=50"
     seperator = "%20OR%20"
