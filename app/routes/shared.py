@@ -1,15 +1,11 @@
-import logging.config
 import os
 import re
 from configparser import ConfigParser
 
 import psycopg2
 
-logging.config.fileConfig('logging.ini')
-logger = logging.getLogger(__name__)
+async def get_most_recent_upload_ids(pxid, file=None):
 
-
-def get_most_recent_upload_ids(pxid, file=None):
     """
     Get the most recent upload ids for a project/file.
 
@@ -24,7 +20,7 @@ def get_most_recent_upload_ids(pxid, file=None):
     try:
         # connect to the PostgreSQL server
         # logger.info('Connecting to the PostgreSQL database...')
-        conn = get_db_connection()
+        conn = await get_db_connection()
         cur = conn.cursor()
         if file:
             filename_clean = re.sub(r'[^0-9a-zA-Z-]+', '-', file)
@@ -58,20 +54,20 @@ def get_most_recent_upload_ids(pxid, file=None):
             cur.close()
 
     except (Exception, psycopg2.DatabaseError) as e:
-        logger.error(e)
+        print(e)
     finally:
         if conn is not None:
             conn.close()
-            logger.debug('Database connection closed.')
+            print('Database connection closed.')
 
     return upload_ids
 
 
-def get_db_connection():
+async def get_db_connection():
     config = os.environ.get('DB_CONFIG', 'database.ini')
 
     # https://www.postgresqltutorial.com/postgresql-python/connect/
-    def parse_database_info(filename, section='postgresql'):
+    async def parse_database_info(filename, section='postgresql'):
         # create a parser
         parser = ConfigParser()
         # read config file
@@ -89,7 +85,7 @@ def get_db_connection():
         return db
 
     # read connection information
-    db_info = parse_database_info(config)
+    db_info = await parse_database_info(config)
     # logger.debug('Getting DB connection...')
     conn = psycopg2.connect(**db_info)
     return conn

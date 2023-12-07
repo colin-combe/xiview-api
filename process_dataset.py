@@ -2,6 +2,8 @@ import argparse
 import sys
 import os
 import socket
+import traceback
+
 import requests
 import time
 import ftplib
@@ -13,8 +15,9 @@ from urllib.parse import urlparse
 from parser.MzIdParser import MzIdParser
 from parser.writer import Writer
 from db_config_parser import get_conn_str
+import logging.config
 
-logging.config.fileConfig('logging.ini')
+logging.config.fileConfig("logging.ini")
 logger = logging.getLogger(__name__)
 
 
@@ -231,8 +234,10 @@ if __name__ == "__main__":
                         help='No peak list files available, only works in comination with --dir arg',
                         action='store_true')
     try:
+        logger.info("process_dataset.py is running!")
         main(parser.parse_args())
         sys.exit(0)
     except Exception as ex:
         logger.error(ex)
+        traceback.print_stack(ex)
         sys.exit(1)

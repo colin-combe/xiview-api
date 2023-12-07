@@ -29,30 +29,43 @@ spec:
             items:
               - key: database.ini
                 path: database.ini
+        - name: application-logging-config
+          configMap:
+            name: $LOGGING_INI
+            items:
+              - key: logging.ini
+                path: logging.ini
         - name: cache-volume
           emptyDir:
               sizeLimit: 100Gi
-        - name: log-volume-converter
+        - name: xi-converter-logs-volume
           persistentVolumeClaim:
             claimName: xi-converter-logs-pvc
       containers:
         - name: $app_name
           image: $IMAGE
           imagePullPolicy: Always
-          command: [ "uvicorn" ]
-          args: [ "app.api:app", "--port=3000", "--host", "0.0.0.0" ]
+          command: [ "python3" ]
+          args: [ "main.py" ]
           ports:
             - containerPort: $PORT
               name: http
               protocol: TCP
+          env:
+            - name: DATABASE_INI_PATH
+              value: /home/appuser/database.ini
           volumeMounts:
             - name: application-db-config
               mountPath: /home/appuser/database.ini
               subPath: database.ini
               readOnly: true
+            - name: application-logging-config
+              mountPath: /home/appuser/logging.ini
+              subPath: logging.ini
+              readOnly: true
             - name: cache-volume
               mountPath: /home/appuser/mzId_convertor_temp
-            - name: log-volume-converter
+            - name: xi-converter-logs-volume
               mountPath: /home/appuser/logs/$app_name
 
 ---
@@ -68,4 +81,3 @@ spec:
       protocol: TCP
       targetPort: http
   type: ClusterIP
-#  type: NodePort

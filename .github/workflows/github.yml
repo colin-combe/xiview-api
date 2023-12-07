@@ -57,12 +57,14 @@ jobs:
       DB_USER : ${{ vars.DB_USER }}
       DB_PASSWORD : ${{ secrets.DB_PASSWORD }}
       DB_PORT : ${{ vars.DB_PORT }}
+      API_KEY : ${{ secrets.API_KEY }}
       PORT: ${{ vars.PORT }}
       node_port: ${{ vars.NODE_PORT }}
       app_name: ${{ vars.APP_NAME }}
       k8s_replicas: ${{ vars.K8S_REPLICAS }}
       K8S_NAMESPACE: ${{ vars.K8S_NAMESPACE }}
       DATABASE_INI: ${{ vars.DATABASE_INI }}
+      LOGGING_INI: ${{ vars.LOGGING_INI }}
       IMAGE: ghcr.io/${{ vars.API_GITHUB_REPOSITORY }}:latest
 
     steps:
@@ -98,11 +100,17 @@ jobs:
       - name: Print database.ini
         run: cat database.ini
 
-      - name: Create ConfigMap
+      - name: Create ConfigMap for DATABASE_INI
         run: kubectl -n ${{ vars.K8S_NAMESPACE }} create configmap ${{ vars.DATABASE_INI }} --from-file=database.ini || true
 
-      - name: Replace configmap if it already exists
+      - name: Replace configmap if it already exists for DATABASE_INI
         run: kubectl -n ${{ vars.K8S_NAMESPACE }} create configmap ${{ vars.DATABASE_INI }} --from-file=database.ini -o yaml --dry-run=client | kubectl replace -f -
+
+      - name: Create ConfigMap for Logging INI
+        run: kubectl -n ${{ vars.K8S_NAMESPACE }} create configmap ${{ vars.LOGGING_INI }} --from-file=logging.ini || true
+
+      - name: Replace configmap if it already exists for Logging INI
+        run: kubectl -n ${{ vars.K8S_NAMESPACE }} create configmap ${{ vars.LOGGING_INI }} --from-file=logging.ini -o yaml --dry-run=client | kubectl replace -f -
 
       - name: Substitute kubernetes variables by environment variables or variables
         run: envsubst <.kubernetes.yml > kubernetes.yml

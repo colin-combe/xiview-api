@@ -7,7 +7,7 @@ from typing import Optional, Any
 class SpectrumIdentification(Base):
     __tablename__ = "spectrumidentification"
     id: Mapped[str] = mapped_column(Text, primary_key=True, nullable=False)
-    upload_id: Mapped[str] = mapped_column(Integer, ForeignKey("upload.id"), index=True, primary_key=True, nullable=False)
+    upload_id: Mapped[int] = mapped_column(Integer, ForeignKey("upload.id"), index=True, primary_key=True, nullable=False)
     spectrum_id: Mapped[str] = mapped_column(Text, nullable=True)
     spectra_data_ref: Mapped[str] = mapped_column(Text, nullable=True)
     multiple_spectra_identification_id: Mapped[str] = mapped_column(Integer, nullable=True)
