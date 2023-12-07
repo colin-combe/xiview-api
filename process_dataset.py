@@ -2,6 +2,8 @@ import argparse
 import sys
 import os
 import socket
+import traceback
+
 import requests
 import time
 import ftplib
@@ -237,4 +239,5 @@ if __name__ == "__main__":
         sys.exit(0)
     except Exception as ex:
         logger.error(ex)
+        traceback.print_stack(ex)
         sys.exit(1)
