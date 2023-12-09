@@ -157,7 +157,6 @@ async def get_results_metadata(cur, ids):
                 WHERE sm.upload_id = ANY(%s);"""
         cur.execute(query, [ids])
         metadata["search_modifications"] = cur.fetchall()
-        print(metadata["search_modifications"])
     except Exception as e:
         print(e)
 

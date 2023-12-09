@@ -19,7 +19,7 @@ async def sequences(project_id):
     :return: JSON object with all dbref id, mzIdentML file it came from and sequences
     """
 
-    most_recent_upload_ids = get_most_recent_upload_ids(project_id)
+    most_recent_upload_ids = await get_most_recent_upload_ids(project_id)
 
     conn = None
     mzid_rows = []
@@ -70,7 +70,7 @@ async def get_psm_level_residue_pairs(project_id, passing_threshold):
         return f"Invalid value for passing_threshold: {passing_threshold}. " \
                f"Valid values are: passing, all", 400
 
-    most_recent_upload_ids = get_most_recent_upload_ids(project_id)
+    most_recent_upload_ids = await get_most_recent_upload_ids(project_id)
 
     conn = None
     data = {}
