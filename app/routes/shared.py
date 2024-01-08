@@ -1,8 +1,17 @@
-import os
 import re
-from configparser import ConfigParser
-
+import os
+import logging.config
 import psycopg2
+from configparser import ConfigParser
+from fastapi import APIRouter, Depends, status
+from fastapi import HTTPException, Security
+from fastapi.security import APIKeyHeader
+from db_config_parser import security_API_key
+
+logger = logging.getLogger(__name__)
+
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
 
 async def get_most_recent_upload_ids(pxid, file=None):
 
@@ -89,3 +98,13 @@ async def get_db_connection():
     # logger.debug('Getting DB connection...')
     conn = psycopg2.connect(**db_info)
     return conn
+
+
+def get_api_key(key: str = Security(api_key_header)) -> str:
+
+    if key == security_API_key():
+        return key
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid or missing API Key",
+    )

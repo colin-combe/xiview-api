@@ -21,27 +21,16 @@ from app.models.searchmodification import SearchModification
 from app.models.spectrum import Spectrum
 from app.models.spectrumidentification import SpectrumIdentification
 from app.models.spectrumidentificationprotocol import SpectrumIdentificationProtocol
+from app.routes.shared import get_api_key
 from index import get_session
 from process_dataset import convert_pxd_accession_from_pride
-from db_config_parser import security_API_key
 
 import logging
 import logging.config
 
 logger = logging.getLogger(__name__)
-
-api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 pride_router = APIRouter()
 config = configparser.ConfigParser()
-
-
-def get_api_key(key: str = Security(api_key_header)) -> str:
-    if key == security_API_key():
-        return key
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Invalid or missing API Key",
-    )
 
 
 @pride_router.get("/health", tags=["Admin"])
