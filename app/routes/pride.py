@@ -4,10 +4,10 @@ from typing import List
 import sys
 
 import requests
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Query
 from fastapi import HTTPException, Security
 from fastapi.security import APIKeyHeader
-from sqlalchemy import text
+from sqlalchemy import text, select, or_
 from sqlalchemy.orm import Session, joinedload
 from app.models.upload import Upload
 from app.models.analysiscollection import AnalysisCollection
@@ -457,6 +457,85 @@ async def list_all_projects(session: Session = Depends(get_session), page: int =
 
     return projects
 
+@pride_router.get("/projects/search", tags=["Projects"])
+async def project_search(query: str = Query(...),
+                            page: int = 1,
+                            page_size: int = 10,
+                            session: Session = Depends(get_session)
+                            ) -> list[ProjectDetail]:
+    """
+    This gives the high-level view of list of projects
+    :param session: connection to database
+    :param page: page number
+    :param page_size: number of records per page
+    :return: List of ProjectDetails in JSON format
+    """
+    project_search_sql = text("""
+        SELECT p.id FROM projectdetails p
+    JOIN public.projectsubdetails ps ON p.id = ps.project_detail_id
+    WHERE p.project_id = :query OR
+          p.title ILIKE '%' || :query || '%' OR
+          p.description ILIKE '%' || :query || '%' OR
+          p.organism ILIKE '%' || :query || '%' OR
+          ps.protein_accession = :query OR
+          ps.protein_name ILIKE '%' || :query || '%' OR
+          ps.gene_name ILIKE '%' || :query || '%'
+      """)
+    matchig_ids = session.execute(project_search_sql, {"query": query}).fetchall()
+    list_of_ids = [id for (id,) in matchig_ids]
+
+    try:
+            offset = (page - 1) * page_size
+            projects = session.query(ProjectDetail).filter(ProjectDetail.id.in_(list_of_ids)).offset(offset).limit(page_size).all()
+    except Exception as e:
+            # Handle the exception here
+            logging.error(f"Error occurred: {str(e)}")
+            return []
+    if projects is None or projects == []:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Projects not found")
+
+    return projects
+
+
+
+@pride_router.get("/protein/search", tags=["Projects"])
+async def protein_search(query: str = Query(...),
+                            page: int = 1,
+                            page_size: int = 10,
+                            session: Session = Depends(get_session)
+                            ) -> list[ProjectSubDetail]:
+    """
+    This gives the high-level view of a list of projects
+    :param session: connection to the database
+    :param page: page number
+    :param page_size: number of records per page
+    :return: List of ProjectDetails in JSON format
+    """
+    try:
+        query = (
+            select(ProjectSubDetail)
+            .where(
+                or_(
+                    ProjectSubDetail.protein_accession.like("%" + query + "%"),
+                    ProjectSubDetail.gene_name.like("%" + query + "%"),
+                    ProjectSubDetail.protein_name.like("%" + query + "%")
+                )
+            )
+        )
+
+        offset = (page - 1) * page_size
+        result_proxy = session.execute(query.offset(offset).limit(page_size))
+        proteins = result_proxy.scalars().all()
+
+    except Exception as e:
+        # Handle the exception here
+        logging.error(f"Error occurred: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
+
+    if not proteins:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="proteins not found")
+
+    return proteins
 
 @pride_router.get("/projects/{project_id}", tags=["Projects"])
 def project_detail_view(project_id: str, session: Session = Depends(get_session)) -> List[ProjectDetail]:
