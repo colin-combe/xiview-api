@@ -27,7 +27,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(pride_router, prefix="/pride/ws/archive/crosslinking")
+app.include_router(pride_router, prefix="/pride/ws/archive/crosslinking/")
 app.include_router(pdbdev_router, prefix="/pride/ws/archive/crosslinking/pdbdev")
 app.include_router(xiview_data_router, prefix="/pride/ws/archive/crosslinking/data")
 app.include_router(parser_router, prefix="/pride/ws/archive/crosslinking/parse")
