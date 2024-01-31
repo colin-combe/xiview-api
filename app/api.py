@@ -13,7 +13,7 @@ app = FastAPI(title="xi-mzidentml-converter WS",
                   "name": "Apache 2.0",
                   "url": "https://www.apache.org/licenses/LICENSE-2.0.html",
               },
-              openapi_url=" /pride/ws/archive/crosslinking/openapi.json",
+              openapi_url="/pride/ws/archive/crosslinking/openapi.json",
               docs_url="/pride/ws/archive/crosslinking/docs")
 
 # Set up CORS middleware
@@ -27,7 +27,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(pride_router, prefix="/pride/ws/archive/crosslinking/")
+app.include_router(pride_router, prefix="/pride/ws/archive/crosslinking")
 app.include_router(pdbdev_router, prefix="/pride/ws/archive/crosslinking/pdbdev")
 app.include_router(xiview_data_router, prefix="/pride/ws/archive/crosslinking/data")
 app.include_router(parser_router, prefix="/pride/ws/archive/crosslinking/parse")
