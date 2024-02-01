@@ -7,6 +7,7 @@ import logging
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from index import get_session
+from typing import List
 
 from app.routes.shared import get_db_connection, get_most_recent_upload_ids
 
@@ -16,7 +17,7 @@ app_logger = logging.getLogger(__name__)
 
 
 
-@pdbdev_router.get("/projects/{protein_id}", tags=["PDB-Dev"])
+@pdbdev_router.get("/projects/{protein_id}", response_model=List[str], tags=["PDB-Dev"])
 async def get_projects_by_protein(protein_id: str, session: Session = Depends(get_session)):
     """
      Get the list of all the datasets in PRIDE crosslinking for a given protein.
