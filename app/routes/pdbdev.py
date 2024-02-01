@@ -1,13 +1,36 @@
+import json
+
 import psycopg2
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from psycopg2.extras import RealDictCursor
 import logging
+from sqlalchemy import text
+from sqlalchemy.orm import Session
+from index import get_session
 
 from app.routes.shared import get_db_connection, get_most_recent_upload_ids
 
 pdbdev_router = APIRouter()
 
 app_logger = logging.getLogger(__name__)
+
+
+
+@pdbdev_router.get("/projects/{protein_id}", tags=["PDB-Dev"])
+async def get_projects_by_protein(protein_id: str, session: Session = Depends(get_session)):
+    """
+     Get the list of all the datasets in PRIDE crosslinking for a given protein.
+    """
+    project_list_sql = text("""select distinct project_id from upload where id in (select upload_id from dbsequence where accession = :query)""")
+    try:
+        project_list = session.execute(project_list_sql, {"query": protein_id}).fetchall()
+        # Convert the list of tuples into a list of strings
+        project_list = [row[0] for row in project_list]
+        # Convert the list into JSON format
+        # project_list_json = json.dumps(project_list)
+    except Exception as error:
+        app_logger.error(error)
+    return project_list
 
 @pdbdev_router.get('/projects/{project_id}/sequences', tags=["PDB-Dev"])
 async def sequences(project_id):
