@@ -1,5 +1,6 @@
 import configparser
 import os
+from operator import and_
 from typing import List
 import sys
 
@@ -498,8 +499,9 @@ async def project_search(query: str = Query(...),
 
 
 
-@pride_router.get("/protein/search", tags=["Projects"])
-async def protein_search(query: str = Query(...),
+@pride_router.get("/projects/{project_id}/proteins", tags=["Projects"])
+async def protein_search(   project_id: str,
+                            query: str | None = None,
                             page: int = 1,
                             page_size: int = 10,
                             session: Session = Depends(get_session)
@@ -512,30 +514,68 @@ async def protein_search(query: str = Query(...),
     :return: List of ProjectDetails in JSON format
     """
     try:
-        query = (
-            select(ProjectSubDetail)
-            .where(
-                or_(
-                    ProjectSubDetail.protein_accession.like("%" + query + "%"),
-                    ProjectSubDetail.gene_name.like("%" + query + "%"),
-                    ProjectSubDetail.protein_name.like("%" + query + "%")
-                )
-            )
-        )
+        if query is None or query =='*':
+            sql = text("""
+                                  SELECT * FROM projectsubdetails 
+                                  WHERE project_detail_id IN (SELECT id 
+                                                              FROM projectdetails 
+                                                              WHERE project_id = :project_id)
+                                  ORDER BY id
+                                  LIMIT :limit OFFSET :offset
+                              """)
+            sql_values = {
+                "project_id": project_id,
+                "limit": page_size,
+                "offset": (page - 1) * page_size
+            }
+        else:
+            sql = text("""
+                                  SELECT * FROM projectsubdetails 
+                                  WHERE (protein_accession LIKE '%' || :query || '%' OR
+                                         gene_name LIKE '%' || :query || '%' OR
+                                         protein_name LIKE '%' || :query || '%') 
+                                         AND project_detail_id IN (SELECT id 
+                                                                   FROM projectdetails 
+                                                                   WHERE project_id = :project_id)
+                                  ORDER BY id
+                                  LIMIT :limit OFFSET :offset
+                              """)
+            sql_values = {
+                "project_id": project_id,
+                "query": query,
+                "limit": page_size,
+                "offset": (page - 1) * page_size
+            }
 
-        offset = (page - 1) * page_size
-        result_proxy = session.execute(query.offset(offset).limit(page_size))
-        proteins = result_proxy.scalars().all()
+        result = session.execute(sql, sql_values)
+        proteins = result.fetchall()
+
+        # Convert rows to a list of ProjectSubDetail objects
+        proteins_list = []
+        for row in proteins:
+            protein = ProjectSubDetail(
+                id = row.id,
+                project_detail_id = row.project_detail_id,
+                protein_db_ref = row.protein_db_ref,
+                protein_name = row.protein_name,
+                gene_name = row.gene_name,
+                protein_accession = row.protein_accession,
+                number_of_peptides = row.number_of_peptides,
+                number_of_cross_links = row.number_of_cross_links,
+                in_pdbe_kb = row.in_pdbe_kb,
+                in_alpha_fold_db = row.in_alpha_fold_db
+            )
+            proteins_list.append(protein)
 
     except Exception as e:
         # Handle the exception here
         logging.error(f"Error occurred: {str(e)}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
 
-    if not proteins:
+    if not proteins_list:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="proteins not found")
 
-    return proteins
+    return proteins_list
 
 @pride_router.get("/projects/{project_id}", tags=["Projects"])
 def project_detail_view(project_id: str, session: Session = Depends(get_session)) -> List[ProjectDetail]:
