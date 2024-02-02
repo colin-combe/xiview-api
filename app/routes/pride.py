@@ -1,14 +1,11 @@
 import configparser
 import os
-from operator import and_
-from typing import List
-import sys
+from typing import List, Annotated
 
 import requests
-from fastapi import APIRouter, Depends, status, Query
+from fastapi import APIRouter, Depends, status, Query, Path
 from fastapi import HTTPException, Security
-from fastapi.security import APIKeyHeader
-from sqlalchemy import text, select, or_
+from sqlalchemy import text
 from sqlalchemy.orm import Session, joinedload
 from app.models.upload import Upload
 from app.models.analysiscollection import AnalysisCollection
@@ -458,12 +455,13 @@ async def list_all_projects(session: Session = Depends(get_session), page: int =
 
     return projects
 
+
 @pride_router.get("/projects/search", tags=["Projects"])
 async def project_search(query: str = Query(...),
-                            page: int = 1,
-                            page_size: int = 10,
-                            session: Session = Depends(get_session)
-                            ) -> list[ProjectDetail]:
+                         page: int = 1,
+                         page_size: int = 10,
+                         session: Session = Depends(get_session)
+                         ) -> list[ProjectDetail]:
     """
     This gives the high-level view of list of projects
     :param session: connection to database
@@ -486,35 +484,92 @@ async def project_search(query: str = Query(...),
     list_of_ids = [id for (id,) in matchig_ids]
 
     try:
-            offset = (page - 1) * page_size
-            projects = session.query(ProjectDetail).filter(ProjectDetail.id.in_(list_of_ids)).offset(offset).limit(page_size).all()
+        offset = (page - 1) * page_size
+        projects = session.query(ProjectDetail).filter(ProjectDetail.id.in_(list_of_ids)).offset(offset).limit(
+            page_size).all()
     except Exception as e:
-            # Handle the exception here
-            logging.error(f"Error occurred: {str(e)}")
-            return []
+        # Handle the exception here
+        logging.error(f"Error occurred: {str(e)}")
+        return []
     if projects is None or projects == []:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Projects not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Projects not found")
 
     return projects
 
 
+@pride_router.get("/projects/{project_id}", tags=["Projects"])
+def project_detail_view(project_id: str, session: Session = Depends(get_session)) -> List[ProjectDetail]:
+    """
+    Retrieve project detail by px_accession.
+    :param project_id: identifier of a project, for ProteomeXchange projects this is the PXD****** accession
+    :param session:
+    :return:
+    """
+    try:
+        project_detail = session.query(ProjectDetail) \
+            .options(joinedload(ProjectDetail.project_sub_details)) \
+            .filter(ProjectDetail.project_id == project_id) \
+            .all()
+    except Exception as e:
+        logging.error(f"Error occurred: {str(e)}")
+        project_detail = None
+
+    if project_detail is None or project_detail == []:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project detail not found")
+
+    return project_detail
+
+
+#
+# @pride_router.get("/projects/{project_id}/proteins", tags=["Projects"])
+# def project_detail_view(project_id: str, session: Session = Depends(get_session), page: int = 1, page_size: int = 10) -> \
+#         list[ProjectSubDetail]:
+#     """
+#     Retrieve protein detail by px_accession.
+#     """
+#     try:
+#         project_detail = session.query(ProjectDetail) \
+#             .options(joinedload(ProjectDetail.project_sub_details)) \
+#             .filter(ProjectDetail.project_id == project_id).scalar()
+#
+#         offset = (page - 1) * page_size
+#         project_sub_details = session.query(ProjectSubDetail).filter(
+#             ProjectSubDetail.project_detail_id == project_detail.id) \
+#             .offset(offset).limit(page_size).all()
+#
+#     except Exception as e:
+#         logging.error(f"Error occurred: {str(e)}")
+#         project_sub_details = None
+#
+#     if project_sub_details is None or project_sub_details == []:
+#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project detail not found")
+#
+#     return project_sub_details
+
 
 @pride_router.get("/projects/{project_id}/proteins", tags=["Projects"])
-async def protein_search(   project_id: str,
-                            query: str | None = None,
-                            page: int = 1,
-                            page_size: int = 10,
-                            session: Session = Depends(get_session)
-                            ) -> list[ProjectSubDetail]:
+async def protein_search(project_id: Annotated[str, Path(...,
+                                                         title="Project ID",
+                                                         pattern="^PXD\d{6}$",
+                                                         example="PXD036833")],
+                         q: Annotated[str | None, Query(default=None,
+                                                        alias="query",
+                                                        max_length=20,
+                                                        title="query",
+                                                        description="Protein accession, protein name or gene name")] = None,
+                         page: int = Query(1, description="Page number"),
+                         page_size: int = Query(10, gt=5, lt=100, description="Number of items per page"),
+                         session: Session = Depends(get_session)) -> list[ProjectSubDetail]:
     """
     This gives the high-level view of a list of projects
-    :param session: connection to the database
-    :param page: page number
-    :param page_size: number of records per page
+    - **project_id**: PXD****** accession
+    - **q**: query for Protein accession, protein name or gene name
+    - **page**: page number
+    - **page_size**: number of records per page
     :return: List of ProjectDetails in JSON format
     """
     try:
-        if query is None or query =='*':
+        if q is None or q == '*':
             sql = text("""
                                   SELECT * FROM projectsubdetails 
                                   WHERE project_detail_id IN (SELECT id 
@@ -542,7 +597,7 @@ async def protein_search(   project_id: str,
                               """)
             sql_values = {
                 "project_id": project_id,
-                "query": query,
+                "query": q,
                 "limit": page_size,
                 "offset": (page - 1) * page_size
             }
@@ -554,16 +609,16 @@ async def protein_search(   project_id: str,
         proteins_list = []
         for row in proteins:
             protein = ProjectSubDetail(
-                id = row.id,
-                project_detail_id = row.project_detail_id,
-                protein_db_ref = row.protein_db_ref,
-                protein_name = row.protein_name,
-                gene_name = row.gene_name,
-                protein_accession = row.protein_accession,
-                number_of_peptides = row.number_of_peptides,
-                number_of_cross_links = row.number_of_cross_links,
-                in_pdbe_kb = row.in_pdbe_kb,
-                in_alpha_fold_db = row.in_alpha_fold_db
+                id=row.id,
+                project_detail_id=row.project_detail_id,
+                protein_db_ref=row.protein_db_ref,
+                protein_name=row.protein_name,
+                gene_name=row.gene_name,
+                protein_accession=row.protein_accession,
+                number_of_peptides=row.number_of_peptides,
+                number_of_cross_links=row.number_of_cross_links,
+                in_pdbe_kb=row.in_pdbe_kb,
+                in_alpha_fold_db=row.in_alpha_fold_db
             )
             proteins_list.append(protein)
 
@@ -576,54 +631,6 @@ async def protein_search(   project_id: str,
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="proteins not found")
 
     return proteins_list
-
-@pride_router.get("/projects/{project_id}", tags=["Projects"])
-def project_detail_view(project_id: str, session: Session = Depends(get_session)) -> List[ProjectDetail]:
-    """
-    Retrieve project detail by px_accession.
-    :param project_id: identifier of a project, for ProteomeXchange projects this is the PXD****** accession
-    :param session:
-    :return:
-    """
-    try:
-        project_detail = session.query(ProjectDetail) \
-            .options(joinedload(ProjectDetail.project_sub_details)) \
-            .filter(ProjectDetail.project_id == project_id) \
-            .all()
-    except Exception as e:
-        logging.error(f"Error occurred: {str(e)}")
-        project_detail = None
-
-    if project_detail is None or project_detail == []:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project detail not found")
-
-    return project_detail
-
-
-@pride_router.get("/projects/{project_id}/proteins", tags=["Projects"])
-def project_detail_view(project_id: str, session: Session = Depends(get_session), page: int = 1, page_size: int = 10) -> \
-        list[ProjectSubDetail]:
-    """
-    Retrieve protein detail by px_accession.
-    """
-    try:
-        project_detail = session.query(ProjectDetail) \
-            .options(joinedload(ProjectDetail.project_sub_details)) \
-            .filter(ProjectDetail.project_id == project_id).scalar()
-
-        offset = (page - 1) * page_size
-        project_sub_details = session.query(ProjectSubDetail).filter(
-            ProjectSubDetail.project_detail_id == project_detail.id) \
-            .offset(offset).limit(page_size).all()
-
-    except Exception as e:
-        logging.error(f"Error occurred: {str(e)}")
-        project_sub_details = None
-
-    if project_sub_details is None or project_sub_details == []:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project detail not found")
-
-    return project_sub_details
 
 
 @pride_router.get("/statistics-count", tags=["Statistics"])
@@ -998,4 +1005,3 @@ async def get_projects_count(sql, session):
         session.close()
         logger.debug('Database session is closed.')
     return count
-

@@ -6,9 +6,14 @@ from app.routes.pdbdev import pdbdev_router
 from app.routes.xiview import xiview_data_router
 from app.routes.parse import parser_router
 
-app = FastAPI(title="xi-mzidentml-converter WS",
+app = FastAPI(title="xi-mzidentml-converter ws",
               description="This is an API to crosslinking archive",
               version="0.0.1",
+                contact={
+                  "name": "PRIDE Team",
+                  "url": "https://www.ebi.ac.uk/pride/",
+                  "email": "pride-support@ebi.ac.uk",
+              },
               license_info={
                   "name": "Apache 2.0",
                   "url": "https://www.apache.org/licenses/LICENSE-2.0.html",
