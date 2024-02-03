@@ -407,29 +407,40 @@ async def delete_dataset(project_id: str, session: Session = Depends(get_session
         conditions = {'project_id': project_id}
 
         # Query for an existing record based on conditions
-        existing_upload_record = session.query(Upload).filter_by(**conditions).first()
+        existing_upload_records = session.query(Upload).filter_by(**conditions).all()
 
         # If the record exists, update its attributes
-        if existing_upload_record:
-            # Delete ProjectDetail and associated ProjectSubDetail records based on project_detail_id
-            session.query(ProjectSubDetail).filter_by(project_detail_id=existing_upload_record.id).delete()
+        if existing_upload_records:
+            upload_id_list = []
+            for existing_upload_record in existing_upload_records:
+                upload_id_list.append(existing_upload_record.id)
+
+        # Query for an existing project_details record based on conditions
+        existing_project_details_records = session.query(ProjectDetail).filter_by(**conditions).all()
+
+        # If the record exists, update its attributes
+        if existing_project_details_records:
+            project_details_id_list = []
+            for existing_project_details_record in existing_project_details_records:
+                project_details_id_list.append(existing_project_details_record.id)
+
+            session.query(ProjectSubDetail).filter(ProjectSubDetail.project_detail_id.in_(project_details_id_list)).delete()
             session.query(ProjectDetail).filter_by(project_id=project_id).delete()
-            session.query(SpectrumIdentification).filter_by(upload_id=existing_upload_record.id).delete()
-            session.query(SearchModification).filter_by(upload_id=existing_upload_record.id).delete()
-            session.query(Enzyme).filter_by(upload_id=existing_upload_record.id).delete()
-            session.query(SpectrumIdentificationProtocol).filter_by(upload_id=existing_upload_record.id).delete()
-            session.query(ModifiedPeptide).filter_by(upload_id=existing_upload_record.id).delete()
-            session.query(DBSequence).filter_by(upload_id=existing_upload_record.id).delete()
-            session.query(Spectrum).filter_by(upload_id=existing_upload_record.id).delete()
-            session.query(PeptideEvidence).filter_by(upload_id=existing_upload_record.id).delete()
-            session.query(AnalysisCollection).filter_by(upload_id=existing_upload_record.id).delete()
-            session.query(Upload).filter_by(**conditions).delete()
+            session.query(SpectrumIdentification).filter(SpectrumIdentification.upload_id.in_(upload_id_list)).delete()
+            session.query(SearchModification).filter(SearchModification.upload_id.in_(upload_id_list)).delete()
+            session.query(Enzyme).filter(Enzyme.upload_id.in_(upload_id_list)).delete()
+            session.query(SpectrumIdentificationProtocol).filter(SpectrumIdentificationProtocol.upload_id.in_(upload_id_list)).delete()
+            session.query(ModifiedPeptide).filter(ModifiedPeptide.upload_id.in_(upload_id_list)).delete()
+            session.query(DBSequence).filter(DBSequence.upload_id.in_(upload_id_list)).delete()
+            session.query(Spectrum).filter(Spectrum.upload_id.in_(upload_id_list)).delete()
+            session.query(PeptideEvidence).filter(PeptideEvidence.upload_id.in_(upload_id_list)).delete()
+            session.query(AnalysisCollection).filter(AnalysisCollection.upload_id.in_(upload_id_list)).delete()
+            session.query(Upload).filter_by(project_id=project_id).delete()
             session.commit()
     except Exception as error:
         logger.error(str(error))
         session.rollback()
     finally:
-        # This is the same as the `get_db` method below
         session.close()
 
 
