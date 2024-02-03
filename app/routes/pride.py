@@ -409,34 +409,49 @@ async def delete_dataset(project_id: str, session: Session = Depends(get_session
         # Query for an existing record based on conditions
         existing_upload_records = session.query(Upload).filter_by(**conditions).all()
 
+        upload_id_list = []
         # If the record exists, update its attributes
         if existing_upload_records:
-            upload_id_list = []
+
             for existing_upload_record in existing_upload_records:
                 upload_id_list.append(existing_upload_record.id)
 
         # Query for an existing project_details record based on conditions
         existing_project_details_records = session.query(ProjectDetail).filter_by(**conditions).all()
 
+        project_details_id_list = []
         # If the record exists, update its attributes
-        if existing_project_details_records:
-            project_details_id_list = []
+        if existing_project_details_records is not None and len(existing_project_details_records) > 0:
             for existing_project_details_record in existing_project_details_records:
                 project_details_id_list.append(existing_project_details_record.id)
 
-            session.query(ProjectSubDetail).filter(ProjectSubDetail.project_detail_id.in_(project_details_id_list)).delete()
-            session.query(ProjectDetail).filter_by(project_id=project_id).delete()
-            session.query(SpectrumIdentification).filter(SpectrumIdentification.upload_id.in_(upload_id_list)).delete()
-            session.query(SearchModification).filter(SearchModification.upload_id.in_(upload_id_list)).delete()
-            session.query(Enzyme).filter(Enzyme.upload_id.in_(upload_id_list)).delete()
-            session.query(SpectrumIdentificationProtocol).filter(SpectrumIdentificationProtocol.upload_id.in_(upload_id_list)).delete()
-            session.query(ModifiedPeptide).filter(ModifiedPeptide.upload_id.in_(upload_id_list)).delete()
-            session.query(DBSequence).filter(DBSequence.upload_id.in_(upload_id_list)).delete()
-            session.query(Spectrum).filter(Spectrum.upload_id.in_(upload_id_list)).delete()
-            session.query(PeptideEvidence).filter(PeptideEvidence.upload_id.in_(upload_id_list)).delete()
-            session.query(AnalysisCollection).filter(AnalysisCollection.upload_id.in_(upload_id_list)).delete()
-            session.query(Upload).filter_by(project_id=project_id).delete()
-            session.commit()
+        session.query(ProjectSubDetail).filter(ProjectSubDetail.project_detail_id.in_(project_details_id_list)).delete()
+        logging.info("trying to delete records from ProjectSubDetail")
+        session.query(ProjectDetail).filter_by(project_id=project_id).delete()
+        logging.info("trying to delete records from ProjectDetail")
+        session.query(SpectrumIdentification).filter(SpectrumIdentification.upload_id.in_(upload_id_list)).delete()
+        logging.info("trying to delete records from SpectrumIdentification")
+        session.query(SearchModification).filter(SearchModification.upload_id.in_(upload_id_list)).delete()
+        logging.info("trying to delete records from SearchModification")
+        session.query(Enzyme).filter(Enzyme.upload_id.in_(upload_id_list)).delete()
+        logging.info("trying to delete records from Enzyme")
+        session.query(SpectrumIdentificationProtocol).filter(
+            SpectrumIdentificationProtocol.upload_id.in_(upload_id_list)).delete()
+        logging.info("trying to delete records from SpectrumIdentificationProtocol")
+        session.query(ModifiedPeptide).filter(ModifiedPeptide.upload_id.in_(upload_id_list)).delete()
+        logging.info("trying to delete records from ModifiedPeptide")
+        session.query(DBSequence).filter(DBSequence.upload_id.in_(upload_id_list)).delete()
+        logging.info("trying to delete records from DBSequence")
+        session.query(Spectrum).filter(Spectrum.upload_id.in_(upload_id_list)).delete()
+        logging.info("trying to delete records from Spectrum")
+        session.query(PeptideEvidence).filter(PeptideEvidence.upload_id.in_(upload_id_list)).delete()
+        logging.info("trying to delete records from PeptideEvidence")
+        session.query(AnalysisCollection).filter(AnalysisCollection.upload_id.in_(upload_id_list)).delete()
+        logging.info("trying to delete records from AnalysisCollection")
+        session.query(Upload).filter_by(project_id=project_id).delete()
+        logging.info("trying to delete records from Upload")
+        session.commit()
+        logger.info("*****Deleted dataset: " + project_id)
     except Exception as error:
         logger.error(str(error))
         session.rollback()
