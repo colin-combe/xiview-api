@@ -36,3 +36,10 @@ def security_API_key():
     security_info = parse_info(config, 'security')
     apikey = security_info.get("apikey")
     return apikey
+
+
+def get_xiview_base_url():
+    config = os.environ.get('DB_CONFIG', 'database.ini')
+    security_info = parse_info(config, 'security')
+    xiviewbaseurl = security_info.get("xiviewbaseurl")
+    return xiviewbaseurl
