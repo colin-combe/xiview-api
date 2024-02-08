@@ -1,17 +1,20 @@
 import base64
 import configparser
 import traceback
+from enum import Enum
+from typing import Annotated, Union
+from typing_extensions import Doc
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Body
 from fastapi import HTTPException, Security
-from fastapi.params import Body
 from fastapi.security import APIKeyHeader
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.models.upload import Upload
 from app.routes.shared import get_api_key
 from db_config_parser import get_conn_str
 from index import get_session
-from sqlalchemy import Table, Enum, MetaData, create_engine
+from sqlalchemy import Table, MetaData, create_engine
 import logging.config
 
 from parser.writer import Writer
@@ -47,7 +50,7 @@ async def write_data(
         table: TableNamesEnum = Body(..., description="table name", embeded=True),
         data=Body(..., description="table data", embeded=True),
         api_key: str = Security(get_api_key),
-        session: Session = Depends(get_session)):
+        session: Session = Depends(get_session)) -> None:
     """
         Insert data into table.
 
@@ -72,19 +75,19 @@ async def write_data(
             result = conn.execute(statement)
             conn.commit()
             conn.close()
-        return result
+        return None
 
     except Exception as e:
         print(f"Caught an exception: {e}")
         traceback.print_exc()
     finally:
         session.close()
-    return result
+    return None
 
 
-@parser_router.post("/write_new_upload", tags=["Parser"], response_model=None)
+@parser_router.post("/write_new_upload", tags=["Parser"])
 def write_new_upload(
-        table: TableNamesEnum = Body(..., description="table name", embeded=True),
+        table: Annotated[TableNamesEnum, Body(..., description="table name", embeded=True)],
         data: dict = Body(..., description="table data", embeded=True),
         api_key: str = Security(get_api_key),
         session: Session = Depends(get_session)):
@@ -99,7 +102,7 @@ def write_new_upload(
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-@parser_router.post("/write_mzid_info", tags=["Admin"], response_model=None)
+@parser_router.post("/write_mzid_info", tags=["Admin"])
 def write_mzid_info(analysis_software_list=Body(..., embeded=True),
                     spectra_formats=Body(..., embeded=True),
                     provider=Body(..., embeded=True),
@@ -136,7 +139,7 @@ def write_mzid_info(analysis_software_list=Body(..., embeded=True),
         conn.commit()
 
 
-@parser_router.post("/write_other_info", tags=["Parser"], response_model=None)
+@parser_router.post("/write_other_info", tags=["Parser"])
 def write_other_info(contains_crosslinks=Body(..., description="contains_crosslinks", embeded=True),
                      upload_warnings=Body(..., description="upload_warnings", embeded=True),
                      upload_id: int = None,
