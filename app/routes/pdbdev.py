@@ -1,13 +1,15 @@
 import json
 
 import psycopg2
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Path
 from psycopg2.extras import RealDictCursor
 import logging
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from index import get_session
 from typing import List
+from enum import Enum
+from typing import Annotated
 
 from app.routes.shared import get_db_connection, get_most_recent_upload_ids
 
@@ -16,13 +18,13 @@ pdbdev_router = APIRouter()
 app_logger = logging.getLogger(__name__)
 
 
-
 @pdbdev_router.get("/projects/{protein_id}", response_model=List[str], tags=["PDB-Dev"])
 async def get_projects_by_protein(protein_id: str, session: Session = Depends(get_session)):
     """
      Get the list of all the datasets in PRIDE crosslinking for a given protein.
     """
-    project_list_sql = text("""select distinct project_id from upload where id in (select upload_id from dbsequence where accession = :query)""")
+    project_list_sql = text(
+        """select distinct project_id from upload where id in (select upload_id from dbsequence where accession = :query)""")
     try:
         project_list = session.execute(project_list_sql, {"query": protein_id}).fetchall()
         # Convert the list of tuples into a list of strings
@@ -32,6 +34,7 @@ async def get_projects_by_protein(protein_id: str, session: Session = Depends(ge
     except Exception as error:
         app_logger.error(error)
     return project_list
+
 
 @pdbdev_router.get('/projects/{project_id}/sequences', tags=["PDB-Dev"])
 async def sequences(project_id):
@@ -52,21 +55,19 @@ async def sequences(project_id):
         conn = await get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
-        sql = """SELECT dbseq.id, u.identification_file_name, dbseq.sequencel, dbseq.accession
+        sql = text("""SELECT dbseq.id, u.identification_file_name, dbseq.sequencel, dbseq.accession
                     FROM upload AS u
                     JOIN dbsequence AS dbseq ON u.id = dbseq.upload_id
                     INNER JOIN peptideevidence pe ON dbseq.id = pe.dbsequence_ref AND dbseq.upload_id = pe.upload_id
                  WHERE u.id = ANY (%s)
                  AND pe.is_decoy = false
-                 GROUP by dbseq.id, dbseq.sequence, u.identification_file_name;"""
+                 GROUP by dbseq.id, dbseq.sequence, u.identification_file_name;""")
 
         print(sql)
         cur.execute(sql, [most_recent_upload_ids])
         mzid_rows = cur.fetchall()
 
         print("finished")
-        # close the communication with the PostgreSQL
-        cur.close()
     except (Exception, psycopg2.DatabaseError) as error:
         print(error)
     finally:
@@ -76,8 +77,37 @@ async def sequences(project_id):
         return {"data": mzid_rows}
 
 
-@pdbdev_router.get('/projects/{project_id}/residue-pairs/based-on-reported-psm-level/{passing_threshold}', tags=["PDB-Dev"])
-async def get_psm_level_residue_pairs(project_id, passing_threshold):
+class Threshold(str, Enum):
+    passing = "passing"
+    all = "all"
+
+    def is_valid_enum(value: str) -> bool:
+        try:
+            getattr(Threshold, value)
+            return True
+        except AttributeError:
+            return False
+
+@pdbdev_router.get('/projects/{project_id}/residue-pairs/based-on-reported-psm-level/{passing_threshold}',
+                   tags=["PDB-Dev"])
+async def get_psm_level_residue_pairs(project_id: Annotated[str, Path(...,
+                                                                      title="Project ID",
+                                                                      pattern="^PXD\d{6}$",
+                                                                      example="PXD036833")],
+                                      passing_threshold: Annotated[Threshold, Path(...,
+                                                                                   title="Threshold",
+                                                                                   description="Threshold passing or all the values",
+                                                                                   examples={
+                                                          "Passing": {
+                                                              "value": "passing",
+                                                              "description": "passing threshold"
+                                                          },
+                                                          "All": {
+                                                              "value": "all",
+                                                              "description": "all threshold"
+                                                          }
+                                                      })]
+                                      ):
     """
     Get all residue pairs (based on PSM level data) belonging to a project.
 
@@ -90,7 +120,7 @@ async def get_psm_level_residue_pairs(project_id, passing_threshold):
         if 'all' return all residue pairs
     :return:
     """
-    if passing_threshold not in ['passing', 'all']:
+    if not Threshold.is_valid_enum(passing_threshold):
         return f"Invalid value for passing_threshold: {passing_threshold}. " \
                f"Valid values are: passing, all", 400
 
@@ -119,10 +149,9 @@ where u.id = ANY (%s) and mp1.link_site1 > 0 and mp2.link_site1 > 0 AND pe1.is_d
 """
         # problem above in u.project_id
 
-        if passing_threshold.lower() == 'passing':
+        if passing_threshold.lower() == Threshold.passing:
             sql += " AND si.pass_threshold = true"
         sql += ";"
-        print(sql)
         cur.execute(sql, [most_recent_upload_ids])
         mzid_rows = cur.fetchall()
         data["data"] = mzid_rows
