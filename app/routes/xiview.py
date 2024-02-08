@@ -41,7 +41,7 @@ async def get_xiview_data(project, file=None):
         print(e)
         return {"error": "Database error"}, 500
 
-    return data_object
+    return Response(orjson.dumps(data_object), media_type='application/json')
 
 
 @xiview_data_router.get('/get_peaklist', tags=["xiVIEW"])
@@ -118,7 +118,7 @@ async def get_data_object(ids, pxid):
             logger.debug('Database connection closed.')
         if error is not None:
             raise error
-        return Response(orjson.dumps(data), media_type='application/json')
+        return data
 
 
 async def get_pride_api_info(cur, pxid):
