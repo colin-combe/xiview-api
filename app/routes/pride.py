@@ -564,8 +564,7 @@ async def project_search(q: Annotated[str | None, Query(default=None,
             "page_no": page,
             "page_size": page_size,
             "total_elements": total_elements,
-            "total_pages": ceil(total_elements / page_size),
-            "number": 0
+            "total_pages": ceil(total_elements / page_size)
         }
     }
     return response
@@ -688,7 +687,6 @@ async def protein_search(project_id: Annotated[str, Path(...,
             "page_size": page_size,
             "total_elements": total_elements,
             "total_pages": ceil(total_elements / page_size),
-            "number": 0
         }
     }
 
