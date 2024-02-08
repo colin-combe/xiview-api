@@ -52,7 +52,7 @@ async def sequences(project_id):
         conn = await get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
-        sql = """SELECT dbseq.id, u.identification_file_name, dbseq.sequence
+        sql = """SELECT dbseq.id, u.identification_file_name, dbseq.sequencel, dbseq.accession
                     FROM upload AS u
                     JOIN dbsequence AS dbseq ON u.id = dbseq.upload_id
                     INNER JOIN peptideevidence pe ON dbseq.id = pe.dbsequence_ref AND dbseq.upload_id = pe.upload_id
@@ -103,7 +103,8 @@ async def get_psm_level_residue_pairs(project_id, passing_threshold):
         conn = await get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
-        sql = """SELECT dbseq.id, u.identification_file_name, dbseq.sequence, dbseq.accession
+
+        sql = """SELECT si.id, u.identification_file_name as file, si.pass_threshold as pass,
 pe1.dbsequence_ref as prot1, dbs1.accession as prot1_acc, (pe1.pep_start + mp1.link_site1 - 1) as pos1,
 pe2.dbsequence_ref as prot2, dbs2.accession as prot2_acc, (pe2.pep_start + mp2.link_site1 - 1) as pos2
 FROM spectrumidentification si INNER JOIN
