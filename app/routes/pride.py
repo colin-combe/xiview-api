@@ -518,7 +518,7 @@ async def project_search(q: Union[str | None] = Query(default="",
                          page: int = Query(1, description="Page number"),
                          page_size: int = Query(10, gt=5, lt=100, description="Number of items per page"),
                          session: Session = Depends(get_session)
-                         ) -> list[ProjectDetail]:
+                         ):
     """
     This gives the high-level view of list of projects
     :param q: Query parameter
@@ -619,7 +619,7 @@ async def protein_search(project_id: Annotated[str, Path(...,
                                                       description="Protein accession, protein name or gene name"),
                          page: int = Query(1, description="Page number"),
                          page_size: int = Query(10, gt=5, lt=100, description="Number of items per page"),
-                         session: Session = Depends(get_session)) -> list[ProjectSubDetail]:
+                         session: Session = Depends(get_session)):
     """
     This gives the high-level view of a list of projects
     - **project_id**: PXD****** accession
