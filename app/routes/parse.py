@@ -42,7 +42,7 @@ class TableNamesEnum(str, Enum):
     projectsubdetail = "projectsubdetail"
 
 
-@parser_router.post("/write_data", tags=["Parser"])
+@parser_router.post("/write_data", tags=["Parser"], response_model=None)
 async def write_data(
         table: TableNamesEnum = Body(..., description="table name", embeded=True),
         data=Body(..., description="table data", embeded=True),
@@ -82,7 +82,7 @@ async def write_data(
     return result
 
 
-@parser_router.post("/write_new_upload", tags=["Parser"])
+@parser_router.post("/write_new_upload", tags=["Parser"], response_model=None)
 def write_new_upload(
         table: TableNamesEnum = Body(..., description="table name", embeded=True),
         data: dict = Body(..., description="table data", embeded=True),
@@ -99,7 +99,7 @@ def write_new_upload(
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-@parser_router.post("/write_mzid_info", tags=["Admin"])
+@parser_router.post("/write_mzid_info", tags=["Admin"], response_model=None)
 def write_mzid_info(analysis_software_list=Body(..., embeded=True),
                     spectra_formats=Body(..., embeded=True),
                     provider=Body(..., embeded=True),
@@ -136,7 +136,7 @@ def write_mzid_info(analysis_software_list=Body(..., embeded=True),
         conn.commit()
 
 
-@parser_router.post("/write_other_info", tags=["Parser"])
+@parser_router.post("/write_other_info", tags=["Parser"], response_model=None)
 def write_other_info(contains_crosslinks=Body(..., description="contains_crosslinks", embeded=True),
                      upload_warnings=Body(..., description="upload_warnings", embeded=True),
                      upload_id: int = None,
