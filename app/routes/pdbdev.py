@@ -1,7 +1,8 @@
 import json
 
 import psycopg2
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
+import orjson
 from psycopg2.extras import RealDictCursor
 import logging
 from sqlalchemy import text
@@ -136,7 +137,7 @@ where u.id = ANY (%s) and mp1.link_site1 > 0 and mp2.link_site1 > 0 AND pe1.is_d
         if conn is not None:
             conn.close()
             print('Database connection closed.')
-        return data
+        return Response(orjson.dumps(data), media_type='application/json')
 
 #
 # @pdb_dev_router.get('/projects/{project_id}/residue-pairs/reported')

@@ -5,7 +5,8 @@ import struct
 
 import fastapi
 import psycopg2
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Response
+import orjson
 from psycopg2 import sql
 from psycopg2.extras import RealDictCursor
 from sqlalchemy.orm import session, Session
@@ -117,7 +118,7 @@ async def get_data_object(ids, pxid):
             logger.debug('Database connection closed.')
         if error is not None:
             raise error
-        return data
+        return Response(orjson.dumps(data), media_type='application/json')
 
 
 async def get_pride_api_info(cur, pxid):
