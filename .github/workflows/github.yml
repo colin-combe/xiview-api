@@ -66,6 +66,7 @@ jobs:
       DATABASE_INI: ${{ vars.DATABASE_INI }}
       LOGGING_INI: ${{ vars.LOGGING_INI }}
       IMAGE: ghcr.io/${{ vars.API_GITHUB_REPOSITORY }}:latest
+      XIVIEW_PRIDE_URL: ${{ vars.XIVIEW_PRIDE_URL }}
 
     steps:
       - name: Checkout repository

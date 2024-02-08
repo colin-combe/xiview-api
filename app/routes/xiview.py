@@ -3,12 +3,18 @@ import logging
 import logging.config
 import struct
 
+import fastapi
 import psycopg2
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, Request
 from psycopg2 import sql
 from psycopg2.extras import RealDictCursor
+from sqlalchemy.orm import session, Session
 
+from app.models.projectdetail import ProjectDetail
+from app.models.upload import Upload
 from app.routes.shared import get_db_connection, get_most_recent_upload_ids
+from index import get_session
+from db_config_parser import get_xiview_base_url
 
 xiview_data_router = APIRouter()
 
@@ -36,6 +42,7 @@ async def get_xiview_data(project, file=None):
 
     return data_object
 
+
 @xiview_data_router.get('/get_peaklist', tags=["xiVIEW"])
 async def get_peaklist(id, sd_ref, upload_id):
     conn = None
@@ -60,6 +67,29 @@ async def get_peaklist(id, sd_ref, upload_id):
         if error is not None:
             raise error
         return data
+
+
+@xiview_data_router.get('/visualisations/{project_id}', tags=["xiVIEW"])
+def visualisations(project_id: str, request: Request, session: Session = Depends(get_session)):
+    xiview_base_url = get_xiview_base_url()
+    project_detail = session.query(Upload) \
+        .filter(Upload.project_id == project_id) \
+        .all()
+    datasets = []
+    processed_filenames = set()
+    for record in project_detail:
+        filename = record.identification_file_name
+        if filename not in processed_filenames:
+            datafile = {
+                "filename": filename,
+                "visualisation": "cross-linking",
+                "link": (xiview_base_url + "?project=" + project_id + "&file=" +
+                         str(filename))
+            }
+            datasets.append(datafile)
+            processed_filenames.add(filename)
+
+    return datasets
 
 
 async def get_data_object(ids, pxid):
@@ -89,6 +119,7 @@ async def get_data_object(ids, pxid):
             raise error
         return data
 
+
 async def get_pride_api_info(cur, pxid):
     """ Get the PRIDE API info for the projects """
     query = """SELECT p.id AS id,
@@ -99,6 +130,7 @@ async def get_pride_api_info(cur, pxid):
                 WHERE p.project_id = (%s);"""
     cur.execute(query, [pxid])
     return cur.fetchall()
+
 
 async def get_results_metadata(cur, ids):
     """ Get the metadata for the results """
