@@ -1,17 +1,20 @@
 import base64
 import configparser
 import traceback
+from enum import Enum
+from typing import Annotated, Union
+from typing_extensions import Doc
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Body
 from fastapi import HTTPException, Security
-from fastapi.params import Body
 from fastapi.security import APIKeyHeader
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.models.upload import Upload
 from app.routes.shared import get_api_key
 from db_config_parser import get_conn_str
 from index import get_session
-from sqlalchemy import Table, Enum, MetaData, create_engine
+from sqlalchemy import Table, MetaData, create_engine
 import logging.config
 
 from parser.writer import Writer
@@ -42,12 +45,12 @@ class TableNamesEnum(str, Enum):
     projectsubdetail = "projectsubdetail"
 
 
-@parser_router.post("/write_data", tags=["Parser"])
+@parser_router.post("/write_data", tags=["Parser"], response_model=None)
 async def write_data(
         table: TableNamesEnum = Body(..., description="table name", embeded=True),
         data=Body(..., description="table data", embeded=True),
         api_key: str = Security(get_api_key),
-        session: Session = Depends(get_session)):
+        session: Session = Depends(get_session)) -> None:
     """
         Insert data into table.
 
@@ -72,19 +75,19 @@ async def write_data(
             result = conn.execute(statement)
             conn.commit()
             conn.close()
-        return result
+        return None
 
     except Exception as e:
         print(f"Caught an exception: {e}")
         traceback.print_exc()
     finally:
         session.close()
-    return result
+    return None
 
 
 @parser_router.post("/write_new_upload", tags=["Parser"])
 def write_new_upload(
-        table: TableNamesEnum = Body(..., description="table name", embeded=True),
+        table: Annotated[TableNamesEnum, Body(..., description="table name", embeded=True)],
         data: dict = Body(..., description="table data", embeded=True),
         api_key: str = Security(get_api_key),
         session: Session = Depends(get_session)):

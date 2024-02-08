@@ -1,6 +1,7 @@
 import configparser
 import os
-from typing import List, Annotated
+from typing import List, Annotated, Union
+from math import ceil
 
 import requests
 from fastapi import APIRouter, Depends, status, Query, Path
@@ -358,6 +359,7 @@ async def update_metadata_by_project(project_id: str, session: Session = Depends
 
     # add new record
     session.add(project_details)
+    # session.add_all(list_of_project_sub_details)
     session.commit()
     logger.info("Saving medatadata COMPLETED")
     return 0
@@ -459,71 +461,130 @@ async def delete_dataset(project_id: str, session: Session = Depends(get_session
         session.close()
 
 
-@pride_router.get("/projects", tags=["Projects"])
-async def list_all_projects(session: Session = Depends(get_session), page: int = 1, page_size: int = 10) -> list[
-    ProjectDetail]:
-    """
-    This gives the high-level view of list of projects
-    :param session: connection to database
-    :param page: page number
-    :param page_size: number of records per page
-    :return: List of ProjectDetails in JSON format
-    """
-    try:
-        offset = (page - 1) * page_size
-        projects = session.query(ProjectDetail).offset(offset).limit(page_size).all()
-    except Exception as e:
-        # Handle the exception here
-        logging.error(f"Error occurred: {str(e)}")
-        return []
-    if projects is None or projects == []:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Projects not found")
+# @pride_router.get("/projects", tags=["Projects"])
+# async def list_all_projects(session: Session = Depends(get_session), page: int = 1, page_size: int = 10) -> list[
+#     ProjectDetail]:
+#     """
+#     This gives the high-level view of list of projects
+#     :param session: connection to database
+#     :param page: page number
+#     :param page_size: number of records per page
+#     :return: List of ProjectDetails in JSON format
+#     """
+#     try:
+#         offset = (page - 1) * page_size
+#         projects = session.query(ProjectDetail).offset(offset).limit(page_size).all()
+#         total_elements = session.query(ProjectDetail).all().__len__()
+#     except Exception as e:
+#         # Handle the exception here
+#         logging.error(f"Error occurred: {str(e)}")
+#     if projects is None or projects == []:
+#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Projects not found")
+#     response = {
+#         "projects": projects,
+#         "page": {
+#             "page_no": page,
+#             "page_size": page_size,
+#             "total_elements": total_elements,
+#             "total_pages": ceil(total_elements / page_size),
+#             "number": 0
+#         }
+#     }
+#
+#     return response
 
-    return projects
 
-
-@pride_router.get("/projects/search", tags=["Projects"])
-async def project_search(query: str = Query(...),
-                         page: int = 1,
-                         page_size: int = 10,
+@pride_router.get("/projects", tags=["Projects"], response_model=None)
+async def project_search(q: Union[str | None] = Query(default="",
+                                                      alias="query",
+                                                      max_length=20,
+                                                      title="query",
+                                                      description="Project accession, protein name or gene name",
+                                                      examples={
+                                                          "Project accession pattern": {
+                                                              "value": "PXD035",
+                                                              "description": "Project accession pattern"
+                                                          },
+                                                          "Project accession": {
+                                                              "value": "PXD035519",
+                                                              "description": "Protein accession"
+                                                          },
+                                                          "protein": {
+                                                              "value": "membrane",
+                                                              "description": "protein name"
+                                                          }
+                                                      }
+                                                      ),
+                         page: int = Query(1, description="Page number"),
+                         page_size: int = Query(10, gt=5, lt=100, description="Number of items per page"),
                          session: Session = Depends(get_session)
                          ) -> list[ProjectDetail]:
     """
     This gives the high-level view of list of projects
-    :param session: connection to database
+    :param q: Query parameter
     :param page: page number
-    :param page_size: number of records per page
+    :param page_size: records per page
     :return: List of ProjectDetails in JSON format
+    :param session: connection to database
     """
-    project_search_sql = text("""
-        SELECT p.id FROM projectdetails p
-    JOIN public.projectsubdetails ps ON p.id = ps.project_detail_id
-    WHERE p.project_id = :query OR
-          p.title ILIKE '%' || :query || '%' OR
-          p.description ILIKE '%' || :query || '%' OR
-          p.organism ILIKE '%' || :query || '%' OR
-          ps.protein_accession = :query OR
-          ps.protein_name ILIKE '%' || :query || '%' OR
-          ps.gene_name ILIKE '%' || :query || '%'
-      """)
-    matchig_ids = session.execute(project_search_sql, {"query": query}).fetchall()
-    list_of_ids = [id for (id,) in matchig_ids]
+    projects = None
+    where_condition = ""
 
+    if q and q != '*':
+        where_condition += """ WHERE p.project_id LIKE '%' || :query || '%' OR
+          p.title LIKE '%' || :query || '%' OR
+          p.description LIKE '%' || :query || '%' OR
+          p.organism LIKE '%' || :query || '%' OR
+          ps.protein_accession = :query OR
+          ps.protein_name LIKE '%' || :query || '%' OR
+          ps.gene_name LIKE '%' || :query || '%'
+               """
+
+    project_search_sql = text(f"""
+                SELECT p.id FROM projectdetails p
+                JOIN public.projectsubdetails ps ON p.id = ps.project_detail_id
+                {where_condition}
+               ORDER BY id
+           """)
+
+    sql_values = {"query": q}
+
+    # project_search_sql = text("""
+    #     SELECT p.id FROM projectdetails p
+    # JOIN public.projectsubdetails ps ON p.id = ps.project_detail_id
+    # WHERE p.project_id = :query OR
+    #       p.title ILIKE '%' || :query || '%' OR
+    #       p.description ILIKE '%' || :query || '%' OR
+    #       p.organism ILIKE '%' || :query || '%' OR
+    #       ps.protein_accession = :query OR
+    #       ps.protein_name ILIKE '%' || :query || '%' OR
+    #       ps.gene_name ILIKE '%' || :query || '%'
+    #   """)
+    matchig_ids = set(session.execute(project_search_sql, sql_values).fetchall())
+    list_of_ids = [id for (id,) in matchig_ids]
     try:
         offset = (page - 1) * page_size
         projects = session.query(ProjectDetail).filter(ProjectDetail.id.in_(list_of_ids)).offset(offset).limit(
             page_size).all()
+        total_elements = session.query(ProjectDetail).filter(ProjectDetail.id.in_(list_of_ids)).all().__len__()
     except Exception as e:
         # Handle the exception here
         logging.error(f"Error occurred: {str(e)}")
-        return []
     if projects is None or projects == []:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Projects not found")
+    response = {
+        "projects": projects,
+        "page": {
+            "page_no": page,
+            "page_size": page_size,
+            "total_elements": total_elements,
+            "total_pages": ceil(total_elements / page_size)
+        }
+    }
+    return response
 
-    return projects
 
-
-@pride_router.get("/projects/{project_id}", tags=["Projects"])
+@pride_router.get("/projects/{project_id}", tags=["Projects"], response_model=None)
 def project_detail_view(project_id: str, session: Session = Depends(get_session)) -> List[ProjectDetail]:
     """
     Retrieve project detail by px_accession.
@@ -546,43 +607,16 @@ def project_detail_view(project_id: str, session: Session = Depends(get_session)
     return project_detail
 
 
-#
-# @pride_router.get("/projects/{project_id}/proteins", tags=["Projects"])
-# def project_detail_view(project_id: str, session: Session = Depends(get_session), page: int = 1, page_size: int = 10) -> \
-#         list[ProjectSubDetail]:
-#     """
-#     Retrieve protein detail by px_accession.
-#     """
-#     try:
-#         project_detail = session.query(ProjectDetail) \
-#             .options(joinedload(ProjectDetail.project_sub_details)) \
-#             .filter(ProjectDetail.project_id == project_id).scalar()
-#
-#         offset = (page - 1) * page_size
-#         project_sub_details = session.query(ProjectSubDetail).filter(
-#             ProjectSubDetail.project_detail_id == project_detail.id) \
-#             .offset(offset).limit(page_size).all()
-#
-#     except Exception as e:
-#         logging.error(f"Error occurred: {str(e)}")
-#         project_sub_details = None
-#
-#     if project_sub_details is None or project_sub_details == []:
-#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project detail not found")
-#
-#     return project_sub_details
-
-
-@pride_router.get("/projects/{project_id}/proteins", tags=["Projects"])
+@pride_router.get("/projects/{project_id}/proteins", tags=["Projects"], response_model=None)
 async def protein_search(project_id: Annotated[str, Path(...,
                                                          title="Project ID",
                                                          pattern="^PXD\d{6}$",
                                                          example="PXD036833")],
-                         q: Annotated[str | None, Query(default=None,
-                                                        alias="query",
-                                                        max_length=20,
-                                                        title="query",
-                                                        description="Protein accession, protein name or gene name")] = None,
+                         q: Union[str | None] = Query(default=None,
+                                                      alias="query",
+                                                      max_length=20,
+                                                      title="query",
+                                                      description="Protein accession, protein name or gene name"),
                          page: int = Query(1, description="Page number"),
                          page_size: int = Query(10, gt=5, lt=100, description="Number of items per page"),
                          session: Session = Depends(get_session)) -> list[ProjectSubDetail]:
@@ -595,40 +629,44 @@ async def protein_search(project_id: Annotated[str, Path(...,
     :return: List of ProjectDetails in JSON format
     """
     try:
-        if q is None or q == '*':
-            sql = text("""
-                                  SELECT * FROM projectsubdetails 
-                                  WHERE project_detail_id IN (SELECT id 
-                                                              FROM projectdetails 
-                                                              WHERE project_id = :project_id)
-                                  ORDER BY id
-                                  LIMIT :limit OFFSET :offset
-                              """)
-            sql_values = {
-                "project_id": project_id,
-                "limit": page_size,
-                "offset": (page - 1) * page_size
-            }
-        else:
-            sql = text("""
-                                  SELECT * FROM projectsubdetails 
-                                  WHERE (protein_accession LIKE '%' || :query || '%' OR
-                                         gene_name LIKE '%' || :query || '%' OR
-                                         protein_name LIKE '%' || :query || '%') 
-                                         AND project_detail_id IN (SELECT id 
-                                                                   FROM projectdetails 
-                                                                   WHERE project_id = :project_id)
-                                  ORDER BY id
-                                  LIMIT :limit OFFSET :offset
-                              """)
-            sql_values = {
-                "project_id": project_id,
-                "query": q,
-                "limit": page_size,
-                "offset": (page - 1) * page_size
-            }
+        where_condition = """project_detail_id IN (SELECT id FROM projectdetails WHERE project_id = :project_id)"""
 
+        if q and q != '*':
+            where_condition += """ AND (protein_accession LIKE '%' || :query || '%' 
+                     OR gene_name LIKE '%' || :query || '%' 
+                     OR protein_name LIKE '%' || :query || '%')
+            """
+
+        sql = text(f"""
+            SELECT * FROM projectsubdetails 
+            WHERE {where_condition}
+            ORDER BY id
+            LIMIT :limit OFFSET :offset
+        """)
+
+        # Set the SQL values
+        sql_values = {
+            "project_id": project_id,
+            "query": q,
+            "limit": page_size,
+            "offset": (page - 1) * page_size
+        }
+
+        sql_total_count = text(f"""
+                  SELECT id FROM projectsubdetails 
+                  WHERE {where_condition}
+              """)
+
+        # Set the SQL values
+        sql_values_total_count = {
+            "project_id": project_id,
+            "query": q
+        }
+
+        # Execute the SQL query
         result = session.execute(sql, sql_values)
+        result_total = session.execute(sql_total_count, sql_values_total_count)
+        total_elements = result_total.all().__len__()
         proteins = result.fetchall()
 
         # Convert rows to a list of ProjectSubDetail objects
@@ -656,7 +694,17 @@ async def protein_search(project_id: Annotated[str, Path(...,
     if not proteins_list:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="proteins not found")
 
-    return proteins_list
+    response = {
+        "proteins": proteins_list,
+        "page": {
+            "page_no": page,
+            "page_size": page_size,
+            "total_elements": total_elements,
+            "total_pages": ceil(total_elements / page_size),
+        }
+    }
+
+    return response
 
 
 @pride_router.get("/statistics-count", tags=["Statistics"])
