@@ -494,7 +494,7 @@ async def delete_dataset(project_id: str, session: Session = Depends(get_session
 #     return response
 
 
-@pride_router.get("/projects", tags=["Projects"])
+@pride_router.get("/projects", tags=["Projects"], response_model=None)
 async def project_search(q: Union[str | None] = Query(default="",
                                                       alias="query",
                                                       max_length=20,
@@ -518,7 +518,7 @@ async def project_search(q: Union[str | None] = Query(default="",
                          page: int = Query(1, description="Page number"),
                          page_size: int = Query(10, gt=5, lt=100, description="Number of items per page"),
                          session: Session = Depends(get_session)
-                         ):
+                         ) -> list[ProjectDetail]:
     """
     This gives the high-level view of list of projects
     :param q: Query parameter
@@ -584,7 +584,7 @@ async def project_search(q: Union[str | None] = Query(default="",
     return response
 
 
-@pride_router.get("/projects/{project_id}", tags=["Projects"])
+@pride_router.get("/projects/{project_id}", tags=["Projects"], response_model=None)
 def project_detail_view(project_id: str, session: Session = Depends(get_session)) -> List[ProjectDetail]:
     """
     Retrieve project detail by px_accession.
@@ -607,7 +607,7 @@ def project_detail_view(project_id: str, session: Session = Depends(get_session)
     return project_detail
 
 
-@pride_router.get("/projects/{project_id}/proteins", tags=["Projects"])
+@pride_router.get("/projects/{project_id}/proteins", tags=["Projects"], response_model=None)
 async def protein_search(project_id: Annotated[str, Path(...,
                                                          title="Project ID",
                                                          pattern="^PXD\d{6}$",
@@ -619,7 +619,7 @@ async def protein_search(project_id: Annotated[str, Path(...,
                                                       description="Protein accession, protein name or gene name"),
                          page: int = Query(1, description="Page number"),
                          page_size: int = Query(10, gt=5, lt=100, description="Number of items per page"),
-                         session: Session = Depends(get_session)):
+                         session: Session = Depends(get_session)) -> list[ProjectSubDetail]:
     """
     This gives the high-level view of a list of projects
     - **project_id**: PXD****** accession
