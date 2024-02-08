@@ -1,6 +1,6 @@
 import configparser
 import os
-from typing import List, Annotated
+from typing import List, Annotated, Union
 from math import ceil
 
 import requests
@@ -495,12 +495,26 @@ async def delete_dataset(project_id: str, session: Session = Depends(get_session
 
 
 @pride_router.get("/projects", tags=["Projects"])
-async def project_search(q: Annotated[str | None, Query(default=None,
-                                                        alias="query",
-                                                        max_length=20,
-                                                        title="query",
-                                                        description="Protein accession, protein name or gene name",
-                                                        example="PXD035 or PXD035519 or membrane")] = None,
+async def project_search(q: Union[str | None] = Query(default="",
+                                                      alias="query",
+                                                      max_length=20,
+                                                      title="query",
+                                                      description="Project accession, protein name or gene name",
+                                                      examples={
+                                                          "Project accession pattern": {
+                                                              "value": "PXD035",
+                                                              "description": "Project accession pattern"
+                                                          },
+                                                          "Project accession": {
+                                                              "value": "PXD035519",
+                                                              "description": "Protein accession"
+                                                          },
+                                                          "protein": {
+                                                              "value": "membrane",
+                                                              "description": "protein name"
+                                                          }
+                                                      }
+                                                      ),
                          page: int = Query(1, description="Page number"),
                          page_size: int = Query(10, gt=5, lt=100, description="Number of items per page"),
                          session: Session = Depends(get_session)
@@ -598,11 +612,11 @@ async def protein_search(project_id: Annotated[str, Path(...,
                                                          title="Project ID",
                                                          pattern="^PXD\d{6}$",
                                                          example="PXD036833")],
-                         q: Annotated[str | None, Query(default=None,
-                                                        alias="query",
-                                                        max_length=20,
-                                                        title="query",
-                                                        description="Protein accession, protein name or gene name")] = None,
+                         q: Union[str | None] = Query(default=None,
+                                                      alias="query",
+                                                      max_length=20,
+                                                      title="query",
+                                                      description="Protein accession, protein name or gene name"),
                          page: int = Query(1, description="Page number"),
                          page_size: int = Query(10, gt=5, lt=100, description="Number of items per page"),
                          session: Session = Depends(get_session)) -> list[ProjectSubDetail]:
