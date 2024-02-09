@@ -530,7 +530,7 @@ async def project_search(q: Union[str | None] = Query(default="",
     projects = None
     where_condition = ""
 
-    if q and q != '*':
+    if q and q != '*' and q != 'all':
         where_condition += """ WHERE p.project_id LIKE '%' || :query || '%' OR
           p.title LIKE '%' || :query || '%' OR
           p.description LIKE '%' || :query || '%' OR
@@ -631,7 +631,7 @@ async def protein_search(project_id: Annotated[str, Path(...,
     try:
         where_condition = """project_detail_id IN (SELECT id FROM projectdetails WHERE project_id = :project_id)"""
 
-        if q and q != '*':
+        if q and q != '*' and q != 'all':
             where_condition += """ AND (protein_accession LIKE '%' || :query || '%' 
                      OR gene_name LIKE '%' || :query || '%' 
                      OR protein_name LIKE '%' || :query || '%')
