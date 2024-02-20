@@ -69,7 +69,7 @@ async def write_data(
                 data[i] = spectra
                 i += 1
 
-        table = Table(table, meta, autoload_with=engine)
+        table = Table(table.name, meta, autoload_with=engine)
         with engine.connect() as conn:
             statement = table.insert().values(data)
             result = conn.execute(statement)
@@ -125,7 +125,7 @@ def write_mzid_info(analysis_software_list=Body(..., embeded=True),
     :param bib:
     :return:
     """
-    upload = Table("upload", meta, autoload_with=engine, quote=False)
+    upload = Table(TableNamesEnum.upload.name, meta, autoload_with=engine, quote=False)
     stmt = upload.update().where(upload.c.id == str(upload_id)).values(
         analysis_software_list=analysis_software_list,
         spectra_formats=spectra_formats,
@@ -156,7 +156,7 @@ def write_other_info(contains_crosslinks=Body(..., description="contains_crossli
     :return:
     """
 
-    upload = Table("upload", meta, autoload_with=engine, quote=False)
+    upload = Table(TableNamesEnum.upload.name, meta, autoload_with=engine, quote=False)
     with engine.connect() as conn:
         stmt = upload.update().where(upload.c.id == str(upload_id)).values(
             contains_crosslinks=contains_crosslinks,
