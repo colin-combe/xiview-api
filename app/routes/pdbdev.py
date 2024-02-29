@@ -57,13 +57,13 @@ async def sequences(project_id):
         conn = await get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
-        sql = text("""SELECT dbseq.id, u.identification_file_name, dbseq.sequencel, dbseq.accession
+        sql = """SELECT dbseq.id, u.identification_file_name, dbseq.sequence, dbseq.accession
                     FROM upload AS u
                     JOIN dbsequence AS dbseq ON u.id = dbseq.upload_id
                     INNER JOIN peptideevidence pe ON dbseq.id = pe.dbsequence_ref AND dbseq.upload_id = pe.upload_id
                  WHERE u.id = ANY (%s)
                  AND pe.is_decoy = false
-                 GROUP by dbseq.id, dbseq.sequence, u.identification_file_name;""")
+                 GROUP by dbseq.id, dbseq.sequence, dbseq.accession, u.identification_file_name;"""
 
         print(sql)
         cur.execute(sql, [most_recent_upload_ids])
