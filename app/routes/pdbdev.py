@@ -111,7 +111,7 @@ async def get_psm_level_residue_pairs(project_id: Annotated[str, Path(...,
                                                                                        }
                                                                                    })],
                                       page: int = Query(1, description="Page number"),
-                                      page_size: int = Query(10, gt=5, lt=10, description="Number of items per page"),
+                                      page_size: int = Query(10, gt=5, lt=100, description="Number of items per page"),
                                       ):
     """
     Get all residue pairs (based on PSM level data) belonging to a project.
