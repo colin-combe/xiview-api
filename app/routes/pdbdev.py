@@ -1,7 +1,9 @@
 import json
+import math
+from math import ceil
 
 import psycopg2
-from fastapi import APIRouter, Depends, Path, Response
+from fastapi import APIRouter, Depends, Path, Response, Query
 import orjson
 from fastapi import APIRouter, Depends
 from psycopg2.extras import RealDictCursor
@@ -64,8 +66,6 @@ async def sequences(project_id):
                  WHERE u.id = ANY (%s)
                  AND pe.is_decoy = false
                  GROUP by dbseq.id, dbseq.sequence, dbseq.accession, u.identification_file_name;"""
-
-        print(sql)
         cur.execute(sql, [most_recent_upload_ids])
         mzid_rows = cur.fetchall()
 
@@ -90,25 +90,28 @@ class Threshold(str, Enum):
         except AttributeError:
             return False
 
+
 @pdbdev_router.get('/projects/{project_id}/residue-pairs/based-on-reported-psm-level/{passing_threshold}',
                    tags=["PDB-Dev"])
 async def get_psm_level_residue_pairs(project_id: Annotated[str, Path(...,
                                                                       title="Project ID",
                                                                       pattern="^PXD\d{6}$",
-                                                                      example="PXD036833")],
+                                                                      example="PXD019437")],
                                       passing_threshold: Annotated[Threshold, Path(...,
                                                                                    title="Threshold",
                                                                                    description="Threshold passing or all the values",
                                                                                    examples={
-                                                          "Passing": {
-                                                              "value": "passing",
-                                                              "description": "passing threshold"
-                                                          },
-                                                          "All": {
-                                                              "value": "all",
-                                                              "description": "all threshold"
-                                                          }
-                                                      })]
+                                                                                       "Passing": {
+                                                                                           "value": "passing",
+                                                                                           "description": "passing threshold"
+                                                                                       },
+                                                                                       "All": {
+                                                                                           "value": "all",
+                                                                                           "description": "all threshold"
+                                                                                       }
+                                                                                   })],
+                                      page: int = Query(1, description="Page number"),
+                                      page_size: int = Query(10, gt=5, lt=10, description="Number of items per page"),
                                       ):
     """
     Get all residue pairs (based on PSM level data) belonging to a project.
@@ -127,7 +130,7 @@ async def get_psm_level_residue_pairs(project_id: Annotated[str, Path(...,
                f"Valid values are: passing, all", 400
 
     most_recent_upload_ids = await get_most_recent_upload_ids(project_id)
-
+    response = {}
     conn = None
     data = {}
     try:
@@ -135,28 +138,86 @@ async def get_psm_level_residue_pairs(project_id: Annotated[str, Path(...,
         conn = await get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
-
-        sql = """SELECT si.id, u.identification_file_name as file, si.pass_threshold as pass,
-pe1.dbsequence_ref as prot1, dbs1.accession as prot1_acc, (pe1.pep_start + mp1.link_site1 - 1) as pos1,
-pe2.dbsequence_ref as prot2, dbs2.accession as prot2_acc, (pe2.pep_start + mp2.link_site1 - 1) as pos2
-FROM spectrumidentification si INNER JOIN
-modifiedpeptide mp1 ON si.pep1_id = mp1.id AND si.upload_id = mp1.upload_id INNER JOIN
-peptideevidence pe1 ON mp1.id = pe1.peptide_ref AND mp1.upload_id = pe1.upload_id INNER JOIN
-dbsequence dbs1 ON pe1.dbsequence_ref = dbs1.id AND pe1.upload_id = dbs1.upload_id INNER JOIN
-modifiedpeptide mp2 ON si.pep2_id = mp2.id AND si.upload_id = mp2.upload_id INNER JOIN
-peptideevidence pe2 ON mp2.id = pe2.peptide_ref AND mp2.upload_id = pe2.upload_id INNER JOIN
-dbsequence dbs2 ON pe2.dbsequence_ref = dbs2.id AND pe2.upload_id = dbs2.upload_id INNER JOIN
-upload u on u.id = si.upload_id
-where u.id = ANY (%s) and mp1.link_site1 > 0 and mp2.link_site1 > 0 AND pe1.is_decoy = false AND pe2.is_decoy = false
-"""
-        # problem above in u.project_id
+        sql_values = {
+            "upload_ids": tuple(upload_id[0] for upload_id in most_recent_upload_ids),
+            "limit": page_size,
+            "offset": (page - 1) * page_size
+        }
 
         if passing_threshold.lower() == Threshold.passing:
-            sql += " AND si.pass_threshold = true"
-        sql += ";"
-        cur.execute(sql, [most_recent_upload_ids])
+            sql = """SELECT si.id, u.identification_file_name as file, si.pass_threshold as pass,
+            pe1.dbsequence_ref as prot1, dbs1.accession as prot1_acc, (pe1.pep_start + mp1.link_site1 - 1) as pos1,
+            pe2.dbsequence_ref as prot2, dbs2.accession as prot2_acc, (pe2.pep_start + mp2.link_site1 - 1) as pos2
+            FROM spectrumidentification si INNER JOIN
+            modifiedpeptide mp1 ON si.pep1_id = mp1.id AND si.upload_id = mp1.upload_id INNER JOIN
+            peptideevidence pe1 ON mp1.id = pe1.peptide_ref AND mp1.upload_id = pe1.upload_id INNER JOIN
+            dbsequence dbs1 ON pe1.dbsequence_ref = dbs1.id AND pe1.upload_id = dbs1.upload_id INNER JOIN
+            modifiedpeptide mp2 ON si.pep2_id = mp2.id AND si.upload_id = mp2.upload_id INNER JOIN
+            peptideevidence pe2 ON mp2.id = pe2.peptide_ref AND mp2.upload_id = pe2.upload_id INNER JOIN
+            dbsequence dbs2 ON pe2.dbsequence_ref = dbs2.id AND pe2.upload_id = dbs2.upload_id INNER JOIN
+            upload u on u.id = si.upload_id
+            WHERE u.id IN %(upload_ids)s AND mp1.link_site1 > 0 AND mp2.link_site1 > 0 AND pe1.is_decoy = false AND pe2.is_decoy = false
+            AND si.pass_threshold = true
+            LIMIT %(limit)s OFFSET %(offset)s;"""
+        else:
+            sql = """SELECT si.id, u.identification_file_name as file, si.pass_threshold as pass,
+            pe1.dbsequence_ref as prot1, dbs1.accession as prot1_acc, (pe1.pep_start + mp1.link_site1 - 1) as pos1,
+            pe2.dbsequence_ref as prot2, dbs2.accession as prot2_acc, (pe2.pep_start + mp2.link_site1 - 1) as pos2
+            FROM spectrumidentification si INNER JOIN
+            modifiedpeptide mp1 ON si.pep1_id = mp1.id AND si.upload_id = mp1.upload_id INNER JOIN
+            peptideevidence pe1 ON mp1.id = pe1.peptide_ref AND mp1.upload_id = pe1.upload_id INNER JOIN
+            dbsequence dbs1 ON pe1.dbsequence_ref = dbs1.id AND pe1.upload_id = dbs1.upload_id INNER JOIN
+            modifiedpeptide mp2 ON si.pep2_id = mp2.id AND si.upload_id = mp2.upload_id INNER JOIN
+            peptideevidence pe2 ON mp2.id = pe2.peptide_ref AND mp2.upload_id = pe2.upload_id INNER JOIN
+            dbsequence dbs2 ON pe2.dbsequence_ref = dbs2.id AND pe2.upload_id = dbs2.upload_id INNER JOIN
+            upload u on u.id = si.upload_id
+            WHERE u.id IN %(upload_ids)s AND mp1.link_site1 > 0 AND mp2.link_site1 > 0 AND pe1.is_decoy = false AND pe2.is_decoy = false
+            LIMIT %(limit)s OFFSET %(offset)s;"""
+
+        if passing_threshold.lower() == Threshold.passing:
+            count_sql = """SELECT count(si.id)
+            FROM spectrumidentification si INNER JOIN
+            modifiedpeptide mp1 ON si.pep1_id = mp1.id AND si.upload_id = mp1.upload_id INNER JOIN
+            peptideevidence pe1 ON mp1.id = pe1.peptide_ref AND mp1.upload_id = pe1.upload_id INNER JOIN
+            dbsequence dbs1 ON pe1.dbsequence_ref = dbs1.id AND pe1.upload_id = dbs1.upload_id INNER JOIN
+            modifiedpeptide mp2 ON si.pep2_id = mp2.id AND si.upload_id = mp2.upload_id INNER JOIN
+            peptideevidence pe2 ON mp2.id = pe2.peptide_ref AND mp2.upload_id = pe2.upload_id INNER JOIN
+            dbsequence dbs2 ON pe2.dbsequence_ref = dbs2.id AND pe2.upload_id = dbs2.upload_id INNER JOIN
+            upload u on u.id = si.upload_id
+            WHERE u.id IN %(upload_ids)s AND mp1.link_site1 > 0 AND mp2.link_site1 > 0 AND pe1.is_decoy = false AND pe2.is_decoy = false
+            AND si.pass_threshold = true;"""
+        else:
+            count_sql = """SELECT count(si.id)
+            FROM spectrumidentification si INNER JOIN
+            modifiedpeptide mp1 ON si.pep1_id = mp1.id AND si.upload_id = mp1.upload_id INNER JOIN
+            peptideevidence pe1 ON mp1.id = pe1.peptide_ref AND mp1.upload_id = pe1.upload_id INNER JOIN
+            dbsequence dbs1 ON pe1.dbsequence_ref = dbs1.id AND pe1.upload_id = dbs1.upload_id INNER JOIN
+            modifiedpeptide mp2 ON si.pep2_id = mp2.id AND si.upload_id = mp2.upload_id INNER JOIN
+            peptideevidence pe2 ON mp2.id = pe2.peptide_ref AND mp2.upload_id = pe2.upload_id INNER JOIN
+            dbsequence dbs2 ON pe2.dbsequence_ref = dbs2.id AND pe2.upload_id = dbs2.upload_id INNER JOIN
+            upload u on u.id = si.upload_id
+            WHERE u.id IN %(upload_ids)s AND mp1.link_site1 > 0 AND mp2.link_site1 > 0 AND pe1.is_decoy = false AND pe2.is_decoy = false;"""
+
+        cur.execute(sql, sql_values)
         mzid_rows = cur.fetchall()
         data["data"] = mzid_rows
+
+        # Perform a COUNT query to get the total number of elements
+        cur.execute(count_sql, sql_values)
+        total_elements = cur.fetchone()["count"]
+
+        # Calculate the total pages based on the page size and total elements
+        total_pages = math.ceil(total_elements / page_size)
+
+        response = {
+            "data": data["data"],
+            "page": {
+                "page_no": page,
+                "page_size": page_size,
+                "total_elements": total_elements,
+                "total_pages": total_pages
+            }
+        }
 
         print("finished")
         # close the communication with the PostgreSQL
@@ -167,7 +228,7 @@ where u.id = ANY (%s) and mp1.link_site1 > 0 and mp2.link_site1 > 0 AND pe1.is_d
         if conn is not None:
             conn.close()
             print('Database connection closed.')
-        return Response(orjson.dumps(data), media_type='application/json')
+    return Response(orjson.dumps(response), media_type='application/json')
 
 #
 # @pdb_dev_router.get('/projects/{project_id}/residue-pairs/reported')
