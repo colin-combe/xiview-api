@@ -11,8 +11,7 @@ from psycopg2 import sql
 from psycopg2.extras import RealDictCursor
 from sqlalchemy.orm import session, Session
 
-from app.models.projectdetail import ProjectDetail
-from app.models.upload import Upload
+from models.upload import Upload
 from app.routes.shared import get_db_connection, get_most_recent_upload_ids
 from index import get_session
 from db_config_parser import get_xiview_base_url

@@ -24,6 +24,7 @@ python-multipart = "*"
 python-jose = "*"
 passlib = "*"
 jose = "*"
+xi-mzidentml-converter = "0.1.19"
 
 [dev-packages]
 

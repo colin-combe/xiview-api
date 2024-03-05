@@ -3,6 +3,8 @@ import configparser
 import traceback
 from enum import Enum
 from typing import Annotated, Union
+
+from parser.api_writer import APIWriter
 from typing_extensions import Doc
 
 from fastapi import APIRouter, Depends, Query, Body
@@ -10,17 +12,15 @@ from fastapi import HTTPException, Security
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from app.models.upload import Upload
+from models.upload import Upload
 from app.routes.shared import get_api_key
 from db_config_parser import get_conn_str
 from index import get_session
 from sqlalchemy import Table, MetaData, create_engine
 import logging.config
 
-from parser.writer import Writer
-
 logger = logging.getLogger(__name__)
-writer = Writer(get_conn_str())
+writer = APIWriter(get_conn_str())
 engine = create_engine(get_conn_str())
 meta = MetaData()
 

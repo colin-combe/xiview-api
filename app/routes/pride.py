@@ -1,31 +1,30 @@
 import configparser
+import logging
+import logging.config
 import os
-from typing import List, Annotated, Union
 from math import ceil
+from typing import List, Annotated, Union
 
 import requests
 from fastapi import APIRouter, Depends, status, Query, Path
 from fastapi import HTTPException, Security
 from sqlalchemy import text
 from sqlalchemy.orm import Session, joinedload
-from app.models.upload import Upload
-from app.models.analysiscollection import AnalysisCollection
-from app.models.dbsequence import DBSequence
-from app.models.enzyme import Enzyme
-from app.models.modifiedpeptide import ModifiedPeptide
-from app.models.peptideevidence import PeptideEvidence
-from app.models.projectdetail import ProjectDetail
-from app.models.projectsubdetail import ProjectSubDetail
-from app.models.searchmodification import SearchModification
-from app.models.spectrum import Spectrum
-from app.models.spectrumidentification import SpectrumIdentification
-from app.models.spectrumidentificationprotocol import SpectrumIdentificationProtocol
+
+from models.analysiscollection import AnalysisCollection
+from models.dbsequence import DBSequence
+from models.enzyme import Enzyme
+from models.modifiedpeptide import ModifiedPeptide
+from models.peptideevidence import PeptideEvidence
+from models.projectdetail import ProjectDetail
+from models.projectsubdetail import ProjectSubDetail
+from models.searchmodification import SearchModification
+from models.spectrum import Spectrum
+from models.spectrumidentification import SpectrumIdentification
+from models.spectrumidentificationprotocol import SpectrumIdentificationProtocol
 from app.routes.shared import get_api_key
 from index import get_session
 from process_dataset import convert_pxd_accession_from_pride
-
-import logging
-import logging.config
 
 logger = logging.getLogger(__name__)
 pride_router = APIRouter()

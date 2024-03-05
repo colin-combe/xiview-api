@@ -5,22 +5,10 @@ python_env/*
 !python_env/lib/python2\.7/site\-packages/pymzml/obo/*.obo
 python3_env/*
 \.idea/
-dbs/\.directory
-dbs/tmp/*
-!dbs/tmp/.gitkeep
-dbs/saved/*
-!dbs/saved/.gitkeep
 logs/*
 logs/xi_mzidentml_converter.log
 !logs/.gitkeep
 .DS_Store
-
-tests/test.db
-dbs/xiSPEC\.db
-
-test\.py
-parser\.py3
-
 \.directory
 
 credentials.py
