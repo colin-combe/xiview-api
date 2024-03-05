@@ -62,6 +62,7 @@ jobs:
       node_port: ${{ vars.NODE_PORT }}
       app_name: ${{ vars.APP_NAME }}
       k8s_replicas: ${{ vars.K8S_REPLICAS }}
+      LOG_VOLUME_SIZE: ${{ vars.LOG_VOLUME_SIZE }}
       K8S_NAMESPACE: ${{ vars.K8S_NAMESPACE }}
       DATABASE_INI: ${{ vars.DATABASE_INI }}
       LOGGING_INI: ${{ vars.LOGGING_INI }}
