@@ -3,7 +3,7 @@ kind: PersistentVolumeClaim
 metadata:
   name: $log_volume_pvc
 spec:
-  storageClassName: $k8s_storageclass
+  storageClassName: $K8S_STORAGECLASS
   accessModes:
     - ReadWriteMany
   resources:
