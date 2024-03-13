@@ -8,6 +8,7 @@ from typing import List, Annotated, Union
 import requests
 from fastapi import APIRouter, Depends, status, Query, Path
 from fastapi import HTTPException, Security
+from models.upload import Upload
 from sqlalchemy import text
 from sqlalchemy.orm import Session, joinedload
 
