@@ -59,7 +59,7 @@ async def sequences(project_id):
         conn = await get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
-        sql = """SELECT dbseq.id, u.identification_file_name, dbseq.sequence, dbseq.accession
+        sql = """SELECT dbseq.id, u.identification_file_name  as file, dbseq.sequence, dbseq.accession
                     FROM upload AS u
                     JOIN dbsequence AS dbseq ON u.id = dbseq.upload_id
                     INNER JOIN peptideevidence pe ON dbseq.id = pe.dbsequence_ref AND dbseq.upload_id = pe.upload_id
