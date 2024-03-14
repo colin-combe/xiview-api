@@ -18,7 +18,18 @@ from db_config_parser import get_xiview_base_url
 
 xiview_data_router = APIRouter()
 
+
+class EndpointFilter(logging.Filter):
+    """
+    Define the filter to stop logging for visualisation endpoint which will be called very frequently
+    and log file will be flooded with this endpoint request logs
+    """
+    def filter(self, record: logging.LogRecord) -> bool:
+        return record.args and len(record.args) >= 3 and not str(record.args[2]).__contains__("/data/visualisations/")
+
+
 logger = logging.getLogger(__name__)
+logging.getLogger("uvicorn.access").addFilter(EndpointFilter())
 
 
 @xiview_data_router.get('/get_xiview_data', tags=["xiVIEW"])
