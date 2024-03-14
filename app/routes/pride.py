@@ -461,39 +461,6 @@ async def delete_dataset(project_id: str, session: Session = Depends(get_session
         session.close()
 
 
-# @pride_router.get("/projects", tags=["Projects"])
-# async def list_all_projects(session: Session = Depends(get_session), page: int = 1, page_size: int = 10) -> list[
-#     ProjectDetail]:
-#     """
-#     This gives the high-level view of list of projects
-#     :param session: connection to database
-#     :param page: page number
-#     :param page_size: number of records per page
-#     :return: List of ProjectDetails in JSON format
-#     """
-#     try:
-#         offset = (page - 1) * page_size
-#         projects = session.query(ProjectDetail).offset(offset).limit(page_size).all()
-#         total_elements = session.query(ProjectDetail).all().__len__()
-#     except Exception as e:
-#         # Handle the exception here
-#         logging.error(f"Error occurred: {str(e)}")
-#     if projects is None or projects == []:
-#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Projects not found")
-#     response = {
-#         "projects": projects,
-#         "page": {
-#             "page_no": page,
-#             "page_size": page_size,
-#             "total_elements": total_elements,
-#             "total_pages": ceil(total_elements / page_size),
-#             "number": 0
-#         }
-#     }
-#
-#     return response
-
-
 @pride_router.get("/projects", tags=["Projects"], response_model=None)
 async def project_search(q: Union[str | None] = Query(default="",
                                                       alias="query",
