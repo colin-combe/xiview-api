@@ -70,6 +70,10 @@ jobs:
       LOGGING_INI: ${{ vars.LOGGING_INI }}
       IMAGE: ghcr.io/${{ vars.API_GITHUB_REPOSITORY }}:latest
       XIVIEW_PRIDE_URL: ${{ vars.XIVIEW_PRIDE_URL }}
+      REDIS_HOST: ${{ vars.REDIS_HOST }}
+      REDIS_PORT: ${{ vars.REDIS_PORT }}
+      REDIS_PASSWORD: ${{ vars.REDIS_PASSWORD }}
+      PEPTIDE_PER_PROTEIN: ${{ vars.PEPTIDE_PER_PROTEIN }}
 
     steps:
       - name: Checkout repository

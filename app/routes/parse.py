@@ -13,6 +13,8 @@ from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from models.upload import Upload
+
+from app.routes.pride import invalidate_cache
 from app.routes.shared import get_api_key
 from db_config_parser import get_conn_str
 from index import get_session
@@ -75,6 +77,8 @@ async def write_data(
             result = conn.execute(statement)
             conn.commit()
             conn.close()
+        invalidate_cache()
+        logger.info("Invalidated Cache")
         return None
 
     except Exception as e:

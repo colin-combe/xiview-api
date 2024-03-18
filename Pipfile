@@ -25,6 +25,8 @@ python-jose = "*"
 passlib = "*"
 jose = "*"
 xi-mzidentml-converter = "0.1.19"
+redis = "*"
+hiredis = "*"
 
 [dev-packages]
 

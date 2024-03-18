@@ -38,6 +38,12 @@ def security_API_key():
     return apikey
 
 
+def redis_config():
+    config = os.environ.get('DB_CONFIG', 'database.ini')
+    redis_info = parse_info(config, 'redis')
+    return redis_info
+
+
 def get_xiview_base_url():
     config = os.environ.get('DB_CONFIG', 'database.ini')
     security_info = parse_info(config, 'security')
