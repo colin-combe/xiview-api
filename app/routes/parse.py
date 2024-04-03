@@ -3,6 +3,8 @@ import configparser
 import traceback
 from enum import Enum
 from typing import Annotated, Union
+
+from parser.api_writer import APIWriter
 from typing_extensions import Doc
 
 from fastapi import APIRouter, Depends, Query, Body
@@ -10,17 +12,17 @@ from fastapi import HTTPException, Security
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from app.models.upload import Upload
+from models.upload import Upload
+
+from app.routes.pride import invalidate_cache
 from app.routes.shared import get_api_key
 from db_config_parser import get_conn_str
 from index import get_session
 from sqlalchemy import Table, MetaData, create_engine
 import logging.config
 
-from parser.writer import Writer
-
 logger = logging.getLogger(__name__)
-writer = Writer(get_conn_str())
+writer = APIWriter(get_conn_str())
 engine = create_engine(get_conn_str())
 meta = MetaData()
 
@@ -69,12 +71,14 @@ async def write_data(
                 data[i] = spectra
                 i += 1
 
-        table = Table(table, meta, autoload_with=engine)
+        table = Table(table.name, meta, autoload_with=engine)
         with engine.connect() as conn:
             statement = table.insert().values(data)
             result = conn.execute(statement)
             conn.commit()
             conn.close()
+        invalidate_cache()
+        logger.info("Invalidated Cache")
         return None
 
     except Exception as e:
@@ -125,7 +129,7 @@ def write_mzid_info(analysis_software_list=Body(..., embeded=True),
     :param bib:
     :return:
     """
-    upload = Table("upload", meta, autoload_with=engine, quote=False)
+    upload = Table(TableNamesEnum.upload.name, meta, autoload_with=engine, quote=False)
     stmt = upload.update().where(upload.c.id == str(upload_id)).values(
         analysis_software_list=analysis_software_list,
         spectra_formats=spectra_formats,
@@ -156,7 +160,7 @@ def write_other_info(contains_crosslinks=Body(..., description="contains_crossli
     :return:
     """
 
-    upload = Table("upload", meta, autoload_with=engine, quote=False)
+    upload = Table(TableNamesEnum.upload.name, meta, autoload_with=engine, quote=False)
     with engine.connect() as conn:
         stmt = upload.update().where(upload.c.id == str(upload_id)).values(
             contains_crosslinks=contains_crosslinks,

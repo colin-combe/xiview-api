@@ -11,15 +11,25 @@ from psycopg2 import sql
 from psycopg2.extras import RealDictCursor
 from sqlalchemy.orm import session, Session
 
-from app.models.projectdetail import ProjectDetail
-from app.models.upload import Upload
+from models.upload import Upload
 from app.routes.shared import get_db_connection, get_most_recent_upload_ids
 from index import get_session
 from db_config_parser import get_xiview_base_url
 
 xiview_data_router = APIRouter()
 
+
+class EndpointFilter(logging.Filter):
+    """
+    Define the filter to stop logging for visualisation endpoint which will be called very frequently
+    and log file will be flooded with this endpoint request logs
+    """
+    def filter(self, record: logging.LogRecord) -> bool:
+        return record.args and len(record.args) >= 3 and not str(record.args[2]).__contains__("/data/visualisations/")
+
+
 logger = logging.getLogger(__name__)
+logging.getLogger("uvicorn.access").addFilter(EndpointFilter())
 
 
 @xiview_data_router.get('/get_xiview_data', tags=["xiVIEW"])

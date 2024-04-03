@@ -1,31 +1,34 @@
 import configparser
+import json
+import logging
+import logging.config
 import os
-from typing import List, Annotated, Union
 from math import ceil
+from typing import List, Annotated, Union
 
+import redis
 import requests
 from fastapi import APIRouter, Depends, status, Query, Path
 from fastapi import HTTPException, Security
+from models.upload import Upload
 from sqlalchemy import text
 from sqlalchemy.orm import Session, joinedload
-from app.models.upload import Upload
-from app.models.analysiscollection import AnalysisCollection
-from app.models.dbsequence import DBSequence
-from app.models.enzyme import Enzyme
-from app.models.modifiedpeptide import ModifiedPeptide
-from app.models.peptideevidence import PeptideEvidence
-from app.models.projectdetail import ProjectDetail
-from app.models.projectsubdetail import ProjectSubDetail
-from app.models.searchmodification import SearchModification
-from app.models.spectrum import Spectrum
-from app.models.spectrumidentification import SpectrumIdentification
-from app.models.spectrumidentificationprotocol import SpectrumIdentificationProtocol
+
+from models.analysiscollection import AnalysisCollection
+from models.dbsequence import DBSequence
+from models.enzyme import Enzyme
+from models.modifiedpeptide import ModifiedPeptide
+from models.peptideevidence import PeptideEvidence
+from models.projectdetail import ProjectDetail
+from models.projectsubdetail import ProjectSubDetail
+from models.searchmodification import SearchModification
+from models.spectrum import Spectrum
+from models.spectrumidentification import SpectrumIdentification
+from models.spectrumidentificationprotocol import SpectrumIdentificationProtocol
 from app.routes.shared import get_api_key
+from db_config_parser import redis_config
 from index import get_session
 from process_dataset import convert_pxd_accession_from_pride
-
-import logging
-import logging.config
 
 logger = logging.getLogger(__name__)
 pride_router = APIRouter()
@@ -76,6 +79,8 @@ async def parse(px_accession: str, temp_dir: str | None = None, dont_delete: boo
     else:
         temp_dir = os.path.expanduser('~/mzId_convertor_temp')
     convert_pxd_accession_from_pride(px_accession, temp_dir, dont_delete)
+    invalidate_cache()
+    logger.info("Invalidated Cache")
 
 
 @pride_router.post("/update-protein-metadata/{project_id}", tags=["Admin"])
@@ -359,10 +364,9 @@ async def update_metadata_by_project(project_id: str, session: Session = Depends
 
     # add new record
     session.add(project_details)
-    # session.add_all(list_of_project_sub_details)
     session.commit()
     logger.info("Saving medatadata COMPLETED")
-    return 0
+    return None
 
 
 @pride_router.post("/update-metadata", tags=["Admin"])
@@ -454,44 +458,13 @@ async def delete_dataset(project_id: str, session: Session = Depends(get_session
         logging.info("trying to delete records from Upload")
         session.commit()
         logger.info("*****Deleted dataset: " + project_id)
+        invalidate_cache()
+        logger.info("Invalidated Cache")
     except Exception as error:
         logger.error(str(error))
         session.rollback()
     finally:
         session.close()
-
-
-# @pride_router.get("/projects", tags=["Projects"])
-# async def list_all_projects(session: Session = Depends(get_session), page: int = 1, page_size: int = 10) -> list[
-#     ProjectDetail]:
-#     """
-#     This gives the high-level view of list of projects
-#     :param session: connection to database
-#     :param page: page number
-#     :param page_size: number of records per page
-#     :return: List of ProjectDetails in JSON format
-#     """
-#     try:
-#         offset = (page - 1) * page_size
-#         projects = session.query(ProjectDetail).offset(offset).limit(page_size).all()
-#         total_elements = session.query(ProjectDetail).all().__len__()
-#     except Exception as e:
-#         # Handle the exception here
-#         logging.error(f"Error occurred: {str(e)}")
-#     if projects is None or projects == []:
-#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Projects not found")
-#     response = {
-#         "projects": projects,
-#         "page": {
-#             "page_no": page,
-#             "page_size": page_size,
-#             "total_elements": total_elements,
-#             "total_pages": ceil(total_elements / page_size),
-#             "number": 0
-#         }
-#     }
-#
-#     return response
 
 
 @pride_router.get("/projects", tags=["Projects"], response_model=None)
@@ -530,7 +503,7 @@ async def project_search(q: Union[str | None] = Query(default="",
     projects = None
     where_condition = ""
 
-    if q and q != '*':
+    if q and q != '*' and q != 'all':
         where_condition += """ WHERE p.project_id LIKE '%' || :query || '%' OR
           p.title LIKE '%' || :query || '%' OR
           p.description LIKE '%' || :query || '%' OR
@@ -631,7 +604,7 @@ async def protein_search(project_id: Annotated[str, Path(...,
     try:
         where_condition = """project_detail_id IN (SELECT id FROM projectdetails WHERE project_id = :project_id)"""
 
-        if q and q != '*':
+        if q and q != '*' and q != 'all':
             where_condition += """ AND (protein_accession LIKE '%' || :query || '%' 
                      OR gene_name LIKE '%' || :query || '%' 
                      OR protein_name LIKE '%' || :query || '%')
@@ -747,84 +720,114 @@ async def project_per_species(session: Session = Depends(get_session)):
 
 
 @pride_router.get("/peptide-per-protein", tags=["Statistics"])
-async def peptide_per_protein(session: Session = Depends(get_session)):
+async def peptide_per_protein(session: Session = Depends(get_session),
+                              redis_config_param=Depends(redis_config)):
     """
     Get the number of peptides per protein frequency
     :param session: session connection to the database
+    :param redis_config_param: Redis in-memory database configurations
     :return:  Number of peptides per protein frequency as a dictionary
     """
     try:
-        sql_peptides_per_protein = text("""
-        WITH frequencytable AS (
-    WITH result AS (
-        SELECT
-            pe1.dbsequence_ref AS dbref1,
-            pe1.peptide_ref AS pepref1,
-            pe2.dbsequence_ref AS dbref2,
-            pe2.peptide_ref AS pepref2
-        FROM
-            spectrumidentification si
-            INNER JOIN modifiedpeptide mp1 ON si.pep1_id = mp1.id AND si.upload_id = mp1.upload_id
-            INNER JOIN peptideevidence pe1 ON mp1.id = pe1.peptide_ref AND mp1.upload_id = pe1.upload_id
-            INNER JOIN modifiedpeptide mp2 ON si.pep2_id = mp2.id AND si.upload_id = mp2.upload_id
-            INNER JOIN peptideevidence pe2 ON mp2.id = pe2.peptide_ref AND mp2.upload_id = pe2.upload_id
-            INNER JOIN upload u ON u.id = si.upload_id
-        WHERE
-            u.id IN (
-                SELECT
-                    u.id
-                FROM
-                    upload u
-                WHERE
-                    u.upload_time = (
+        key = redis_config_param['peptide_per_protein']
+        redis_client = redis.Redis(host=redis_config_param['host'],
+                                   port=redis_config_param['port'],
+                                   password=redis_config_param['password'],
+                                   decode_responses=False)
+        if redis_client is not None and redis_client.exists(key):
+            # If data exists in Redis, retrieve it
+            values = redis_client.get(key)
+            return json.loads(values)
+        else:
+            # If data doesn't exist in Redis, fetch it from the database
+            sql_peptides_per_protein = text("""
+                            WITH frequencytable AS (
+                        WITH result AS (
+                            SELECT
+                                pe1.dbsequence_ref AS dbref1,
+                                pe1.peptide_ref AS pepref1,
+                                pe2.dbsequence_ref AS dbref2,
+                                pe2.peptide_ref AS pepref2
+                            FROM
+                                spectrumidentification si
+                                INNER JOIN modifiedpeptide mp1 ON si.pep1_id = mp1.id AND si.upload_id = mp1.upload_id
+                                INNER JOIN peptideevidence pe1 ON mp1.id = pe1.peptide_ref AND mp1.upload_id = pe1.upload_id
+                                INNER JOIN modifiedpeptide mp2 ON si.pep2_id = mp2.id AND si.upload_id = mp2.upload_id
+                                INNER JOIN peptideevidence pe2 ON mp2.id = pe2.peptide_ref AND mp2.upload_id = pe2.upload_id
+                                INNER JOIN upload u ON u.id = si.upload_id
+                            WHERE
+                                u.id IN (
+                                    SELECT
+                                        u.id
+                                    FROM
+                                        upload u
+                                    WHERE
+                                        u.upload_time = (
+                                            SELECT
+                                                MAX(upload_time)
+                                            FROM
+                                                upload
+                                            WHERE
+                                                project_id = u.project_id
+                                                AND identification_file_name = u.identification_file_name
+                                        )
+                                )
+                                AND pe1.is_decoy = FALSE
+                                AND pe2.is_decoy = FALSE
+                                AND si.pass_threshold = TRUE
+                        )
                         SELECT
-                            MAX(upload_time)
+                            dbref,
+                            COUNT(pepref) AS peptide_count
                         FROM
-                            upload
-                        WHERE
-                            project_id = u.project_id
-                            AND identification_file_name = u.identification_file_name
+                            (
+                                SELECT
+                                    dbref1 AS dbref,
+                                    pepref1 AS pepref
+                                FROM
+                                    result
+                                UNION
+                                SELECT
+                                    dbref2 AS dbref,
+                                    pepref2 AS pepref
+                                FROM
+                                    result
+                            ) AS inner_result
+                        GROUP BY
+                            dbref
                     )
-            )
-            AND pe1.is_decoy = FALSE
-            AND pe2.is_decoy = FALSE
-            AND si.pass_threshold = TRUE
-    )
-    SELECT
-        dbref,
-        COUNT(pepref) AS peptide_count
-    FROM
-        (
-            SELECT
-                dbref1 AS dbref,
-                pepref1 AS pepref
-            FROM
-                result
-            UNION
-            SELECT
-                dbref2 AS dbref,
-                pepref2 AS pepref
-            FROM
-                result
-        ) AS inner_result
-    GROUP BY
-        dbref
-)
-SELECT
-    frequencytable.peptide_count,
-    COUNT(*)
-FROM
-    frequencytable
-GROUP BY
-    frequencytable.peptide_count
-ORDER BY
-    frequencytable.peptide_count;
+                    SELECT
+                        frequencytable.peptide_count,
+                        COUNT(*)
+                    FROM
+                        frequencytable
+                    GROUP BY
+                        frequencytable.peptide_count
+                    ORDER BY
+                        frequencytable.peptide_count;
 
-""")
-        values = await peptide_per_protein_counts(sql_peptides_per_protein, None, session)
+                    """)
+            values = await peptide_per_protein_counts(sql_peptides_per_protein, None, session)
+
+            # Store the data in Redis for future use
+            if values:
+                redis_client.set(key, json.dumps(values))
+                return values
+            else:
+                return None
     except Exception as error:
         logger.error(error)
     return values
+
+
+def invalidate_cache(redis_config_param=Depends(redis_config)):
+    redis_client = redis.Redis(host=redis_config_param['host'],
+                               port=redis_config_param['port'],
+                               password=redis_config_param['password'],
+                               decode_responses=False)
+    key = redis_config_param['peptide_per_protein']
+    redis_client.delete(key)
+    return None
 
 
 async def update_protein_metadata(list_of_project_sub_details):

@@ -62,11 +62,18 @@ jobs:
       node_port: ${{ vars.NODE_PORT }}
       app_name: ${{ vars.APP_NAME }}
       k8s_replicas: ${{ vars.K8S_REPLICAS }}
+      LOG_VOLUME_SIZE: ${{ vars.LOG_VOLUME_SIZE }}
+      log_volume_pvc: ${{ vars.LOG_VOLUME_PVC }}
       K8S_NAMESPACE: ${{ vars.K8S_NAMESPACE }}
+      K8S_STORAGECLASS: ${{ vars.K8S_STORAGECLASS }}
       DATABASE_INI: ${{ vars.DATABASE_INI }}
       LOGGING_INI: ${{ vars.LOGGING_INI }}
       IMAGE: ghcr.io/${{ vars.API_GITHUB_REPOSITORY }}:latest
       XIVIEW_PRIDE_URL: ${{ vars.XIVIEW_PRIDE_URL }}
+      REDIS_HOST: ${{ vars.REDIS_HOST }}
+      REDIS_PORT: ${{ vars.REDIS_PORT }}
+      REDIS_PASSWORD: ${{ vars.REDIS_PASSWORD }}
+      PEPTIDE_PER_PROTEIN: ${{ vars.PEPTIDE_PER_PROTEIN }}
 
     steps:
       - name: Checkout repository

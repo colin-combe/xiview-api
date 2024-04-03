@@ -5,6 +5,7 @@ from app.routes.pride import pride_router
 from app.routes.pdbdev import pdbdev_router
 from app.routes.xiview import xiview_data_router
 from app.routes.parse import parser_router
+from fastapi.middleware.gzip import GZipMiddleware
 
 app = FastAPI(title="xi-mzidentml-converter ws",
               description="This is an API to crosslinking archive",
@@ -22,7 +23,7 @@ app = FastAPI(title="xi-mzidentml-converter ws",
               docs_url="/pride/ws/archive/crosslinking/docs")
 
 # Set up CORS middleware
-origins = ["*"]  # Update this with your allowed origins
+origins = ["*"]
 
 app.add_middleware(
     CORSMiddleware,
@@ -31,6 +32,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# Handles GZip responses for any request that includes "gzip" in the "Accept-Encoding" header.
+# The middleware will handle both standard and streaming responses.
+# Do not GZip responses that are smaller than this minimum size in bytes,
+# Tier 4 Network level compression, no need to worry at Tier 7(HTTPS) level
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 app.include_router(pride_router, prefix="/pride/ws/archive/crosslinking")
 app.include_router(pdbdev_router, prefix="/pride/ws/archive/crosslinking/pdbdev")

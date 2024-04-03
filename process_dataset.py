@@ -13,6 +13,7 @@ import shutil
 from urllib.parse import urlparse
 
 from parser.MzIdParser import MzIdParser
+from parser.database_writer import DatabaseWriter
 from parser.writer import Writer
 from db_config_parser import get_conn_str
 import logging.config
@@ -201,7 +202,7 @@ def convert_dir(local_dir, project_identifier, nopeaklist=False):
         if file.endswith(".mzid") or file.endswith(".mzid.gz"):
             logger.info("Processing " + file)
             conn_str = get_conn_str()
-            writer = Writer(conn_str, pxid=project_identifier)
+            writer = DatabaseWriter(conn_str, pxid=project_identifier)
             id_parser = MzIdParser(os.path.join(local_dir, file), local_dir, peaklist_dir, writer, logger)
             try:
                 id_parser.parse()

@@ -24,10 +24,6 @@ RUN mkdir -p /home/appuser/logs
 
 # Install application into container
 COPY app ./app
-COPY dbs ./dbs
-COPY obo ./obo
-COPY parser ./parser
-COPY tests ./tests
 COPY *.py .
 COPY default.database.ini .
 COPY logging.ini .
