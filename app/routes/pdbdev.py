@@ -145,7 +145,7 @@ async def get_psm_level_residue_pairs(project_id: Annotated[str, Path(...,
         }
 
         if passing_threshold.lower() == Threshold.passing:
-            sql = """SELECT si.id, u.identification_file_name as file, si.pass_threshold as pass,
+            sql = """SELECT array_agg(si.id) as match_ids, array_agg(u.identification_file_name) as files, array_agg(si.pass_threshold) as pass,
             pe1.dbsequence_ref as prot1, dbs1.accession as prot1_acc, (pe1.pep_start + mp1.link_site1 - 1) as pos1,
             pe2.dbsequence_ref as prot2, dbs2.accession as prot2_acc, (pe2.pep_start + mp2.link_site1 - 1) as pos2
             FROM spectrumidentification si INNER JOIN
@@ -158,9 +158,10 @@ async def get_psm_level_residue_pairs(project_id: Annotated[str, Path(...,
             upload u on u.id = si.upload_id
             WHERE u.id IN %(upload_ids)s AND mp1.link_site1 > 0 AND mp2.link_site1 > 0 AND pe1.is_decoy = false AND pe2.is_decoy = false
             AND si.pass_threshold = true
+            GROUP BY pe1.dbsequence_ref , dbs1.accession, (pe1.pep_start + mp1.link_site1 - 1), pe2.dbsequence_ref, dbs2.accession , (pe2.pep_start + mp2.link_site1 - 1)             
             LIMIT %(limit)s OFFSET %(offset)s;"""
         else:
-            sql = """SELECT si.id, u.identification_file_name as file, si.pass_threshold as pass,
+            sql = """SELECT array_agg(si.id) as match_ids, array_agg(u.identification_file_name) as files, array_agg(si.pass_threshold) as pass,
             pe1.dbsequence_ref as prot1, dbs1.accession as prot1_acc, (pe1.pep_start + mp1.link_site1 - 1) as pos1,
             pe2.dbsequence_ref as prot2, dbs2.accession as prot2_acc, (pe2.pep_start + mp2.link_site1 - 1) as pos2
             FROM spectrumidentification si INNER JOIN
@@ -172,10 +173,11 @@ async def get_psm_level_residue_pairs(project_id: Annotated[str, Path(...,
             dbsequence dbs2 ON pe2.dbsequence_ref = dbs2.id AND pe2.upload_id = dbs2.upload_id INNER JOIN
             upload u on u.id = si.upload_id
             WHERE u.id IN %(upload_ids)s AND mp1.link_site1 > 0 AND mp2.link_site1 > 0 AND pe1.is_decoy = false AND pe2.is_decoy = false
+            GROUP BY pe1.dbsequence_ref , dbs1.accession, (pe1.pep_start + mp1.link_site1 - 1), pe2.dbsequence_ref, dbs2.accession , (pe2.pep_start + mp2.link_site1 - 1)             
             LIMIT %(limit)s OFFSET %(offset)s;"""
 
         if passing_threshold.lower() == Threshold.passing:
-            count_sql = """SELECT count(si.id)
+            count_sql = """SELECT count(*)
             FROM spectrumidentification si INNER JOIN
             modifiedpeptide mp1 ON si.pep1_id = mp1.id AND si.upload_id = mp1.upload_id INNER JOIN
             peptideevidence pe1 ON mp1.id = pe1.peptide_ref AND mp1.upload_id = pe1.upload_id INNER JOIN
@@ -185,9 +187,11 @@ async def get_psm_level_residue_pairs(project_id: Annotated[str, Path(...,
             dbsequence dbs2 ON pe2.dbsequence_ref = dbs2.id AND pe2.upload_id = dbs2.upload_id INNER JOIN
             upload u on u.id = si.upload_id
             WHERE u.id IN %(upload_ids)s AND mp1.link_site1 > 0 AND mp2.link_site1 > 0 AND pe1.is_decoy = false AND pe2.is_decoy = false
-            AND si.pass_threshold = true;"""
+            AND si.pass_threshold = true
+            GROUP BY pe1.dbsequence_ref , dbs1.accession, (pe1.pep_start + mp1.link_site1 - 1), pe2.dbsequence_ref, dbs2.accession , (pe2.pep_start + mp2.link_site1 - 1)             
+            ;"""
         else:
-            count_sql = """SELECT count(si.id)
+            count_sql = """SELECT count(*)
             FROM spectrumidentification si INNER JOIN
             modifiedpeptide mp1 ON si.pep1_id = mp1.id AND si.upload_id = mp1.upload_id INNER JOIN
             peptideevidence pe1 ON mp1.id = pe1.peptide_ref AND mp1.upload_id = pe1.upload_id INNER JOIN
@@ -196,7 +200,9 @@ async def get_psm_level_residue_pairs(project_id: Annotated[str, Path(...,
             peptideevidence pe2 ON mp2.id = pe2.peptide_ref AND mp2.upload_id = pe2.upload_id INNER JOIN
             dbsequence dbs2 ON pe2.dbsequence_ref = dbs2.id AND pe2.upload_id = dbs2.upload_id INNER JOIN
             upload u on u.id = si.upload_id
-            WHERE u.id IN %(upload_ids)s AND mp1.link_site1 > 0 AND mp2.link_site1 > 0 AND pe1.is_decoy = false AND pe2.is_decoy = false;"""
+            WHERE u.id IN %(upload_ids)s AND mp1.link_site1 > 0 AND mp2.link_site1 > 0 AND pe1.is_decoy = false AND pe2.is_decoy = false
+            GROUP BY pe1.dbsequence_ref , dbs1.accession, (pe1.pep_start + mp1.link_site1 - 1), pe2.dbsequence_ref, dbs2.accession , (pe2.pep_start + mp2.link_site1 - 1)             
+            ;"""
 
         cur.execute(sql, sql_values)
         mzid_rows = cur.fetchall()
