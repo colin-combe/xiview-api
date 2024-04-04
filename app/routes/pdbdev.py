@@ -159,7 +159,7 @@ async def get_psm_level_residue_pairs(project_id: Annotated[str, Path(...,
             WHERE u.id IN %(upload_ids)s AND mp1.link_site1 > 0 AND mp2.link_site1 > 0 AND pe1.is_decoy = false AND pe2.is_decoy = false
             AND si.pass_threshold = true
             GROUP BY pe1.dbsequence_ref , dbs1.accession, (pe1.pep_start + mp1.link_site1 - 1), pe2.dbsequence_ref, dbs2.accession , (pe2.pep_start + mp2.link_site1 - 1)
-            ORDER BY pe1.dbsequence_ref , dbs1.accession, (pe1.pep_start + mp1.link_site1 - 1), pe2.dbsequence_ref, dbs2.accession , (pe2.pep_start + mp2.link_site1 - 1)
+            ORDER BY pe1.dbsequence_ref , (pe1.pep_start + mp1.link_site1 - 1), pe2.dbsequence_ref, (pe2.pep_start + mp2.link_site1 - 1)
             LIMIT %(limit)s OFFSET %(offset)s;"""
         else:
             sql = """SELECT array_agg(si.id) as match_ids, array_agg(u.identification_file_name) as files,
@@ -175,7 +175,7 @@ async def get_psm_level_residue_pairs(project_id: Annotated[str, Path(...,
             upload u on u.id = si.upload_id
             WHERE u.id IN %(upload_ids)s AND mp1.link_site1 > 0 AND mp2.link_site1 > 0 AND pe1.is_decoy = false AND pe2.is_decoy = false
             GROUP BY pe1.dbsequence_ref , dbs1.accession, (pe1.pep_start + mp1.link_site1 - 1), pe2.dbsequence_ref, dbs2.accession , (pe2.pep_start + mp2.link_site1 - 1)
-            ORDER BY pe1.dbsequence_ref , dbs1.accession, (pe1.pep_start + mp1.link_site1 - 1), pe2.dbsequence_ref, dbs2.accession , (pe2.pep_start + mp2.link_site1 - 1)
+            ORDER BY pe1.dbsequence_ref , (pe1.pep_start + mp1.link_site1 - 1), pe2.dbsequence_ref, (pe2.pep_start + mp2.link_site1 - 1)
             LIMIT %(limit)s OFFSET %(offset)s;"""
 
         if passing_threshold.lower() == Threshold.passing:
