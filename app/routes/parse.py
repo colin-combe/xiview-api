@@ -77,7 +77,7 @@ async def write_data(
             result = conn.execute(statement)
             conn.commit()
             conn.close()
-        invalidate_cache()
+        # invalidate_cache()
         logger.info("Invalidated Cache")
         return None
 
