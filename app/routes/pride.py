@@ -57,8 +57,6 @@ async def health(session: Session = Depends(get_session)):
     except Exception as error:
         logger.error(error)
         db_status = "Failed"
-    logger.info('Health check endpoint accessed')
-    logger.debug('Health check endpoint accessed - debug')
     return {'status': "OK",
             'db_status': db_status}
 
