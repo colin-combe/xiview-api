@@ -57,8 +57,6 @@ async def health(session: Session = Depends(get_session)):
     except Exception as error:
         logger.error(error)
         db_status = "Failed"
-    logger.info('Health check endpoint accessed')
-    logger.debug('Health check endpoint accessed - debug')
     return {'status': "OK",
             'db_status': db_status}
 
@@ -79,7 +77,7 @@ async def parse(px_accession: str, temp_dir: str | None = None, dont_delete: boo
     else:
         temp_dir = os.path.expanduser('~/mzId_convertor_temp')
     convert_pxd_accession_from_pride(px_accession, temp_dir, dont_delete)
-    invalidate_cache()
+    # invalidate_cache()
     logger.info("Invalidated Cache")
 
 
@@ -458,7 +456,7 @@ async def delete_dataset(project_id: str, session: Session = Depends(get_session
         logging.info("trying to delete records from Upload")
         session.commit()
         logger.info("*****Deleted dataset: " + project_id)
-        invalidate_cache()
+        # invalidate_cache()
         logger.info("Invalidated Cache")
     except Exception as error:
         logger.error(str(error))

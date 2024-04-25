@@ -77,7 +77,7 @@ async def write_data(
             result = conn.execute(statement)
             conn.commit()
             conn.close()
-        invalidate_cache()
+        # invalidate_cache()
         logger.info("Invalidated Cache")
         return None
 
@@ -91,12 +91,16 @@ async def write_data(
 
 @parser_router.post("/write_new_upload", tags=["Parser"])
 def write_new_upload(
-        table: Annotated[TableNamesEnum, Body(..., description="table name", embeded=True)],
         data: dict = Body(..., description="table data", embeded=True),
         api_key: str = Security(get_api_key),
         session: Session = Depends(get_session)):
     try:
-        new_upload = Upload(**data)
+        print("called write_new_upload!!!")
+        new_upload = Upload(
+            identification_file_name=data['identification_file_name'],
+            identification_file_name_clean=data['identification_file_name_clean'],
+            project_id=data['project_id']
+        )
         session.add(new_upload)
         session.commit()
         session.close()

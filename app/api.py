@@ -36,7 +36,7 @@ app.add_middleware(
 # The middleware will handle both standard and streaming responses.
 # Do not GZip responses that are smaller than this minimum size in bytes,
 # Tier 4 Network level compression, no need to worry at Tier 7(HTTPS) level
-app.add_middleware(GZipMiddleware, minimum_size=1000)
+# app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 app.include_router(pride_router, prefix="/pride/ws/archive/crosslinking")
 app.include_router(pdbdev_router, prefix="/pride/ws/archive/crosslinking/pdbdev")
