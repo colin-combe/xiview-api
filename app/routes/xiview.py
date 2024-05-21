@@ -1,9 +1,6 @@
-import json
-import logging
 import logging.config
 import struct
 
-import fastapi
 import psycopg2
 from fastapi import APIRouter, Depends, Request, Response
 import orjson
@@ -36,7 +33,7 @@ logging.getLogger("uvicorn.access").addFilter(EndpointFilter())
 async def get_xiview_data(project, file=None):
     """
     Get the data for the network visualisation.
-    URLs have following structure:
+    URLs have the following structure:
     https: // www.ebi.ac.uk / pride / archive / xiview / network.html?project=PXD020453&file=Cullin_SDA_1pcFDR.mzid
     Users may provide only projects, meaning we need to have an aggregated  view.
     https: // www.ebi.ac.uk / pride / archive / xiview / network.html?project=PXD020453
@@ -69,7 +66,7 @@ async def get_peaklist(id, sd_ref, upload_id):
         data["mz"] = struct.unpack('%sd' % (len(resultset[1]) // 8), resultset[1])
         cur.close()
     except (Exception, psycopg2.DatabaseError) as e:
-        # logger.error(error)
+        logger.exception(e)
         error = e
     finally:
         if conn is not None:
@@ -120,7 +117,7 @@ async def get_data_object(ids, pxid):
         cur.close()
     except (Exception, psycopg2.DatabaseError) as e:
         error = e
-        logger.error(e)
+        logger.exception(e)
         raise e
     finally:
         if conn is not None:
@@ -163,12 +160,13 @@ async def get_results_metadata(cur, ids):
     cur.execute(query, [ids])
     metadata["mzidentml_files"] = cur.fetchall()
 
-    # get AnalysisCollection(s) for each id
+    # get AnalysisCollection SpectrumIdentification(s) for each id
     query = """SELECT ac.upload_id,
                 ac.spectrum_identification_list_ref,
                 ac.spectrum_identification_protocol_ref,
-                ac.spectra_data_ref
-            FROM analysiscollection ac
+                ac.spectra_data_refs,
+                ac.search_database_refs
+            FROM analysiscollectionspectrumidentification ac
             WHERE ac.upload_id = ANY(%s);"""
     cur.execute(query, [ids])
     metadata["analysis_collections"] = cur.fetchall()
@@ -218,14 +216,14 @@ async def get_matches(cur, ids):
                 si.pass_threshold AS pass,
                 si.rank AS r,
                 si.sil_id AS sil                
-            FROM spectrumidentification si 
+            FROM match si 
             INNER JOIN modifiedpeptide mp1 ON si.pep1_id = mp1.id AND si.upload_id = mp1.upload_id 
             INNER JOIN modifiedpeptide mp2 ON si.pep2_id = mp2.id AND si.upload_id = mp2.upload_id
             WHERE si.upload_id = ANY(%s) 
             AND si.pass_threshold = TRUE 
-            AND mp1.link_site1 > 0
-            AND mp2.link_site1 > 0;"""
-    # bit weird above works when link_site1 is a text column
+            AND mp1.link_site1 > -1
+            AND mp2.link_site1 > -1;"""
+
     cur.execute(query, [ids])
     return cur.fetchall()
 
@@ -255,12 +253,14 @@ async def get_peptides(cur, match_rows):
         subclauses.append(subclause)
     peptide_clause = sql.SQL(" OR ").join(subclauses)
 
+    #  todo - rename link sites in json, it's myhster
     query = sql.SQL("""SELECT mp.id, cast(mp.upload_id as text) AS u_id,
                 mp.base_sequence AS base_seq,
                 array_agg(pp.dbsequence_ref) AS prt,
                 array_agg(pp.pep_start) AS pos,
                 array_agg(pp.is_decoy) AS is_decoy,
-                mp.link_site1 AS "linkSite",
+                mp.link_site1 AS site1,
+                mp.link_site2 AS site2,
                 mp.mod_accessions as mod_accs,
                 mp.mod_positions as mod_pos,
                 mp.mod_monoiso_mass_deltas as mod_masses,

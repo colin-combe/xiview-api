@@ -14,7 +14,7 @@ from models.upload import Upload
 from sqlalchemy import text
 from sqlalchemy.orm import Session, joinedload
 
-from models.analysiscollection import AnalysisCollection
+from models.analysiscollectionspectrumidentification import AnalysisCollectionSpectrumIdentification
 from models.dbsequence import DBSequence
 from models.enzyme import Enzyme
 from models.modifiedpeptide import ModifiedPeptide
@@ -450,7 +450,7 @@ async def delete_dataset(project_id: str, session: Session = Depends(get_session
         logging.info("trying to delete records from Spectrum")
         session.query(PeptideEvidence).filter(PeptideEvidence.upload_id.in_(upload_id_list)).delete()
         logging.info("trying to delete records from PeptideEvidence")
-        session.query(AnalysisCollection).filter(AnalysisCollection.upload_id.in_(upload_id_list)).delete()
+        session.query(AnalysisCollectionSpectrumIdentification).filter(AnalysisCollectionSpectrumIdentification.upload_id.in_(upload_id_list)).delete()
         logging.info("trying to delete records from AnalysisCollection")
         session.query(Upload).filter_by(project_id=project_id).delete()
         logging.info("trying to delete records from Upload")

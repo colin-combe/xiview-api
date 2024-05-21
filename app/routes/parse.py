@@ -33,7 +33,7 @@ api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 class TableNamesEnum(str, Enum):
     """Enumeration of Table names"""
-    analysiscollection = "analysiscollection"
+    analysiscollection = "analysiscollectionspectrumidentifcation"
     dbsequence = "dbsequence"
     enzyme = "enzyme"
     modifiedpeptide = "modifiedpeptide"
