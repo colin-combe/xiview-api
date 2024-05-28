@@ -57,7 +57,10 @@ async def log_request_time(request: Request, call_next):
         logger.error(f"Request: {request.method} {request.url.path} raised an error in {process_time:.4f} seconds: {str(e)}")
         raise
     process_time = time.time() - start_time
-    logger.info(f"Request: {request.method} {request.url.path} completed in {process_time:.4f} seconds")
+    if not (request.url.path.startswith("/pride/ws/archive/crosslinking/data/visualisations") or
+            request.url.path.startswith("/pride/ws/archive/crosslinking/health")):
+        logger.info(f"Request: {request.method} {request.url.path} completed in {process_time:.4f} seconds")
+
     return response
 
 app.include_router(pride_router, prefix="/pride/ws/archive/crosslinking")
