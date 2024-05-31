@@ -2,6 +2,7 @@ import json
 import logging
 import logging.config
 import struct
+import time
 
 import fastapi
 import psycopg2
@@ -45,7 +46,10 @@ async def get_xiview_data(project, file=None):
     """
     most_recent_upload_ids = await get_most_recent_upload_ids(project, file)
     try:
+        start_time = time.time()
         data_object = await get_data_object(most_recent_upload_ids, project)
+        process_time = time.time() - start_time
+        logger.error(f"get_data_object timed: {process_time}")
     except psycopg2.DatabaseError as e:
         logger.error(e)
         print(e)
