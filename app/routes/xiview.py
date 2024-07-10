@@ -25,6 +25,7 @@ class EndpointFilter(logging.Filter):
     Define the filter to stop logging for visualisation endpoint which will be called very frequently
     and log file will be flooded with this endpoint request logs
     """
+
     def filter(self, record: logging.LogRecord) -> bool:
         return record.args and len(record.args) >= 3 and not str(record.args[2]).__contains__("/data/visualisations/")
 
@@ -53,8 +54,9 @@ async def get_xiview_data(project, file=None):
         print(e)
         return {"error": "Database error"}, 500
     json_bytes = orjson.dumps(data_object)
-    log_json_size(json_bytes, "everything") # this slows things down a little, comment out later
+    log_json_size(json_bytes, "everything")  # this slows things down a little, comment out later
     return Response(json_bytes, media_type='application/json')
+
 
 def log_json_size(json_bytes, name):
     json_size_mb = len(json_bytes) / (1024 * 1024)
@@ -328,9 +330,9 @@ async def get_xiview_matches(project, file=None):
     URLs have the following structure:
     https: // www.ebi.ac.uk / pride / archive / xiview / get_xiview_matches?project=PXD020453&file=Cullin_SDA_1pcFDR.mzid
     Users may provide only projects, meaning we need to have an aggregated  view.
-    https: // www.ebi.ac.uk / pride / archive / xiview / network.html?project=PXD020453
+    https: // www.ebi.ac.uk / pride / archive / xiview / get_xiview_matches?project=PXD020453
 
-    :return: json with the matches
+    :return: json of the matches
     """
     logger.info(f"get_xiview_matches for {project}, file: {file}")
     most_recent_upload_ids = await get_most_recent_upload_ids(project, file)
@@ -357,17 +359,18 @@ async def get_xiview_matches(project, file=None):
     log_json_size(json_bytes, "matches")  # slows things down a little
     return Response(json_bytes, media_type='application/json')
 
+
 @log_execution_time_async
 @xiview_data_router.get('/get_xiview_peptides', tags=["xiVIEW"])
 async def get_xiview_peptides(project, file=None):
     """
     Get all the peptides.
     URLs have the following structure:
-    https: // www.ebi.ac.uk / pride / archive / xiview / get_xiview_matches?project=PXD020453&file=Cullin_SDA_1pcFDR.mzid
-    Users may provide only projects, meaning we need to have an aggregated  view.
-    https: // www.ebi.ac.uk / pride / archive / xiview / network.html?project=PXD020453
+    https: // www.ebi.ac.uk / pride / archive / xiview / get_xiview_peptides?project=PXD020453&file=Cullin_SDA_1pcFDR.mzid
+    Users may provide only projects, meaning we need to have an aggregated view.
+    https: // www.ebi.ac.uk / pride / archive / xiview / get_xiview_peptides?project=PXD020453
 
-    :return: json with the matches
+    :return: json of the peptides
     """
     logger.info(f"get_xiview_peptides for {project}, file: {file}")
     most_recent_upload_ids = await get_most_recent_upload_ids(project, file)
@@ -416,17 +419,18 @@ async def get_all_peptides(cur, ids):
     cur.execute(query, [ids])
     return cur.fetchall()
 
+
 @log_execution_time_async
 @xiview_data_router.get('/get_xiview_proteins', tags=["xiVIEW"])
 async def get_xiview_proteins(project, file=None):
     """
     Get all the proteins.
     URLs have the following structure:
-    https: // www.ebi.ac.uk / pride / archive / xiview / get_xiview_matches?project=PXD020453&file=Cullin_SDA_1pcFDR.mzid
+    https: // www.ebi.ac.uk / pride / archive / xiview / get_xiview_proteins?project=PXD020453&file=Cullin_SDA_1pcFDR.mzid
     Users may provide only projects, meaning we need to have an aggregated  view.
-    https: // www.ebi.ac.uk / pride / archive / xiview / network.html?project=PXD020453
+    https: // www.ebi.ac.uk / pride / archive / xiview / get_xiview_proteins?project=PXD020453
 
-    :return: json with the matches
+    :return: json of the proteins
     """
     logger.info(f"get_xiview_proteins for {project}, file: {file}")
     most_recent_upload_ids = await get_most_recent_upload_ids(project, file)
