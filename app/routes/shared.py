@@ -1,6 +1,9 @@
+import functools
 import re
 import os
 import logging.config
+import time
+
 import psycopg2
 from configparser import ConfigParser
 from fastapi import APIRouter, Depends, status
@@ -12,7 +15,18 @@ logger = logging.getLogger(__name__)
 
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
+def log_execution_time_async(func):
+    @functools.wraps(func)
+    async def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = await func(*args, **kwargs)
+        end_time = time.time()
+        execution_time = end_time - start_time
+        logging.info(f'"{func.__name__}" executed in {execution_time:.2f} seconds')
+        return result
+    return wrapper
 
+@log_execution_time_async
 async def get_most_recent_upload_ids(pxid, file=None):
 
     """
@@ -67,7 +81,6 @@ async def get_most_recent_upload_ids(pxid, file=None):
     finally:
         if conn is not None:
             conn.close()
-            print('Database connection closed.')
 
     return upload_ids
 
