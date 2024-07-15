@@ -1,11 +1,18 @@
-from fastapi import FastAPI, HTTPException
+import time
+
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+import logging
 
 from app.routes.pride import pride_router
 from app.routes.pdbdev import pdbdev_router
 from app.routes.xiview import xiview_data_router
 from app.routes.parse import parser_router
 from fastapi.middleware.gzip import GZipMiddleware
+
+# Initialize logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="xi-mzidentml-converter ws",
               description="This is an API to crosslinking archive",
@@ -37,6 +44,24 @@ app.add_middleware(
 # Do not GZip responses that are smaller than this minimum size in bytes,
 # Tier 4 Network level compression, no need to worry at Tier 7(HTTPS) level
 app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+
+# Middleware to log the time taken for each request
+@app.middleware("http")
+async def log_request_time(request: Request, call_next):
+    start_time = time.time()
+    try:
+        response = await call_next(request)
+    except Exception as e:
+        process_time = time.time() - start_time
+        logger.error(f"Request: {request.method} {request.url.path} raised an error in {process_time:.4f} seconds: {str(e)}")
+        raise
+    process_time = time.time() - start_time
+    if not (request.url.path.startswith("/pride/ws/archive/crosslinking/data/visualisations") or
+            request.url.path.startswith("/pride/ws/archive/crosslinking/health")):
+        logger.info(f"Request: {request.method} {request.url.path} completed in {process_time:.4f} seconds")
+
+    return response
 
 app.include_router(pride_router, prefix="/pride/ws/archive/crosslinking")
 app.include_router(pdbdev_router, prefix="/pride/ws/archive/crosslinking/pdbdev")
