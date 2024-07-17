@@ -218,7 +218,8 @@ async def get_results_metadata(cur, ids):
 
 @log_execution_time_async
 async def get_matches(cur, ids):
-    query = """SELECT si.id AS id, si.pep1_id AS pi1, si.pep2_id AS pi2,
+    query = """WITH submodpep AS (SELECT * FROM modifiedpeptide WHERE upload_id = ANY(%s))
+SELECT si.id AS id, si.pep1_id AS pi1, si.pep2_id AS pi2,
                 si.scores AS sc,
                 cast (si.upload_id as text) AS si,
                 si.calc_mz AS c_mz,
@@ -230,13 +231,13 @@ async def get_matches(cur, ids):
                 si.rank AS r,
                 si.sil_id AS sil                
             FROM spectrumidentification si 
-            INNER JOIN modifiedpeptide mp1 ON si.pep1_id = mp1.id AND si.upload_id = mp1.upload_id 
-            INNER JOIN modifiedpeptide mp2 ON si.pep2_id = mp2.id AND si.upload_id = mp2.upload_id
+            INNER JOIN submodpep mp1 ON si.pep1_id = mp1.id AND si.upload_id = mp1.upload_id 
+            INNER JOIN submodpep mp2 ON si.pep2_id = mp2.id AND si.upload_id = mp2.upload_id
             WHERE si.upload_id = ANY(%s) 
             AND si.pass_threshold = TRUE 
             AND mp1.link_site1 > 0
             AND mp2.link_site1 > 0;"""
-    cur.execute(query, [ids])
+    cur.execute(query, [ids, ids])
     return cur.fetchall()
 
 
