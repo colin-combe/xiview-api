@@ -124,7 +124,7 @@ async def get_data_object(ids, pxid):
         data["project"] = await get_pride_api_info(cur, pxid)
         data["meta"] = await get_results_metadata(cur, ids)
         data["matches"] = await get_matches(cur, ids)
-        data["peptides"] = await get_peptides(cur, data["matches"])
+        data["peptides"] = await get_peptides(cur, data["matches"], ids)
         data["proteins"] = await get_proteins(cur, data["peptides"])
         cur.close()
     except (Exception, psycopg2.DatabaseError) as e:
@@ -242,7 +242,7 @@ SELECT si.id AS id, si.pep1_id AS pi1, si.pep2_id AS pi2,
 
 
 @log_execution_time_async
-async def get_peptides(cur, match_rows):
+async def get_peptides(cur, match_rows, ids):
     search_peptide_ids = {}
     for match_row in match_rows:
         if match_row['si'] in search_peptide_ids:
@@ -267,7 +267,11 @@ async def get_peptides(cur, match_rows):
         subclauses.append(subclause)
     peptide_clause = sql.SQL(" OR ").join(subclauses)
 
-    query = sql.SQL("""SELECT mp.id, cast(mp.upload_id as text) AS u_id,
+    # make composable sql array from ids
+    composableIds = [sql.Literal(id) for id in ids]
+    joined_ids = sql.SQL(",").join(composableIds)
+    query = sql.SQL("""WITH subpp AS (select * from peptideevidence WHERE upload_id = ANY(ARRAY[{}]))
+           SELECT mp.id, cast(mp.upload_id as text) AS u_id,
                 mp.base_sequence AS base_seq,
                 array_agg(pp.dbsequence_ref) AS prt,
                 array_agg(pp.pep_start) AS pos,
@@ -281,7 +285,7 @@ async def get_peptides(cur, match_rows):
                     JOIN peptideevidence AS pp
                     ON mp.id = pp.peptide_ref AND mp.upload_id = pp.upload_id
                 WHERE {}
-                GROUP BY mp.id, mp.upload_id, mp.base_sequence;""").format(
+                GROUP BY mp.id, mp.upload_id, mp.base_sequence;""").format(joined_ids,
         peptide_clause
     )
     # logger.debug(query.as_string(cur))
@@ -401,7 +405,8 @@ async def get_xiview_peptides(project, file=None):
 
 @log_execution_time_async
 async def get_all_peptides(cur, ids):
-    query = """SELECT mp.id, cast(mp.upload_id as text) AS u_id,
+    query = """WITH subpp AS (select * from peptideevidence WHERE upload_id = ANY(%s))
+           SELECT mp.id, cast(mp.upload_id as text) AS u_id,
                 mp.base_sequence AS base_seq,
                 array_agg(pp.dbsequence_ref) AS prt,
                 array_agg(pp.pep_start) AS pos,
@@ -412,12 +417,12 @@ async def get_all_peptides(cur, ids):
                 mp.mod_monoiso_mass_deltas as mod_masses,
                 mp.crosslinker_modmass as cl_modmass
                     FROM modifiedpeptide AS mp
-                    JOIN peptideevidence AS pp
+                    JOIN subpp AS pp
                     ON mp.id = pp.peptide_ref AND mp.upload_id = pp.upload_id
                 WHERE mp.upload_id = ANY(%s) 
                 GROUP BY mp.id, mp.upload_id, mp.base_sequence;"""
 
-    cur.execute(query, [ids])
+    cur.execute(query, [ids, ids])
     return cur.fetchall()
 
 
