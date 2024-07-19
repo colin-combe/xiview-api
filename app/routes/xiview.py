@@ -124,8 +124,9 @@ async def get_data_object(ids, pxid):
         data["project"] = await get_pride_api_info(cur, pxid)
         data["meta"] = await get_results_metadata(cur, ids)
         data["matches"] = await get_matches(cur, ids)
-        data["peptides"] = await get_peptides(cur, data["matches"], ids)
-        data["proteins"] = await get_proteins(cur, data["peptides"])
+        data["peptides"] = await get_all_peptides(cur) # data["matches"], ids)
+        data["proteins"] = await get_all_proteins(cur) #  data["peptides"]
+        # data["proteins"] = await get_proteins(cur, data["peptides"])
         cur.close()
     except (Exception, psycopg2.DatabaseError) as e:
         error = e
