@@ -3,6 +3,7 @@ import json
 import logging
 import logging.config
 import os
+import time
 from math import ceil
 from typing import List, Annotated, Union
 
@@ -79,6 +80,11 @@ async def health(session: Session = Depends(get_session)):
     return {'status': "OK",
             'db_status': db_status}
 
+
+@pride_router.get("/test_time")
+async def test_time():
+    time.sleep(65)
+    return 1
 
 @pride_router.post("/parse", tags=["Admin"])
 async def parse(px_accession: str, temp_dir: str | None = None, dont_delete: bool = False,
