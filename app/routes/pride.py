@@ -13,6 +13,7 @@ from fastapi import HTTPException, Security
 from models.upload import Upload
 from sqlalchemy import text
 from sqlalchemy.orm import Session, joinedload
+import typing as t
 
 from models.analysiscollection import AnalysisCollection
 from models.dbsequence import DBSequence
@@ -33,6 +34,24 @@ from process_dataset import convert_pxd_accession_from_pride
 logger = logging.getLogger(__name__)
 pride_router = APIRouter()
 config = configparser.ConfigParser()
+
+
+class EndpointFilter(logging.Filter):
+    def __init__(
+        self,
+        path: str,
+        *args: t.Any,
+        **kwargs: t.Any,
+    ):
+        super().__init__(*args, **kwargs)
+        self._path = path
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        return record.getMessage().find(self._path) == -1
+
+
+# Filter out /endpoint
+logging.getLogger("uvicorn.access").addFilter(EndpointFilter(path="/health"))
 
 
 @pride_router.get("/health", tags=["Admin"])
