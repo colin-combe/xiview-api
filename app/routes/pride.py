@@ -16,7 +16,8 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session, joinedload
 import typing as t
 
-from models.analysiscollection import AnalysisCollection
+# my ide gives warning for import from models, is something missing from top __init__.py in xi-mzidentml-converter
+from models.analysiscollectionspectrumidentification import AnalysisCollectionSpectrumIdentification
 from models.dbsequence import DBSequence
 from models.enzyme import Enzyme
 from models.modifiedpeptide import ModifiedPeptide
@@ -25,8 +26,10 @@ from models.projectdetail import ProjectDetail
 from models.projectsubdetail import ProjectSubDetail
 from models.searchmodification import SearchModification
 from models.spectrum import Spectrum
-from models.spectrumidentification import SpectrumIdentification
+from models.spectradata import SpectraData
+from models.match import Match
 from models.spectrumidentificationprotocol import SpectrumIdentificationProtocol
+
 from app.routes.shared import get_api_key
 from db_config_parser import redis_config
 from index import get_session
@@ -457,28 +460,30 @@ async def delete_dataset(project_id: str, session: Session = Depends(get_session
         session.query(ProjectSubDetail).filter(ProjectSubDetail.project_detail_id.in_(project_details_id_list)).delete()
         logging.info("trying to delete records from ProjectSubDetail")
         session.query(ProjectDetail).filter_by(project_id=project_id).delete()
-        logging.info("trying to delete records from ProjectDetail")
-        session.query(SpectrumIdentification).filter(SpectrumIdentification.upload_id.in_(upload_id_list)).delete()
-        logging.info("trying to delete records from SpectrumIdentification")
-        session.query(SearchModification).filter(SearchModification.upload_id.in_(upload_id_list)).delete()
+        logging.info("trying to delete records from Match")
+        session.query(Match).filter(Match.upload_id.in_(upload_id_list)).delete()
         logging.info("trying to delete records from SearchModification")
-        session.query(Enzyme).filter(Enzyme.upload_id.in_(upload_id_list)).delete()
+        session.query(SearchModification).filter(SearchModification.upload_id.in_(upload_id_list)).delete()
         logging.info("trying to delete records from Enzyme")
+        session.query(Enzyme).filter(Enzyme.upload_id.in_(upload_id_list)).delete()
+        logging.info("trying to delete records from SpectrumIdentificationProtocol")
         session.query(SpectrumIdentificationProtocol).filter(
             SpectrumIdentificationProtocol.upload_id.in_(upload_id_list)).delete()
-        logging.info("trying to delete records from SpectrumIdentificationProtocol")
-        session.query(ModifiedPeptide).filter(ModifiedPeptide.upload_id.in_(upload_id_list)).delete()
         logging.info("trying to delete records from ModifiedPeptide")
-        session.query(DBSequence).filter(DBSequence.upload_id.in_(upload_id_list)).delete()
+        session.query(ModifiedPeptide).filter(ModifiedPeptide.upload_id.in_(upload_id_list)).delete()
         logging.info("trying to delete records from DBSequence")
-        session.query(Spectrum).filter(Spectrum.upload_id.in_(upload_id_list)).delete()
+        session.query(DBSequence).filter(DBSequence.upload_id.in_(upload_id_list)).delete()
         logging.info("trying to delete records from Spectrum")
-        session.query(PeptideEvidence).filter(PeptideEvidence.upload_id.in_(upload_id_list)).delete()
+        session.query(Spectrum).filter(Spectrum.upload_id.in_(upload_id_list)).delete()
         logging.info("trying to delete records from PeptideEvidence")
-        session.query(AnalysisCollection).filter(AnalysisCollection.upload_id.in_(upload_id_list)).delete()
-        logging.info("trying to delete records from AnalysisCollection")
-        session.query(Upload).filter_by(project_id=project_id).delete()
+        session.query(PeptideEvidence).filter(PeptideEvidence.upload_id.in_(upload_id_list)).delete()
+        logging.info("trying to delete records from SpectraData")
+        session.query(SpectraData).filter(SpectraData.upload_id.in_(upload_id_list)).delete()
+        logging.info("trying to delete records from AnalysisCollectionSpectrumIdentification")
+        session.query(AnalysisCollectionSpectrumIdentification).filter(
+            AnalysisCollectionSpectrumIdentification.upload_id.in_(upload_id_list)).delete()
         logging.info("trying to delete records from Upload")
+        session.query(Upload).filter_by(project_id=project_id).delete()
         session.commit()
         logger.info("*****Deleted dataset: " + project_id)
         # invalidate_cache()
