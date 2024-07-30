@@ -22,7 +22,7 @@ from sqlalchemy import Table, MetaData, create_engine
 import logging.config
 
 logger = logging.getLogger(__name__)
-writer = APIWriter(get_conn_str())
+# writer = APIWriter(get_conn_str())
 engine = create_engine(get_conn_str())
 meta = MetaData()
 

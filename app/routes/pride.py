@@ -115,7 +115,7 @@ async def update_metadata_by_project(project_id: str, session: Session = Depends
     # Get total number of identifications (not spectra) passing Threshold including decoy identification
     sql_number_of_identifications = text("""
                         SELECT count(*)
-                        FROM spectrumidentification
+                        FROM match
                         WHERE upload_id IN (
                             SELECT u.id
                             FROM upload u
@@ -134,7 +134,7 @@ async def update_metadata_by_project(project_id: str, session: Session = Depends
                                 SELECT COUNT(DISTINCT pep_id)
                                 FROM (
                                     SELECT pep1_id AS pep_id
-                                    FROM spectrumidentification si
+                                    FROM match si
                                     WHERE si.upload_id IN (
                                             SELECT u.id
                                             FROM upload u
@@ -148,7 +148,7 @@ async def update_metadata_by_project(project_id: str, session: Session = Depends
                                     UNION
 
                                     SELECT pep2_id AS pep_id
-                                    FROM spectrumidentification si
+                                    FROM match si
                                     WHERE si.upload_id IN (
                                             SELECT u.id
                                             FROM upload u
@@ -167,12 +167,12 @@ async def update_metadata_by_project(project_id: str, session: Session = Depends
                             FROM (
                                 SELECT DISTINCT dbs.accession 
                                 FROM (
-                                    SELECT pe1.dbsequence_ref AS protein_id
-                                    FROM spectrumidentification si
+                                    SELECT pe1.dbsequence_id AS protein_id
+                                    FROM match si
                                     INNER JOIN modifiedpeptide mp1 ON si.pep1_id = mp1.id AND si.upload_id = mp1.upload_id
-                                    INNER JOIN peptideevidence pe1 ON mp1.id = pe1.peptide_ref AND mp1.upload_id = pe1.upload_id
+                                    INNER JOIN peptideevidence pe1 ON mp1.id = pe1.peptide_id AND mp1.upload_id = pe1.upload_id
                                     INNER JOIN modifiedpeptide mp2 ON si.pep2_id = mp2.id AND si.upload_id = mp2.upload_id
-                                    INNER JOIN peptideevidence pe2 ON mp2.id = pe2.peptide_ref AND mp2.upload_id = pe2.upload_id
+                                    INNER JOIN peptideevidence pe2 ON mp2.id = pe2.peptide_id AND mp2.upload_id = pe2.upload_id
                                     INNER JOIN upload u ON u.id = si.upload_id
                                     WHERE u.id IN (
                                         SELECT u.id
@@ -188,12 +188,12 @@ async def update_metadata_by_project(project_id: str, session: Session = Depends
 
                                     UNION
 
-                                    SELECT pe2.dbsequence_ref AS protein_id
-                                    FROM spectrumidentification si
+                                    SELECT pe2.dbsequence_id AS protein_id
+                                    FROM match si
                                     INNER JOIN modifiedpeptide mp1 ON si.pep1_id = mp1.id AND si.upload_id = mp1.upload_id
-                                    INNER JOIN peptideevidence pe1 ON mp1.id = pe1.peptide_ref AND mp1.upload_id = pe1.upload_id
+                                    INNER JOIN peptideevidence pe1 ON mp1.id = pe1.peptide_id AND mp1.upload_id = pe1.upload_id
                                     INNER JOIN modifiedpeptide mp2 ON si.pep2_id = mp2.id AND si.upload_id = mp2.upload_id
-                                    INNER JOIN peptideevidence pe2 ON mp2.id = pe2.peptide_ref AND mp2.upload_id = pe2.upload_id
+                                    INNER JOIN peptideevidence pe2 ON mp2.id = pe2.peptide_id AND mp2.upload_id = pe2.upload_id
                                     INNER JOIN upload u ON u.id = si.upload_id
                                     WHERE u.id IN (
                                         SELECT u.id
@@ -216,16 +216,16 @@ async def update_metadata_by_project(project_id: str, session: Session = Depends
     sql_peptides_per_protein = text("""
         WITH result AS (
         SELECT
-            pe1.dbsequence_ref AS dbref1,
-            pe1.peptide_ref AS pepref1,
-            pe2.dbsequence_ref AS dbref2,
-            pe2.peptide_ref AS pepref2
+            pe1.dbsequence_id AS dbref1,
+            pe1.peptide_id AS pepref1,
+            pe2.dbsequence_id AS dbref2,
+            pe2.peptide_id AS pepref2
         FROM
-            spectrumidentification si
+            match si
             INNER JOIN modifiedpeptide mp1 ON si.pep1_id = mp1.id AND si.upload_id = mp1.upload_id
-            INNER JOIN peptideevidence pe1 ON mp1.id = pe1.peptide_ref AND mp1.upload_id = pe1.upload_id
+            INNER JOIN peptideevidence pe1 ON mp1.id = pe1.peptide_id AND mp1.upload_id = pe1.upload_id
             INNER JOIN modifiedpeptide mp2 ON si.pep2_id = mp2.id AND si.upload_id = mp2.upload_id
-            INNER JOIN peptideevidence pe2 ON mp2.id = pe2.peptide_ref AND mp2.upload_id = pe2.upload_id
+            INNER JOIN peptideevidence pe2 ON mp2.id = pe2.peptide_id AND mp2.upload_id = pe2.upload_id
             INNER JOIN upload u ON u.id = si.upload_id
         WHERE
             u.id IN (
@@ -258,16 +258,16 @@ async def update_metadata_by_project(project_id: str, session: Session = Depends
     sql_crosslinks_per_protein = text("""
      WITH result AS (
         SELECT
-            pe1.dbsequence_ref AS dbref1,
-            pe1.peptide_ref AS pepref1,
-            pe2.dbsequence_ref AS dbref2,
-            pe2.peptide_ref AS pepref2
+            pe1.dbsequence_id AS dbref1,
+            pe1.peptide_id AS pepref1,
+            pe2.dbsequence_id AS dbref2,
+            pe2.peptide_id AS pepref2
         FROM
-            spectrumidentification si
+            match si
             INNER JOIN modifiedpeptide mp1 ON si.pep1_id = mp1.id AND si.upload_id = mp1.upload_id
-            INNER JOIN peptideevidence pe1 ON mp1.id = pe1.peptide_ref AND mp1.upload_id = pe1.upload_id
+            INNER JOIN peptideevidence pe1 ON mp1.id = pe1.peptide_id AND mp1.upload_id = pe1.upload_id
             INNER JOIN modifiedpeptide mp2 ON si.pep2_id = mp2.id AND si.upload_id = mp2.upload_id
-            INNER JOIN peptideevidence pe2 ON mp2.id = pe2.peptide_ref AND mp2.upload_id = pe2.upload_id
+            INNER JOIN peptideevidence pe2 ON mp2.id = pe2.peptide_id AND mp2.upload_id = pe2.upload_id
             INNER JOIN upload u ON u.id = si.upload_id
         WHERE
             u.id IN (
@@ -772,16 +772,16 @@ async def peptide_per_protein(session: Session = Depends(get_session),
                             WITH frequencytable AS (
                         WITH result AS (
                             SELECT
-                                pe1.dbsequence_ref AS dbref1,
-                                pe1.peptide_ref AS pepref1,
-                                pe2.dbsequence_ref AS dbref2,
-                                pe2.peptide_ref AS pepref2
+                                pe1.dbsequence_id AS dbref1,
+                                pe1.peptide_id AS pepref1,
+                                pe2.dbsequence_id AS dbref2,
+                                pe2.peptide_id AS pepref2
                             FROM
-                                spectrumidentification si
+                                match si
                                 INNER JOIN modifiedpeptide mp1 ON si.pep1_id = mp1.id AND si.upload_id = mp1.upload_id
-                                INNER JOIN peptideevidence pe1 ON mp1.id = pe1.peptide_ref AND mp1.upload_id = pe1.upload_id
+                                INNER JOIN peptideevidence pe1 ON mp1.id = pe1.peptide_id AND mp1.upload_id = pe1.upload_id
                                 INNER JOIN modifiedpeptide mp2 ON si.pep2_id = mp2.id AND si.upload_id = mp2.upload_id
-                                INNER JOIN peptideevidence pe2 ON mp2.id = pe2.peptide_ref AND mp2.upload_id = pe2.upload_id
+                                INNER JOIN peptideevidence pe2 ON mp2.id = pe2.peptide_id AND mp2.upload_id = pe2.upload_id
                                 INNER JOIN upload u ON u.id = si.upload_id
                             WHERE
                                 u.id IN (
