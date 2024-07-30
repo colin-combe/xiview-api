@@ -124,8 +124,10 @@ async def get_data_object(ids, pxid):
         data["project"] = await get_pride_api_info(cur, pxid)
         data["meta"] = await get_results_metadata(cur, ids)
         data["matches"] = await get_matches(cur, ids)
-        data["peptides"] = await get_peptides(cur, data["matches"], ids)
-        data["proteins"] = await get_proteins(cur, data["peptides"])
+        # data["peptides"] = await get_peptides(cur, data["matches"], ids)
+        # data["proteins"] = await get_proteins(cur, data["peptides"])
+        data["peptides"] = await get_all_peptides(cur, ids)
+        data["proteins"] = await get_all_proteins(cur, ids)
         cur.close()
     except (Exception, psycopg2.DatabaseError) as e:
         error = e
@@ -220,6 +222,7 @@ async def get_results_metadata(cur, ids):
 
 @log_execution_time_async
 async def get_matches(cur, ids):
+    # todo - check whats going on with this rank =1 and pass_threshold = True in mascot data, rank =1 condition seems to speeds things up (but should be redundant)
     # todo - rename 'si' to 'm'
     query = """WITH submodpep AS (SELECT * FROM modifiedpeptide WHERE upload_id = ANY(%s))
 SELECT si.id AS id, si.pep1_id AS pi1, si.pep2_id AS pi2,
@@ -238,6 +241,7 @@ SELECT si.id AS id, si.pep1_id AS pi1, si.pep2_id AS pi2,
             INNER JOIN submodpep mp2 ON si.pep2_id = mp2.id AND si.upload_id = mp2.upload_id
             WHERE si.upload_id = ANY(%s) 
             AND si.pass_threshold = TRUE 
+            AND si.rank = 1
             AND mp1.link_site1 > 0
             AND mp2.link_site1 > 0;"""
     cur.execute(query, [ids, ids])
@@ -369,112 +373,112 @@ async def get_xiview_matches(project, file=None):
     return Response(json_bytes, media_type='application/json')
 
 
-# @log_execution_time_async
-# @xiview_data_router.get('/get_xiview_peptides', tags=["xiVIEW"])
-# async def get_xiview_peptides(project, file=None):
-#     """
-#     Get all the peptides.
-#     URLs have the following structure:
-#     https: // www.ebi.ac.uk / pride / archive / xiview / get_xiview_peptides?project=PXD020453&file=Cullin_SDA_1pcFDR.mzid
-#     Users may provide only projects, meaning we need to have an aggregated view.
-#     https: // www.ebi.ac.uk / pride / archive / xiview / get_xiview_peptides?project=PXD020453
-#
-#     :return: json of the peptides
-#     """
-#     logger.info(f"get_xiview_peptides for {project}, file: {file}")
-#     most_recent_upload_ids = await get_most_recent_upload_ids(project, file)
-#
-#     conn = None
-#     data = {}
-#     error = None
-#
-#     try:
-#         conn = await get_db_connection()
-#         cur = conn.cursor(cursor_factory=RealDictCursor)
-#         data = await get_all_peptides(cur, most_recent_upload_ids)
-#         cur.close()
-#     except (Exception, psycopg2.DatabaseError) as e:
-#         logger.error(e)
-#         return {"error": "Database error"}, 500
-#     finally:
-#         if conn is not None:
-#             conn.close()
-#
-#     start_time = time.time()
-#     json_bytes = orjson.dumps(data)
-#     logger.info(f'peptides json dump time: {time.time() - start_time}')
-#     log_json_size(json_bytes, "peptides")  # slows things down a little
-#     return Response(json_bytes, media_type='application/json')
-#
-#
-# @log_execution_time_async
-# async def get_all_peptides(cur, ids):
-#     query = """WITH subpp AS (select * from peptideevidence WHERE upload_id = ANY(%s))
-#            SELECT mp.id,
-#                 cast(mp.upload_id as text) AS u_id,
-#                 mp.base_sequence AS seq,
-#                 array_agg(pp.dbsequence_ref) AS prt,
-#                 array_agg(pp.pep_start) AS pos,
-#                 array_agg(pp.is_decoy) AS dec,
-#                 mp.link_site1 AS ls1,
-#                 mp.link_site2 AS ls2,
-#                 mp.mod_accessions as m_as,
-#                 mp.mod_positions as m_ps,
-#                 mp.mod_monoiso_mass_deltas as m_ms,
-#                 mp.crosslinker_modmass as cl_m
-#                     FROM modifiedpeptide AS mp
-#                     JOIN subpp AS pp
-#                     ON mp.id = pp.peptide_ref AND mp.upload_id = pp.upload_id
-#                 WHERE mp.upload_id = ANY(%s)
-#                 GROUP BY mp.id, mp.upload_id, mp.base_sequence;"""
-#
-#     cur.execute(query, [ids, ids])
-#     return cur.fetchall()
-#
-#
-# @log_execution_time_async
-# @xiview_data_router.get('/get_xiview_proteins', tags=["xiVIEW"])
-# async def get_xiview_proteins(project, file=None):
-#     """
-#     Get all the proteins.
-#     URLs have the following structure:
-#     https: // www.ebi.ac.uk / pride / archive / xiview / get_xiview_proteins?project=PXD020453&file=Cullin_SDA_1pcFDR.mzid
-#     Users may provide only projects, meaning we need to have an aggregated  view.
-#     https: // www.ebi.ac.uk / pride / archive / xiview / get_xiview_proteins?project=PXD020453
-#
-#     :return: json of the proteins
-#     """
-#     logger.info(f"get_xiview_proteins for {project}, file: {file}")
-#     most_recent_upload_ids = await get_most_recent_upload_ids(project, file)
-#
-#     conn = None
-#     data = {}
-#     error = None
-#
-#     try:
-#         conn = await get_db_connection()
-#         cur = conn.cursor(cursor_factory=RealDictCursor)
-#         data = await get_all_proteins(cur, most_recent_upload_ids)
-#         cur.close()
-#     except (Exception, psycopg2.DatabaseError) as e:
-#         logger.error(e)
-#         return {"error": "Database error"}, 500
-#     finally:
-#         if conn is not None:
-#             conn.close()
-#
-#     start_time = time.time()
-#     json_bytes = orjson.dumps(data)
-#     logger.info(f'proteins json dump time: {time.time() - start_time}')
-#     log_json_size(json_bytes, "proteins")  # slows things down a little
-#     return Response(json_bytes, media_type='application/json')
-#
-#
-# @log_execution_time_async
-# async def get_all_proteins(cur, ids):
-#     query = """SELECT id, name, accession, sequence,
-#                      cast(upload_id as text) AS search_id, description FROM dbsequence
-#                      WHERE upload_id = ANY(%s)
-#                 ;"""
-#     cur.execute(query, [ids])
-#     return cur.fetchall()
+@log_execution_time_async
+@xiview_data_router.get('/get_xiview_peptides', tags=["xiVIEW"])
+async def get_xiview_peptides(project, file=None):
+    """
+    Get all the peptides.
+    URLs have the following structure:
+    https: // www.ebi.ac.uk / pride / archive / xiview / get_xiview_peptides?project=PXD020453&file=Cullin_SDA_1pcFDR.mzid
+    Users may provide only projects, meaning we need to have an aggregated view.
+    https: // www.ebi.ac.uk / pride / archive / xiview / get_xiview_peptides?project=PXD020453
+
+    :return: json of the peptides
+    """
+    logger.info(f"get_xiview_peptides for {project}, file: {file}")
+    most_recent_upload_ids = await get_most_recent_upload_ids(project, file)
+
+    conn = None
+    data = {}
+    error = None
+
+    try:
+        conn = await get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        data = await get_all_peptides(cur, most_recent_upload_ids)
+        cur.close()
+    except (Exception, psycopg2.DatabaseError) as e:
+        logger.error(e)
+        return {"error": "Database error"}, 500
+    finally:
+        if conn is not None:
+            conn.close()
+
+    start_time = time.time()
+    json_bytes = orjson.dumps(data)
+    logger.info(f'peptides json dump time: {time.time() - start_time}')
+    log_json_size(json_bytes, "peptides")  # slows things down a little
+    return Response(json_bytes, media_type='application/json')
+
+
+@log_execution_time_async
+async def get_all_peptides(cur, ids):
+    query = """WITH subpp AS (select * from peptideevidence WHERE upload_id = ANY(%s))
+           SELECT mp.id,
+                cast(mp.upload_id as text) AS u_id,
+                mp.base_sequence AS seq,
+                array_agg(pp.dbsequence_id) AS prt,
+                array_agg(pp.pep_start) AS pos,
+                array_agg(pp.is_decoy) AS dec,
+                mp.link_site1 AS ls1,
+                mp.link_site2 AS ls2,
+                mp.mod_accessions as m_as,
+                mp.mod_positions as m_ps,
+                mp.mod_monoiso_mass_deltas as m_ms,
+                mp.crosslinker_modmass as cl_m
+                    FROM modifiedpeptide AS mp
+                    JOIN subpp AS pp
+                    ON mp.id = pp.peptide_id AND mp.upload_id = pp.upload_id
+                WHERE mp.upload_id = ANY(%s)
+                GROUP BY mp.id, mp.upload_id, mp.base_sequence;"""
+
+    cur.execute(query, [ids, ids])
+    return cur.fetchall()
+
+
+@log_execution_time_async
+@xiview_data_router.get('/get_xiview_proteins', tags=["xiVIEW"])
+async def get_xiview_proteins(project, file=None):
+    """
+    Get all the proteins.
+    URLs have the following structure:
+    https: // www.ebi.ac.uk / pride / archive / xiview / get_xiview_proteins?project=PXD020453&file=Cullin_SDA_1pcFDR.mzid
+    Users may provide only projects, meaning we need to have an aggregated  view.
+    https: // www.ebi.ac.uk / pride / archive / xiview / get_xiview_proteins?project=PXD020453
+
+    :return: json of the proteins
+    """
+    logger.info(f"get_xiview_proteins for {project}, file: {file}")
+    most_recent_upload_ids = await get_most_recent_upload_ids(project, file)
+
+    conn = None
+    data = {}
+    error = None
+
+    try:
+        conn = await get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        data = await get_all_proteins(cur, most_recent_upload_ids)
+        cur.close()
+    except (Exception, psycopg2.DatabaseError) as e:
+        logger.error(e)
+        return {"error": "Database error"}, 500
+    finally:
+        if conn is not None:
+            conn.close()
+
+    start_time = time.time()
+    json_bytes = orjson.dumps(data)
+    logger.info(f'proteins json dump time: {time.time() - start_time}')
+    log_json_size(json_bytes, "proteins")  # slows things down a little
+    return Response(json_bytes, media_type='application/json')
+
+
+@log_execution_time_async
+async def get_all_proteins(cur, ids):
+    query = """SELECT id, name, accession, sequence,
+                     cast(upload_id as text) AS search_id, description FROM dbsequence
+                     WHERE upload_id = ANY(%s)
+                ;"""
+    cur.execute(query, [ids])
+    return cur.fetchall()
