@@ -15,7 +15,7 @@ jobs:
   docker_build:
     environment: dev
     env:
-      PORT: ${{ env.PORT }}
+      PORT: $PORT
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
