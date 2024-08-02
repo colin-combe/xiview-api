@@ -28,7 +28,7 @@ jobs:
       run: cat Dockerfile
 
     - name: Print Port
-      run: echo "port $PORT"
+      run: echo "port ${{ PORT }}"
 #
 #    - name: Set up Docker Buildx
 #      uses: docker/setup-buildx-action@v1
