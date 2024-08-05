@@ -9,11 +9,12 @@ from app.routes.pdbdev import pdbdev_router
 from app.routes.xiview import xiview_data_router
 from app.routes.parse import parser_router
 from fastapi.middleware.gzip import GZipMiddleware
+from db_config_parser import API_version
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
-API_VERSION = "v2"
+API_VERSION = API_version()
 
 app = FastAPI(title="xi-mzidentml-converter ws",
               description="This is an API to crosslinking archive",
