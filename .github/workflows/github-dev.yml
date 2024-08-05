@@ -49,7 +49,7 @@ jobs:
 
   deploy:
     needs: docker_build
-    environment: prod
+    environment: dev
     runs-on: ubuntu-latest
     env:
       DOCKER_PULL_SECRET: pride-gitlab-docker-secret
