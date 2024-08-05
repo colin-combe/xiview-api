@@ -45,6 +45,12 @@ def API_version():
     return apiversion
 
 
+def API_port():
+    config = os.environ.get('DB_CONFIG', 'database.ini')
+    security_info = parse_info(config, 'security')
+    apiversion = security_info.get("apiport")
+    return apiversion
+
 def redis_config():
     config = os.environ.get('DB_CONFIG', 'database.ini')
     redis_info = parse_info(config, 'redis')
