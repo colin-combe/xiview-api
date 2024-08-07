@@ -466,6 +466,9 @@ async def delete_dataset(project_id: str, session: Session = Depends(get_session
         session.query(SearchModification).filter(SearchModification.upload_id.in_(upload_id_list)).delete()
         logging.info("trying to delete records from Enzyme")
         session.query(Enzyme).filter(Enzyme.upload_id.in_(upload_id_list)).delete()
+        logging.info("trying to delete records from AnalysisCollectionSpectrumIdentification")
+        session.query(AnalysisCollectionSpectrumIdentification).filter(
+            AnalysisCollectionSpectrumIdentification.upload_id.in_(upload_id_list)).delete()
         logging.info("trying to delete records from SpectrumIdentificationProtocol")
         session.query(SpectrumIdentificationProtocol).filter(
             SpectrumIdentificationProtocol.upload_id.in_(upload_id_list)).delete()
@@ -479,9 +482,6 @@ async def delete_dataset(project_id: str, session: Session = Depends(get_session
         session.query(PeptideEvidence).filter(PeptideEvidence.upload_id.in_(upload_id_list)).delete()
         logging.info("trying to delete records from SpectraData")
         session.query(SpectraData).filter(SpectraData.upload_id.in_(upload_id_list)).delete()
-        logging.info("trying to delete records from AnalysisCollectionSpectrumIdentification")
-        session.query(AnalysisCollectionSpectrumIdentification).filter(
-            AnalysisCollectionSpectrumIdentification.upload_id.in_(upload_id_list)).delete()
         logging.info("trying to delete records from Upload")
         session.query(Upload).filter_by(project_id=project_id).delete()
         session.commit()
