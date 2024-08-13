@@ -224,7 +224,7 @@ async def get_results_metadata(cur, ids):
 async def get_matches(cur, ids):
     # todo - check whats going on with this rank =1 and pass_threshold = True in mascot data, rank =1 condition seems to speeds things up (but should be redundant)
     # todo - rename 'si' to 'm'
-    query = """WITH submodpep AS (SELECT * FROM modifiedpeptide WHERE upload_id = ANY(%s))
+    query = """WITH submodpep AS (SELECT * FROM modifiedpeptide WHERE upload_id = ANY(%s) AND link_site1 > -1)
 SELECT si.id AS id, si.pep1_id AS pi1, si.pep2_id AS pi2,
                 si.scores AS sc,
                 cast (si.upload_id as text) AS si,
@@ -241,8 +241,8 @@ SELECT si.id AS id, si.pep1_id AS pi1, si.pep2_id AS pi2,
             INNER JOIN submodpep mp2 ON si.pep2_id = mp2.id AND si.upload_id = mp2.upload_id
             WHERE si.upload_id = ANY(%s) 
             AND si.pass_threshold = TRUE 
-            AND mp1.link_site1 > 0
-            AND mp2.link_site1 > 0;"""
+            AND mp1.link_site1 > -1
+            AND mp2.link_site1 > -1;"""
     cur.execute(query, [ids, ids])
     return cur.fetchall()
 
