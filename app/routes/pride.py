@@ -3,6 +3,7 @@ import json
 import logging
 import logging.config
 import os
+import time
 from math import ceil
 from typing import List, Annotated, Union
 
@@ -13,6 +14,7 @@ from fastapi import HTTPException, Security
 from models.upload import Upload
 from sqlalchemy import text
 from sqlalchemy.orm import Session, joinedload
+import typing as t
 
 # my ide gives warning for import from models, is something missing from top __init__.py in xi-mzidentml-converter
 from models.analysiscollectionspectrumidentification import AnalysisCollectionSpectrumIdentification
@@ -36,6 +38,24 @@ from process_dataset import convert_pxd_accession_from_pride
 logger = logging.getLogger(__name__)
 pride_router = APIRouter()
 config = configparser.ConfigParser()
+
+
+class EndpointFilter(logging.Filter):
+    def __init__(
+        self,
+        path: str,
+        *args: t.Any,
+        **kwargs: t.Any,
+    ):
+        super().__init__(*args, **kwargs)
+        self._path = path
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        return record.getMessage().find(self._path) == -1
+
+
+# Filter out /endpoint
+logging.getLogger("uvicorn.access").addFilter(EndpointFilter(path="/health"))
 
 
 @pride_router.get("/health", tags=["Admin"])
@@ -63,6 +83,11 @@ async def health(session: Session = Depends(get_session)):
     return {'status': "OK",
             'db_status': db_status}
 
+
+@pride_router.get("/test_time")
+async def test_time():
+    time.sleep(65)
+    return 1
 
 @pride_router.post("/parse", tags=["Admin"])
 async def parse(px_accession: str, temp_dir: str | None = None, dont_delete: bool = False,
@@ -441,22 +466,22 @@ async def delete_dataset(project_id: str, session: Session = Depends(get_session
         session.query(SearchModification).filter(SearchModification.upload_id.in_(upload_id_list)).delete()
         logging.info("trying to delete records from Enzyme")
         session.query(Enzyme).filter(Enzyme.upload_id.in_(upload_id_list)).delete()
+        logging.info("trying to delete records from AnalysisCollectionSpectrumIdentification")
+        session.query(AnalysisCollectionSpectrumIdentification).filter(
+            AnalysisCollectionSpectrumIdentification.upload_id.in_(upload_id_list)).delete()
         logging.info("trying to delete records from SpectrumIdentificationProtocol")
         session.query(SpectrumIdentificationProtocol).filter(
             SpectrumIdentificationProtocol.upload_id.in_(upload_id_list)).delete()
+        logging.info("trying to delete records from PeptideEvidence")
+        session.query(PeptideEvidence).filter(PeptideEvidence.upload_id.in_(upload_id_list)).delete()
         logging.info("trying to delete records from ModifiedPeptide")
         session.query(ModifiedPeptide).filter(ModifiedPeptide.upload_id.in_(upload_id_list)).delete()
         logging.info("trying to delete records from DBSequence")
         session.query(DBSequence).filter(DBSequence.upload_id.in_(upload_id_list)).delete()
         logging.info("trying to delete records from Spectrum")
         session.query(Spectrum).filter(Spectrum.upload_id.in_(upload_id_list)).delete()
-        logging.info("trying to delete records from PeptideEvidence")
-        session.query(PeptideEvidence).filter(PeptideEvidence.upload_id.in_(upload_id_list)).delete()
         logging.info("trying to delete records from SpectraData")
         session.query(SpectraData).filter(SpectraData.upload_id.in_(upload_id_list)).delete()
-        logging.info("trying to delete records from AnalysisCollectionSpectrumIdentification")
-        session.query(AnalysisCollectionSpectrumIdentification).filter(
-            AnalysisCollectionSpectrumIdentification.upload_id.in_(upload_id_list)).delete()
         logging.info("trying to delete records from Upload")
         session.query(Upload).filter_by(project_id=project_id).delete()
         session.commit()
